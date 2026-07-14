@@ -156,6 +156,25 @@
             ]
           },
           {
+            "tab": "API v4",
+            "href": "cloud/api-v4-overview",
+            "groups": [
+              {
+                "group": "Get Started",
+                "pages": [
+                  "cloud/api-v4-overview"
+                ]
+              },
+              {
+                "group": "Endpoints",
+                "openapi": {
+                  "source": "cloud/openapi/v4.json",
+                  "directory": "cloud/api-v4"
+                }
+              }
+            ]
+          },
+          {
             "tab": "API v3",
             "href": "cloud/api-reference",
             "groups": [
