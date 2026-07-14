@@ -153,6 +153,11 @@ class Workspaces:
 
             uploaded = client.workspaces.upload(ws_id, "data.csv")
             client.runs.create("...", workspace_id=ws_id, attached_file_ids=[f.id for f in uploaded])
+        
+
+        Each file is read at PUT time and its byte length checked against the
+        presigned size; a size change raises. Don't modify a file while it is
+        being uploaded — a same-length in-place edit could upload newer bytes.
         """
         if not paths:
             raise ValueError("at least one file path is required")
@@ -254,6 +259,11 @@ class AsyncWorkspaces:
         Usage::
 
             uploaded = await client.workspaces.upload(ws_id, "data.csv")
+        
+
+        Each file is read at PUT time and its byte length checked against the
+        presigned size; a size change raises. Don't modify a file while it is
+        being uploaded — a same-length in-place edit could upload newer bytes.
         """
         if not paths:
             raise ValueError("at least one file path is required")

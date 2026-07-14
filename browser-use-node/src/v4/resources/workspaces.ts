@@ -89,6 +89,10 @@ export class Workspaces {
    * const uploaded = await client.workspaces.upload(wsId, "data.csv", "config.json");
    * await client.runs.create({ task: "...", workspaceId: wsId, attachedFileIds: uploaded.map(f => f.id) });
    * ```
+   *
+   * Each file is read at PUT time and its byte length is checked against the
+   * size sent at presign; a size change raises. Don't modify a file while it is
+   * being uploaded — a same-length in-place edit could upload the newer bytes.
    */
   async upload(workspaceId: string, ...paths: string[]): Promise<WorkspaceFileUploadResponseItem[]> {
     if (paths.length === 0) {
