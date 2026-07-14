@@ -25,7 +25,12 @@ export class HttpClient {
 
   constructor(options: HttpClientOptions) {
     this.apiKey = options.apiKey;
-    this.baseUrl = options.baseUrl.replace(/\/+$/, "");
+    // Strip trailing slashes without a regex — CodeQL flags /\/+$/ as a
+    // polynomial ReDoS even though baseUrl is developer config, not runtime
+    // input. Linear and provably safe.
+    let base = options.baseUrl;
+    while (base.endsWith("/")) base = base.slice(0, -1);
+    this.baseUrl = base;
     this.maxRetries = options.maxRetries ?? 3;
     this.timeout = options.timeout ?? 30_000;
     this.fetchPromise = Promise.resolve(
