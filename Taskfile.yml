@@ -335,6 +335,7 @@ tasks:
     cmds:
       - cp {{.OPENAPI_V2}} snapshots/v2.json
       - cp {{.OPENAPI_V3}} snapshots/v3.json
+      - cp {{.OPENAPI_V4}} snapshots/v4.json
       - task: docs:sync
       - echo "Snapshots saved and docs synced"
 
@@ -346,6 +347,9 @@ tasks:
       - echo ""
       - echo "=== v3 changes ==="
       - diff snapshots/v3.json {{.OPENAPI_V3}} || true
+      - echo ""
+      - echo "=== v4 changes ==="
+      - diff snapshots/v4.json {{.OPENAPI_V4}} || true
 
   # ── Docs ─────────────────────────────────────────────────────
   docs:sync:
@@ -353,6 +357,7 @@ tasks:
     cmds:
       - cp snapshots/v2.json docs/openapi/v2.json
       - cp snapshots/v3.json docs/openapi/v3.json
+      - cp snapshots/v4.json docs/openapi/v4.json
 
   docs:dev:
     desc: Start Mintlify docs dev server

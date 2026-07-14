@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import mimetypes
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -22,6 +23,42 @@ if TYPE_CHECKING:
 def _guess_content_type(path: str) -> str:
     ct, _ = mimetypes.guess_type(path)
     return ct or "application/octet-stream"
+
+
+def _read_upload_items(
+    resolved: list[Path],
+) -> tuple[list[bytes], list[WorkspaceFileUploadItem]]:
+    """Read each file's bytes ONCE and derive its presign item from that buffer.
+
+    Reading once (rather than stat-then-reread) avoids a TOCTOU where a file
+    mutated between presign and PUT no longer matches the size-pinned URL.
+    """
+    buffers = [p.read_bytes() for p in resolved]
+    items = [
+        WorkspaceFileUploadItem(
+            name=p.name,
+            contentType=_guess_content_type(str(p)),
+            size=len(buf),
+        )
+        for p, buf in zip(resolved, buffers)
+    ]
+    return buffers, items
+
+
+def _check_presign_length(
+    resp_files: list[WorkspaceFileUploadResponseItem],
+    items: list[WorkspaceFileUploadItem],
+) -> None:
+    """Raise a descriptive error if the presign response is short an upload URL."""
+    if len(resp_files) < len(items):
+        missing = ", ".join(
+            f"{it.name} (position {len(resp_files) + i})"
+            for i, it in enumerate(items[len(resp_files) :])
+        )
+        raise ValueError(
+            f"Presign response has {len(resp_files)} upload URL(s) but "
+            f"{len(items)} file(s) were requested. Missing upload URL for: {missing}"
+        )
 
 
 class Workspaces:
@@ -109,21 +146,15 @@ class Workspaces:
             client.runs.create("...", workspace_id=ws_id, attached_file_ids=[f.id for f in uploaded])
         """
         resolved = [Path(p) for p in paths]
-        items = [
-            WorkspaceFileUploadItem(
-                name=p.name,
-                contentType=_guess_content_type(str(p)),
-                size=p.stat().st_size,
-            )
-            for p in resolved
-        ]
+        buffers, items = _read_upload_items(resolved)
         resp = self.upload_files(workspace_id, items)
+        _check_presign_length(resp.files, items)
         with httpx.Client(timeout=60) as http:
-            for p, item in zip(resolved, resp.files):
+            for buf, item, resp_item in zip(buffers, items, resp.files):
                 http.put(
-                    item.upload_url,
-                    content=p.read_bytes(),
-                    headers={"Content-Type": _guess_content_type(str(p))},
+                    resp_item.upload_url,
+                    content=buf,
+                    headers={"Content-Type": item.content_type or "application/octet-stream"},
                 ).raise_for_status()
         return list(resp.files)
 
@@ -212,21 +243,17 @@ class AsyncWorkspaces:
             uploaded = await client.workspaces.upload(ws_id, "data.csv")
         """
         resolved = [Path(p) for p in paths]
-        items = [
-            WorkspaceFileUploadItem(
-                name=p.name,
-                contentType=_guess_content_type(str(p)),
-                size=p.stat().st_size,
-            )
-            for p in resolved
-        ]
+        # Offload blocking disk reads to a thread so we don't stall the event
+        # loop (and starve other coroutines) on large files.
+        buffers, items = await asyncio.to_thread(_read_upload_items, resolved)
         resp = await self.upload_files(workspace_id, items)
+        _check_presign_length(resp.files, items)
         async with httpx.AsyncClient(timeout=60) as http:
-            for p, item in zip(resolved, resp.files):
+            for buf, item, resp_item in zip(buffers, items, resp.files):
                 r = await http.put(
-                    item.upload_url,
-                    content=p.read_bytes(),
-                    headers={"Content-Type": _guess_content_type(str(p))},
+                    resp_item.upload_url,
+                    content=buf,
+                    headers={"Content-Type": item.content_type or "application/octet-stream"},
                 )
                 r.raise_for_status()
         return list(resp.files)

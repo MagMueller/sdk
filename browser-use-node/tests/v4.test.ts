@@ -1,10 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { mkdtempSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Runs } from "../src/v4/resources/runs.js";
 import { Sessions } from "../src/v4/resources/sessions.js";
+import { Workspaces } from "../src/v4/resources/workspaces.js";
 
 const RUN_ID = "00000000-0000-0000-0000-000000000001";
 const SESSION_ID = "00000000-0000-0000-0000-000000000002";
+const WORKSPACE_ID = "00000000-0000-0000-0000-000000000010";
 
 function runSummary(status: string) {
   return {
@@ -191,5 +196,175 @@ describe("v4 sessions queue", () => {
     await sessions.list({ cursor: "xyz", limit: 10 });
 
     expect(http.get).toHaveBeenCalledWith("/sessions", { cursor: "xyz", limit: 10 });
+  });
+});
+
+describe("v4 workspaces", () => {
+  const workspaceInfo = {
+    id: WORKSPACE_ID,
+    name: "my workspace",
+    archived: false,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+  };
+
+  it("creates a workspace", async () => {
+    const http = { post: vi.fn(async () => workspaceInfo) };
+    const workspaces = new Workspaces(http as any);
+
+    const ws = await workspaces.create({ name: "my workspace" });
+
+    expect(http.post).toHaveBeenCalledWith("/workspaces", { name: "my workspace" });
+    expect(ws.id).toBe(WORKSPACE_ID);
+  });
+
+  it("defaults create body to {} when omitted", async () => {
+    const http = { post: vi.fn(async () => workspaceInfo) };
+    const workspaces = new Workspaces(http as any);
+
+    await workspaces.create();
+
+    expect(http.post).toHaveBeenCalledWith("/workspaces", {});
+  });
+
+  it("passes cursor pagination params on files()", async () => {
+    const http = {
+      get: vi.fn(async () => ({ files: [], nextCursor: null, hasMore: false })),
+    };
+    const workspaces = new Workspaces(http as any);
+
+    await workspaces.files(WORKSPACE_ID, {
+      prefix: "uploads/",
+      limit: 20,
+      cursor: "cur-1",
+      includeUrls: true,
+      contentDisposition: "attachment",
+    });
+
+    expect(http.get).toHaveBeenCalledWith(`/workspaces/${WORKSPACE_ID}/files`, {
+      prefix: "uploads/",
+      limit: 20,
+      cursor: "cur-1",
+      includeUrls: true,
+      contentDisposition: "attachment",
+    });
+  });
+
+  it("posts the presign request on uploadFiles()", async () => {
+    const files = [{ name: "data.csv", contentType: "text/csv", size: 3 }];
+    const http = {
+      post: vi.fn(async () => ({
+        files: [
+          {
+            id: "00000000-0000-0000-0000-000000000099",
+            name: "data.csv",
+            storedName: "data.csv",
+            path: "uploads/data.csv",
+            willOverride: false,
+            uploadUrl: "https://s3.example/put/data.csv",
+          },
+        ],
+      })),
+    };
+    const workspaces = new Workspaces(http as any);
+
+    const resp = await workspaces.uploadFiles(WORKSPACE_ID, { files });
+
+    expect(http.post).toHaveBeenCalledWith(`/workspaces/${WORKSPACE_ID}/files/upload`, {
+      files,
+    });
+    expect(resp.files[0].uploadUrl).toBe("https://s3.example/put/data.csv");
+  });
+
+  describe("upload helper", () => {
+    let tmpFile: string;
+
+    function makeTmpFile(contents = "id,name\n1,a\n"): string {
+      const dir = mkdtempSync(join(tmpdir(), "bu-v4-"));
+      tmpFile = join(dir, "data.csv");
+      writeFileSync(tmpFile, contents);
+      return tmpFile;
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("presigns then PUTs the file bytes once", async () => {
+      const path = makeTmpFile();
+      const uploadItem = {
+        id: "00000000-0000-0000-0000-000000000099",
+        name: "data.csv",
+        storedName: "data.csv",
+        path: "uploads/data.csv",
+        willOverride: false,
+        uploadUrl: "https://s3.example/put/data.csv",
+      };
+      const http = { post: vi.fn(async () => ({ files: [uploadItem] })) };
+      const fetchMock = vi
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValue({ ok: true, status: 200, statusText: "OK" } as Response);
+      const workspaces = new Workspaces(http as any);
+
+      const result = await workspaces.upload(WORKSPACE_ID, path);
+
+      // size is derived from the read buffer, not a separate stat call
+      const presignBody = http.post.mock.calls[0][1] as { files: { size: number }[] };
+      expect(presignBody.files[0].size).toBe(Buffer.byteLength("id,name\n1,a\n"));
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith(
+        "https://s3.example/put/data.csv",
+        expect.objectContaining({ method: "PUT" }),
+      );
+      expect(result[0].id).toBe("00000000-0000-0000-0000-000000000099");
+    });
+
+    it("throws a descriptive error when the presign response is short", async () => {
+      const path = makeTmpFile();
+      const http = { post: vi.fn(async () => ({ files: [] })) };
+      vi.spyOn(globalThis, "fetch");
+      const workspaces = new Workspaces(http as any);
+
+      await expect(workspaces.upload(WORKSPACE_ID, path)).rejects.toThrow(
+        /Presign response has 0 upload URL\(s\).*data\.csv \(position 0\)/,
+      );
+    });
+
+    it("throws when a PUT returns non-200", async () => {
+      const path = makeTmpFile();
+      const http = {
+        post: vi.fn(async () => ({
+          files: [
+            {
+              id: "00000000-0000-0000-0000-000000000099",
+              name: "data.csv",
+              storedName: "data.csv",
+              path: "uploads/data.csv",
+              willOverride: false,
+              uploadUrl: "https://s3.example/put/data.csv",
+            },
+          ],
+        })),
+      };
+      vi.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: false,
+        status: 403,
+        statusText: "Forbidden",
+      } as Response);
+      const workspaces = new Workspaces(http as any);
+
+      await expect(workspaces.upload(WORKSPACE_ID, path)).rejects.toThrow(
+        /Upload failed: 403 Forbidden/,
+      );
+    });
+
+    it("rejects when called with no paths", async () => {
+      const http = { post: vi.fn() };
+      const workspaces = new Workspaces(http as any);
+
+      await expect(workspaces.upload(WORKSPACE_ID)).rejects.toThrow(
+        /At least one file path is required/,
+      );
+    });
   });
 });

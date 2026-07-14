@@ -3,15 +3,20 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 
 from browser_use_sdk.v4.resources.runs import AsyncRuns, Runs
 from browser_use_sdk.v4.resources.sessions import Sessions
+from browser_use_sdk.v4.resources.workspaces import AsyncWorkspaces, Workspaces
 
 RUN_ID = "00000000-0000-0000-0000-000000000001"
 SESSION_ID = "00000000-0000-0000-0000-000000000002"
+WORKSPACE_ID = "00000000-0000-0000-0000-000000000010"
+UPLOAD_ID = "00000000-0000-0000-0000-000000000099"
 
 
 def _run_summary(status: str) -> dict[str, Any]:
@@ -286,3 +291,226 @@ def test_sessions_list_cursor_pagination() -> None:
     sessions.list(cursor="xyz", limit=10)
 
     assert http.calls[0][3] == {"cursor": "xyz", "limit": 10}
+
+
+# ---------------------------------------------------------------------------
+# workspaces
+# ---------------------------------------------------------------------------
+
+
+def _workspace_info() -> dict[str, Any]:
+    return {
+        "id": WORKSPACE_ID,
+        "name": "my workspace",
+        "archived": False,
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+    }
+
+
+def _upload_item() -> dict[str, Any]:
+    return {
+        "id": UPLOAD_ID,
+        "name": "data.csv",
+        "storedName": "data.csv",
+        "path": "uploads/data.csv",
+        "willOverride": False,
+        "uploadUrl": "https://s3.example/put/data.csv",
+    }
+
+
+def test_workspaces_create() -> None:
+    http = FakeSyncHttp([_workspace_info()])
+    workspaces = Workspaces(http)  # type: ignore[arg-type]
+
+    ws = workspaces.create(name="my workspace")
+
+    method, path, body, _ = http.calls[0]
+    assert (method, path) == ("POST", "/workspaces")
+    assert body == {"name": "my workspace"}
+    assert str(ws.id) == WORKSPACE_ID
+
+
+def test_workspaces_files_cursor_pagination() -> None:
+    http = FakeSyncHttp([{"files": [], "nextCursor": None, "hasMore": False}])
+    workspaces = Workspaces(http)  # type: ignore[arg-type]
+
+    workspaces.files(
+        WORKSPACE_ID,
+        prefix="uploads/",
+        limit=20,
+        cursor="cur-1",
+        include_urls=True,
+        content_disposition="attachment",
+    )
+
+    assert http.calls[0][:2] == ("GET", f"/workspaces/{WORKSPACE_ID}/files")
+    assert http.calls[0][3] == {
+        "prefix": "uploads/",
+        "limit": 20,
+        "cursor": "cur-1",
+        "includeUrls": True,
+        "contentDisposition": "attachment",
+    }
+
+
+def test_workspaces_upload_files_presign() -> None:
+    http = FakeSyncHttp([{"files": [_upload_item()]}])
+    workspaces = Workspaces(http)  # type: ignore[arg-type]
+
+    from browser_use_sdk.generated.v4.models import WorkspaceFileUploadItem
+
+    resp = workspaces.upload_files(
+        WORKSPACE_ID,
+        [WorkspaceFileUploadItem(name="data.csv", contentType="text/csv", size=3)],
+    )
+
+    method, path, body, _ = http.calls[0]
+    assert (method, path) == ("POST", f"/workspaces/{WORKSPACE_ID}/files/upload")
+    assert body == {"files": [{"name": "data.csv", "contentType": "text/csv", "size": 3}]}
+    assert str(resp.files[0].id) == UPLOAD_ID
+
+
+class _FakePutResponse:
+    def __init__(self, status_code: int = 200) -> None:
+        self.status_code = status_code
+
+    def raise_for_status(self) -> None:
+        if self.status_code >= 400:
+            raise httpx.HTTPStatusError(
+                f"{self.status_code}", request=None, response=None  # type: ignore[arg-type]
+            )
+
+
+class _FakeSyncPutClient:
+    """Captures PUT calls; stands in for httpx.Client in the upload helper."""
+
+    calls: list[tuple[str, bytes, dict[str, str]]] = []
+    status_code = 200
+
+    def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+        pass
+
+    def __enter__(self) -> _FakeSyncPutClient:
+        return self
+
+    def __exit__(self, *_args: Any) -> None:
+        pass
+
+    def put(self, url: str, *, content: bytes, headers: dict[str, str]) -> _FakePutResponse:
+        type(self).calls.append((url, content, headers))
+        return _FakePutResponse(type(self).status_code)
+
+
+def test_workspaces_upload_reads_once_and_puts(tmp_path: Path, monkeypatch: Any) -> None:
+    f = tmp_path / "data.csv"
+    f.write_bytes(b"id,name\n1,a\n")
+
+    _FakeSyncPutClient.calls = []
+    _FakeSyncPutClient.status_code = 200
+    monkeypatch.setattr(httpx, "Client", _FakeSyncPutClient)
+
+    http = FakeSyncHttp([{"files": [_upload_item()]}])
+    workspaces = Workspaces(http)  # type: ignore[arg-type]
+
+    result = workspaces.upload(WORKSPACE_ID, f)
+
+    # size derived from the read buffer, not a separate stat
+    _, _, body, _ = http.calls[0]
+    assert body is not None
+    assert body["files"][0]["size"] == len(b"id,name\n1,a\n")
+    assert len(_FakeSyncPutClient.calls) == 1
+    url, content, _ = _FakeSyncPutClient.calls[0]
+    assert url == "https://s3.example/put/data.csv"
+    assert content == b"id,name\n1,a\n"
+    assert str(result[0].id) == UPLOAD_ID
+
+
+def test_workspaces_upload_short_presign_raises(tmp_path: Path) -> None:
+    f = tmp_path / "data.csv"
+    f.write_bytes(b"x")
+
+    http = FakeSyncHttp([{"files": []}])
+    workspaces = Workspaces(http)  # type: ignore[arg-type]
+
+    with pytest.raises(ValueError, match=r"data\.csv \(position 0\)"):
+        workspaces.upload(WORKSPACE_ID, f)
+
+
+def test_workspaces_upload_put_failure_raises(tmp_path: Path, monkeypatch: Any) -> None:
+    f = tmp_path / "data.csv"
+    f.write_bytes(b"x")
+
+    _FakeSyncPutClient.calls = []
+    _FakeSyncPutClient.status_code = 403
+    monkeypatch.setattr(httpx, "Client", _FakeSyncPutClient)
+
+    http = FakeSyncHttp([{"files": [_upload_item()]}])
+    workspaces = Workspaces(http)  # type: ignore[arg-type]
+
+    with pytest.raises(httpx.HTTPStatusError):
+        workspaces.upload(WORKSPACE_ID, f)
+
+
+def test_workspaces_upload_no_paths_raises() -> None:
+    http = FakeSyncHttp([])
+    workspaces = Workspaces(http)  # type: ignore[arg-type]
+
+    # An empty presign request (no files) is rejected by the model's min_length.
+    with pytest.raises(Exception):  # noqa: B017 - pydantic ValidationError
+        workspaces.upload(WORKSPACE_ID)
+
+
+class _FakeAsyncPutClient:
+    calls: list[tuple[str, bytes, dict[str, str]]] = []
+    status_code = 200
+
+    def __init__(self, *_args: Any, **_kwargs: Any) -> None:
+        pass
+
+    async def __aenter__(self) -> _FakeAsyncPutClient:
+        return self
+
+    async def __aexit__(self, *_args: Any) -> None:
+        pass
+
+    async def put(self, url: str, *, content: bytes, headers: dict[str, str]) -> _FakePutResponse:
+        type(self).calls.append((url, content, headers))
+        return _FakePutResponse(type(self).status_code)
+
+
+def test_async_workspaces_upload(tmp_path: Path, monkeypatch: Any) -> None:
+    f = tmp_path / "data.csv"
+    f.write_bytes(b"id,name\n1,a\n")
+
+    _FakeAsyncPutClient.calls = []
+    _FakeAsyncPutClient.status_code = 200
+    monkeypatch.setattr(httpx, "AsyncClient", _FakeAsyncPutClient)
+
+    async def run() -> None:
+        http = FakeAsyncHttp([{"files": [_upload_item()]}])
+        workspaces = AsyncWorkspaces(http)  # type: ignore[arg-type]
+
+        result = await workspaces.upload(WORKSPACE_ID, f)
+
+        assert len(_FakeAsyncPutClient.calls) == 1
+        url, content, _ = _FakeAsyncPutClient.calls[0]
+        assert url == "https://s3.example/put/data.csv"
+        assert content == b"id,name\n1,a\n"
+        assert str(result[0].id) == UPLOAD_ID
+
+    asyncio.run(run())
+
+
+def test_async_workspaces_upload_short_presign_raises(tmp_path: Path) -> None:
+    f = tmp_path / "data.csv"
+    f.write_bytes(b"x")
+
+    async def run() -> None:
+        http = FakeAsyncHttp([{"files": []}])
+        workspaces = AsyncWorkspaces(http)  # type: ignore[arg-type]
+
+        with pytest.raises(ValueError, match=r"data\.csv \(position 0\)"):
+            await workspaces.upload(WORKSPACE_ID, f)
+
+    asyncio.run(run())

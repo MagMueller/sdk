@@ -1,4 +1,4 @@
-import { readFileSync, statSync } from "fs";
+import { readFileSync } from "fs";
 import { basename, extname } from "path";
 import type { HttpClient } from "../../core/http.js";
 import type { components } from "../../generated/v4/types.js";
@@ -94,18 +94,30 @@ export class Workspaces {
     if (paths.length === 0) {
       throw new Error("At least one file path is required");
     }
-    const items = paths.map((p) => ({
+    // Read each file's bytes ONCE up front. Deriving size from the same buffer
+    // we PUT avoids a TOCTOU where a file mutated between presign and PUT no
+    // longer matches the size-pinned presigned URL.
+    const buffers = paths.map((p) => readFileSync(p));
+    const items = paths.map((p, i) => ({
       name: basename(p),
       contentType: guessContentType(p),
-      size: statSync(p).size,
+      size: buffers[i].byteLength,
     }));
     const resp = await this.uploadFiles(workspaceId, { files: items });
+    if (resp.files.length < items.length) {
+      const missing = items
+        .slice(resp.files.length)
+        .map((it, i) => `${it.name} (position ${resp.files.length + i})`)
+        .join(", ");
+      throw new Error(
+        `Presign response has ${resp.files.length} upload URL(s) but ${items.length} file(s) were requested. Missing upload URL for: ${missing}`,
+      );
+    }
     for (let i = 0; i < paths.length; i++) {
-      const body = readFileSync(paths[i]);
       const res = await fetch(resp.files[i].uploadUrl, {
         method: "PUT",
         headers: { "Content-Type": items[i].contentType },
-        body,
+        body: buffers[i],
       });
       if (!res.ok) throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
     }

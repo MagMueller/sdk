@@ -163,15 +163,17 @@ class Runs:
             print(run.status, run.result)
         """
         deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
+        # A terminal status is always returned, even if the status() call itself
+        # finished slightly past the deadline — a completed run is never thrown
+        # away. Only a non-terminal status seen past the deadline is a timeout.
+        while True:
             status = self.status(run_id)
             if status.status.value in _TERMINAL_STATUSES:
                 return self.get(run_id)
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                break
+                raise TimeoutError(f"Run {run_id} did not complete within {timeout}s")
             time.sleep(min(interval, remaining))
-        raise TimeoutError(f"Run {run_id} did not complete within {timeout}s")
 
 
 class AsyncRuns:
@@ -281,12 +283,14 @@ class AsyncRuns:
             print(run.status, run.result)
         """
         deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
+        # A terminal status is always returned, even if the status() call itself
+        # finished slightly past the deadline — a completed run is never thrown
+        # away. Only a non-terminal status seen past the deadline is a timeout.
+        while True:
             status = await self.status(run_id)
             if status.status.value in _TERMINAL_STATUSES:
                 return await self.get(run_id)
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                break
+                raise TimeoutError(f"Run {run_id} did not complete within {timeout}s")
             await asyncio.sleep(min(interval, remaining))
-        raise TimeoutError(f"Run {run_id} did not complete within {timeout}s")

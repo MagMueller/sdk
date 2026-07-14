@@ -88,16 +88,19 @@ export class Runs {
     const interval = options?.interval ?? 2_000;
     const deadline = Date.now() + timeout;
 
-    while (Date.now() < deadline) {
+    // A terminal status is always returned, even if the status() call itself
+    // finished slightly past the deadline — a completed run is never thrown
+    // away. Only a non-terminal status seen past the deadline is a timeout.
+    for (;;) {
       const { status } = await this.status(runId);
       if (TERMINAL_STATUSES.has(status)) {
         return this.get(runId);
       }
       const remaining = deadline - Date.now();
-      if (remaining <= 0) break;
+      if (remaining <= 0) {
+        throw new Error(`Run ${runId} did not complete within ${timeout}ms`);
+      }
       await new Promise((r) => setTimeout(r, Math.min(interval, remaining)));
     }
-
-    throw new Error(`Run ${runId} did not complete within ${timeout}ms`);
   }
 }
