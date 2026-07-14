@@ -307,7 +307,7 @@ wheels = [
 
 [[package]]
 name = "browser-use-sdk"
-version = "3.8.4"
+version = "3.9.0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

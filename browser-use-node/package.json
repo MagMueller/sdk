@@ -1,6 +1,6 @@
 {
   "name": "browser-use-sdk",
-  "version": "3.8.4",
+  "version": "3.9.0",
   "description": "Official TypeScript SDK for the Browser Use API",
   "repository": {
     "type": "git",
@@ -35,6 +35,16 @@
       "require": {
         "types": "./dist/v3.d.cts",
         "default": "./dist/v3.cjs"
+      }
+    },
+    "./v4": {
+      "import": {
+        "types": "./dist/v4.d.ts",
+        "default": "./dist/v4.js"
+      },
+      "require": {
+        "types": "./dist/v4.d.cts",
+        "default": "./dist/v4.cjs"
       }
     }
   },

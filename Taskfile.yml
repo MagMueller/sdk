@@ -5,6 +5,7 @@ dotenv: ['.env']
 vars:
   OPENAPI_V2: '{{.CLOUD_REPO_PATH}}/backend/spec/api/v2/openapi.json'
   OPENAPI_V3: '{{.CLOUD_REPO_PATH}}/backend/spec/api/v3/openapi.json'
+  OPENAPI_V4: '{{.CLOUD_REPO_PATH}}/backend/spec/api/v4/openapi.json'
   TS_SDK: browser-use-node
   PY_SDK: browser-use-python
 
@@ -15,6 +16,7 @@ tasks:
     cmds:
       - curl -sf {{.BACKEND_URL}}/api/v2/openapi.json | python3 -m json.tool > {{.OPENAPI_V2}}
       - curl -sf {{.BACKEND_URL}}/api/v3/openapi.json | python3 -m json.tool > {{.OPENAPI_V3}}
+      - curl -sf {{.BACKEND_URL}}/api/v4/openapi.json | python3 -m json.tool > {{.OPENAPI_V4}}
       - echo "Updated OpenAPI specs from {{.BACKEND_URL}}"
 
   spec:diff:
@@ -26,21 +28,22 @@ tasks:
 
   # ── Type Generation (deterministic, no AI) ────────────────────
   gen:types:
-    desc: Generate v2 + v3 types for both TS and Python
+    desc: Generate v2 + v3 + v4 types for both TS and Python
     cmds:
       - task: gen:types:ts
       - task: gen:types:py
 
   gen:types:ts:
-    desc: Generate TypeScript types from OpenAPI (v2 + v3)
+    desc: Generate TypeScript types from OpenAPI (v2 + v3 + v4)
     dir: '{{.TS_SDK}}'
     cmds:
       - npx openapi-typescript {{.OPENAPI_V2}} -o src/generated/v2/types.ts
       - npx openapi-typescript {{.OPENAPI_V3}} -o src/generated/v3/types.ts
-      - echo "TypeScript types generated (v2 + v3)"
+      - npx openapi-typescript {{.OPENAPI_V4}} -o src/generated/v4/types.ts
+      - echo "TypeScript types generated (v2 + v3 + v4)"
 
   gen:types:py:
-    desc: Generate Python models from OpenAPI (v2 + v3)
+    desc: Generate Python models from OpenAPI (v2 + v3 + v4)
     cmds:
       - |
         datamodel-codegen \
@@ -62,7 +65,17 @@ tasks:
           --field-constraints \
           --use-union-operator \
           --disable-timestamp
-      - echo "Python models generated (v2 + v3)"
+      - |
+        datamodel-codegen \
+          --input {{.OPENAPI_V4}} \
+          --input-file-type openapi \
+          --output {{.PY_SDK}}/src/browser_use_sdk/generated/v4/models.py \
+          --output-model-type pydantic_v2.BaseModel \
+          --snake-case-field \
+          --field-constraints \
+          --use-union-operator \
+          --disable-timestamp
+      - echo "Python models generated (v2 + v3 + v4)"
 
   # ── Build ─────────────────────────────────────────────────────
   build:ts:

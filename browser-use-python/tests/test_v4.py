@@ -1,0 +1,288 @@
+"""Mocked-HTTP tests for the v4 namespace (runs polling, sessions queue, pagination)."""
+
+from __future__ import annotations
+
+import asyncio
+from typing import Any
+
+import pytest
+
+from browser_use_sdk.v4.resources.runs import AsyncRuns, Runs
+from browser_use_sdk.v4.resources.sessions import Sessions
+
+RUN_ID = "00000000-0000-0000-0000-000000000001"
+SESSION_ID = "00000000-0000-0000-0000-000000000002"
+
+
+def _run_summary(status: str) -> dict[str, Any]:
+    return {
+        "id": RUN_ID,
+        "task": "Find pricing",
+        "title": None,
+        "model": "minimax-m3",
+        "contextLimit": 200000,
+        "status": status,
+        "result": "done" if status == "completed" else None,
+        "error": None,
+        "sessionId": SESSION_ID,
+        "workspaceId": None,
+        "totalInputTokens": 1,
+        "totalOutputTokens": 1,
+        "totalCostUsd": "0.01",
+        "createdAt": "2026-01-01T00:00:00Z",
+        "updatedAt": "2026-01-01T00:00:00Z",
+    }
+
+
+def _queued_message(status: str = "pending") -> dict[str, Any]:
+    return {
+        "id": 7,
+        "sessionId": SESSION_ID,
+        "runId": None,
+        "status": status,
+        "text": "also check the careers page",
+        "createdAt": "2026-01-01T00:00:00Z",
+    }
+
+
+class FakeSyncHttp:
+    """Fake SyncHttpClient — returns queued responses, records every call."""
+
+    def __init__(self, responses: list[dict[str, Any]]) -> None:
+        self.responses = list(responses)
+        self.calls: list[tuple[str, str, dict[str, Any] | None, dict[str, Any] | None]] = []
+
+    def request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append((method, path, json, params))
+        return self.responses.pop(0)
+
+
+class FakeAsyncHttp:
+    def __init__(self, responses: list[dict[str, Any]]) -> None:
+        self.responses = list(responses)
+        self.calls: list[tuple[str, str, dict[str, Any] | None, dict[str, Any] | None]] = []
+
+    async def request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: dict[str, Any] | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        self.calls.append((method, path, json, params))
+        return self.responses.pop(0)
+
+
+# ---------------------------------------------------------------------------
+# runs.wait_for_completion
+# ---------------------------------------------------------------------------
+
+
+def test_wait_for_completion_polls_status_then_fetches_run_once() -> None:
+    http = FakeSyncHttp(
+        [
+            {"status": "queued"},
+            {"status": "running"},
+            {"status": "completed"},
+            _run_summary("completed"),
+        ]
+    )
+    runs = Runs(http)  # type: ignore[arg-type]
+
+    run = runs.wait_for_completion(RUN_ID, interval=0)
+
+    paths = [c[1] for c in http.calls]
+    assert paths == [
+        f"/runs/{RUN_ID}/status",
+        f"/runs/{RUN_ID}/status",
+        f"/runs/{RUN_ID}/status",
+        f"/runs/{RUN_ID}",
+    ]
+    assert run.status.value == "completed"
+    assert run.result == "done"
+
+
+def test_wait_for_completion_stops_on_failed() -> None:
+    http = FakeSyncHttp([{"status": "failed"}, _run_summary("failed")])
+    runs = Runs(http)  # type: ignore[arg-type]
+
+    run = runs.wait_for_completion(RUN_ID, interval=0)
+
+    assert run.status.value == "failed"
+
+
+def test_wait_for_completion_times_out() -> None:
+    http = FakeSyncHttp([{"status": "running"}] * 100)
+    runs = Runs(http)  # type: ignore[arg-type]
+
+    with pytest.raises(TimeoutError, match="did not complete"):
+        runs.wait_for_completion(RUN_ID, timeout=0.01, interval=0.005)
+
+
+def test_async_wait_for_completion() -> None:
+    async def run() -> None:
+        http = FakeAsyncHttp(
+            [
+                {"status": "running"},
+                {"status": "cancelled"},
+                _run_summary("cancelled"),
+            ]
+        )
+        runs = AsyncRuns(http)  # type: ignore[arg-type]
+
+        result = await runs.wait_for_completion(RUN_ID, interval=0)
+
+        assert result.status.value == "cancelled"
+        assert [c[1] for c in http.calls] == [
+            f"/runs/{RUN_ID}/status",
+            f"/runs/{RUN_ID}/status",
+            f"/runs/{RUN_ID}",
+        ]
+
+    asyncio.run(run())
+
+
+# ---------------------------------------------------------------------------
+# runs create / list / events
+# ---------------------------------------------------------------------------
+
+
+def test_runs_create_sends_camel_case_body() -> None:
+    http = FakeSyncHttp(
+        [
+            {
+                "id": RUN_ID,
+                "status": "queued",
+                "model": "minimax-m3",
+                "sessionId": SESSION_ID,
+                "workspaceId": "00000000-0000-0000-0000-000000000003",
+                "eventsUrl": f"https://api.browser-use.com/api/v4/runs/{RUN_ID}/events",
+            }
+        ]
+    )
+    runs = Runs(http)  # type: ignore[arg-type]
+
+    created = runs.create(
+        "Find pricing",
+        model="minimax-m3",
+        session_id=SESSION_ID,
+        browser_settings={"proxyCountryCode": "de"},
+        attached_file_ids=["00000000-0000-0000-0000-000000000009"],
+    )
+
+    method, path, body, _ = http.calls[0]
+    assert (method, path) == ("POST", "/runs")
+    assert body == {
+        "task": "Find pricing",
+        "model": "minimax-m3",
+        "sessionId": SESSION_ID,
+        "browserSettings": {"proxyCountryCode": "de"},
+        "attachedFileIds": ["00000000-0000-0000-0000-000000000009"],
+    }
+    assert str(created.id) == RUN_ID
+
+
+def test_runs_list_cursor_pagination() -> None:
+    http = FakeSyncHttp(
+        [
+            {"runs": [_run_summary("completed")], "nextCursor": "cur-2", "hasMore": True},
+            {"runs": [_run_summary("completed")], "nextCursor": None, "hasMore": False},
+        ]
+    )
+    runs = Runs(http)  # type: ignore[arg-type]
+
+    first = runs.list(session_id=SESSION_ID, limit=1)
+    assert first.has_more
+    assert first.next_cursor == "cur-2"
+
+    second = runs.list(session_id=SESSION_ID, cursor=first.next_cursor, limit=1)
+    assert not second.has_more
+
+    assert http.calls[0][3] == {"sessionId": SESSION_ID, "cursor": None, "limit": 1}
+    assert http.calls[1][3] == {"sessionId": SESSION_ID, "cursor": "cur-2", "limit": 1}
+
+
+def test_runs_events_delta() -> None:
+    http = FakeSyncHttp(
+        [
+            {
+                "events": [
+                    {"runId": RUN_ID, "id": 1, "ts": "2026-01-01T00:00:00Z", "type": "step", "data": {}},
+                    {"runId": RUN_ID, "id": 2, "ts": "2026-01-01T00:00:01Z", "type": "step", "data": {}},
+                ],
+                "nextAfter": 2,
+                "hasMore": True,
+            },
+            {
+                "events": [
+                    {"runId": RUN_ID, "id": 3, "ts": "2026-01-01T00:00:02Z", "type": "done", "data": {}},
+                ],
+                "nextAfter": 3,
+                "hasMore": False,
+            },
+        ]
+    )
+    runs = Runs(http)  # type: ignore[arg-type]
+
+    first = runs.events(RUN_ID, limit=2)
+    assert first.next_after == 2
+    assert first.has_more
+
+    second = runs.events(RUN_ID, after=first.next_after, limit=2)
+    assert http.calls[1][3] == {"after": 2, "limit": 2}
+    assert not second.has_more
+    assert second.events[0].id == 3
+
+
+# ---------------------------------------------------------------------------
+# sessions queue
+# ---------------------------------------------------------------------------
+
+
+def test_sessions_send_message() -> None:
+    http = FakeSyncHttp([_queued_message()])
+    sessions = Sessions(http)  # type: ignore[arg-type]
+
+    msg = sessions.send_message(SESSION_ID, "also check the careers page", interrupt=True)
+
+    method, path, body, _ = http.calls[0]
+    assert (method, path) == ("POST", f"/sessions/{SESSION_ID}/queue")
+    assert body == {"text": "also check the careers page", "interrupt": True}
+    assert msg.status.value == "pending"
+
+
+def test_sessions_queue_list() -> None:
+    http = FakeSyncHttp([{"queue": [_queued_message()]}])
+    sessions = Sessions(http)  # type: ignore[arg-type]
+
+    resp = sessions.queue(SESSION_ID)
+
+    assert http.calls[0][:2] == ("GET", f"/sessions/{SESSION_ID}/queue")
+    assert len(resp.queue) == 1
+
+
+def test_sessions_remove_message() -> None:
+    http = FakeSyncHttp([_queued_message("cancelled")])
+    sessions = Sessions(http)  # type: ignore[arg-type]
+
+    msg = sessions.remove_message(SESSION_ID, 7)
+
+    assert http.calls[0][:2] == ("DELETE", f"/sessions/{SESSION_ID}/queue/7")
+    assert msg.status.value == "cancelled"
+
+
+def test_sessions_list_cursor_pagination() -> None:
+    http = FakeSyncHttp([{"sessions": [], "nextCursor": None, "hasMore": False}])
+    sessions = Sessions(http)  # type: ignore[arg-type]
+
+    sessions.list(cursor="xyz", limit=10)
+
+    assert http.calls[0][3] == {"cursor": "xyz", "limit": 10}
