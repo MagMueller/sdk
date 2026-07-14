@@ -1,4 +1,4 @@
-import { readFileSync } from "fs";
+import { readFile, stat } from "fs/promises";
 import { basename, extname } from "path";
 import type { HttpClient } from "../../core/http.js";
 import type { components } from "../../generated/v4/types.js";
@@ -94,15 +94,16 @@ export class Workspaces {
     if (paths.length === 0) {
       throw new Error("At least one file path is required");
     }
-    // Read each file's bytes ONCE up front. Deriving size from the same buffer
-    // we PUT avoids a TOCTOU where a file mutated between presign and PUT no
-    // longer matches the size-pinned presigned URL.
-    const buffers = paths.map((p) => readFileSync(p));
-    const items = paths.map((p, i) => ({
-      name: basename(p),
-      contentType: guessContentType(p),
-      size: buffers[i].byteLength,
-    }));
+    // Presign from each file's size via async stat (no payload in memory yet),
+    // then read + PUT each file one at a time so only ONE file's bytes are ever
+    // held in RAM. All I/O is promise-based — nothing blocks the event loop.
+    const items = await Promise.all(
+      paths.map(async (p) => ({
+        name: basename(p),
+        contentType: guessContentType(p),
+        size: (await stat(p)).size,
+      })),
+    );
     const resp = await this.uploadFiles(workspaceId, { files: items });
     if (resp.files.length < items.length) {
       const missing = items
@@ -114,10 +115,18 @@ export class Workspaces {
       );
     }
     for (let i = 0; i < paths.length; i++) {
+      const buffer = await readFile(paths[i]);
+      // Guard the TOCTOU: if the file changed size between stat and read, the
+      // presigned URL was pinned to the old size and the PUT would fail opaquely.
+      if (buffer.byteLength !== items[i].size) {
+        throw new Error(
+          `File ${paths[i]} changed size during upload (presigned ${items[i].size} bytes, read ${buffer.byteLength}). Retry the upload.`,
+        );
+      }
       const res = await fetch(resp.files[i].uploadUrl, {
         method: "PUT",
         headers: { "Content-Type": items[i].contentType },
-        body: buffers[i],
+        body: buffer,
       });
       if (!res.ok) throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
     }

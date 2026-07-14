@@ -25,24 +25,33 @@ def _guess_content_type(path: str) -> str:
     return ct or "application/octet-stream"
 
 
-def _read_upload_items(
-    resolved: list[Path],
-) -> tuple[list[bytes], list[WorkspaceFileUploadItem]]:
-    """Read each file's bytes ONCE and derive its presign item from that buffer.
-
-    Reading once (rather than stat-then-reread) avoids a TOCTOU where a file
-    mutated between presign and PUT no longer matches the size-pinned URL.
-    """
-    buffers = [p.read_bytes() for p in resolved]
-    items = [
+def _presign_items(resolved: list[Path]) -> list[WorkspaceFileUploadItem]:
+    """Build the presign request from each file's size via `stat` — no payload
+    held in memory yet. Bytes are read one file at a time at PUT time (see
+    `_read_checked`) so a multi-file upload never buffers everything at once."""
+    return [
         WorkspaceFileUploadItem(
             name=p.name,
             contentType=_guess_content_type(str(p)),
-            size=len(buf),
+            size=p.stat().st_size,
         )
-        for p, buf in zip(resolved, buffers)
+        for p in resolved
     ]
-    return buffers, items
+
+
+def _read_checked(path: Path, expected_size: int) -> bytes:
+    """Read a file's bytes and confirm they match the size sent at presign time.
+
+    The presigned URL is pinned to the stat'd size; if the file changed between
+    stat and read the PUT would fail opaquely, so we catch it here with a clear
+    error instead."""
+    data = path.read_bytes()
+    if len(data) != expected_size:
+        raise ValueError(
+            f"File {path} changed size during upload (presigned {expected_size} bytes, "
+            f"read {len(data)}). Retry the upload."
+        )
+    return data
 
 
 def _check_presign_length(
@@ -145,15 +154,19 @@ class Workspaces:
             uploaded = client.workspaces.upload(ws_id, "data.csv")
             client.runs.create("...", workspace_id=ws_id, attached_file_ids=[f.id for f in uploaded])
         """
+        if not paths:
+            raise ValueError("at least one file path is required")
         resolved = [Path(p) for p in paths]
-        buffers, items = _read_upload_items(resolved)
+        items = _presign_items(resolved)
         resp = self.upload_files(workspace_id, items)
         _check_presign_length(resp.files, items)
+        # Read + PUT one file at a time so only one payload is ever in memory.
         with httpx.Client(timeout=60) as http:
-            for buf, item, resp_item in zip(buffers, items, resp.files):
+            for path, item, resp_item in zip(resolved, items, resp.files):
+                data = _read_checked(path, item.size)
                 http.put(
                     resp_item.upload_url,
-                    content=buf,
+                    content=data,
                     headers={"Content-Type": item.content_type or "application/octet-stream"},
                 ).raise_for_status()
         return list(resp.files)
@@ -242,17 +255,22 @@ class AsyncWorkspaces:
 
             uploaded = await client.workspaces.upload(ws_id, "data.csv")
         """
+        if not paths:
+            raise ValueError("at least one file path is required")
         resolved = [Path(p) for p in paths]
-        # Offload blocking disk reads to a thread so we don't stall the event
-        # loop (and starve other coroutines) on large files.
-        buffers, items = await asyncio.to_thread(_read_upload_items, resolved)
+        # stat is cheap; run it off the loop anyway to keep all disk I/O on a
+        # thread. No payload in memory here — bytes are read per-file below.
+        items = await asyncio.to_thread(_presign_items, resolved)
         resp = await self.upload_files(workspace_id, items)
         _check_presign_length(resp.files, items)
+        # Read + PUT one file at a time (reads offloaded to a thread) so only one
+        # payload is ever in memory and the event loop never blocks on disk.
         async with httpx.AsyncClient(timeout=60) as http:
-            for buf, item, resp_item in zip(buffers, items, resp.files):
+            for path, item, resp_item in zip(resolved, items, resp.files):
+                data = await asyncio.to_thread(_read_checked, path, item.size)
                 r = await http.put(
                     resp_item.upload_url,
-                    content=buf,
+                    content=data,
                     headers={"Content-Type": item.content_type or "application/octet-stream"},
                 )
                 r.raise_for_status()

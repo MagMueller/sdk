@@ -456,9 +456,13 @@ def test_workspaces_upload_no_paths_raises() -> None:
     http = FakeSyncHttp([])
     workspaces = Workspaces(http)  # type: ignore[arg-type]
 
-    # An empty presign request (no files) is rejected by the model's min_length.
-    with pytest.raises(Exception):  # noqa: B017 - pydantic ValidationError
+    # upload() guards before any HTTP call, so this raises the explicit
+    # ValueError from the SDK — not an IndexError from the fake popping an empty
+    # response list (which would mean the guard never ran).
+    with pytest.raises(ValueError, match="at least one file path is required"):
         workspaces.upload(WORKSPACE_ID)
+    # The guard short-circuited before touching the transport.
+    assert http.calls == []
 
 
 class _FakeAsyncPutClient:
