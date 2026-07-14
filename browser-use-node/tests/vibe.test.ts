@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { BrowserUse as BrowserUseV2 } from "../src/v2/client.js";
 import { BrowserUse as BrowserUseV3 } from "../src/v3/client.js";
+import { BrowserUse as BrowserUseV4 } from "../src/v4/client.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ function getCloudRepoPath(): string {
 
 const CLOUD_REPO = getCloudRepoPath();
 
-function loadSpec(version: "v2" | "v3") {
+function loadSpec(version: "v2" | "v3" | "v4") {
   const specPath = resolve(CLOUD_REPO, "backend", "spec", "api", version, "openapi.json");
   const raw = readFileSync(specPath, "utf-8");
   return JSON.parse(raw);
@@ -161,6 +162,36 @@ function v3EndpointToSdkMethod(
   return null;
 }
 
+function v4EndpointToSdkMethod(
+  ep: { method: string; path: string },
+): { resource: string; method: string } | null {
+  const { method, path } = ep;
+
+  // Runs
+  if (method === "post" && path === "/runs") return { resource: "runs", method: "create" };
+  if (method === "get" && path === "/runs") return { resource: "runs", method: "list" };
+  if (method === "get" && path === "/runs/{run_id}") return { resource: "runs", method: "get" };
+  if (method === "get" && path === "/runs/{run_id}/status") return { resource: "runs", method: "status" };
+  if (method === "get" && path === "/runs/{run_id}/events") return { resource: "runs", method: "events" };
+  if (method === "post" && path === "/runs/{run_id}/cancel") return { resource: "runs", method: "cancel" };
+  if (method === "get" && path === "/runs/{run_id}/attachments") return { resource: "runs", method: "attachments" };
+
+  // Sessions + queue
+  if (method === "get" && path === "/sessions") return { resource: "sessions", method: "list" };
+  if (method === "get" && path === "/sessions/{session_id}") return { resource: "sessions", method: "get" };
+  if (method === "post" && path === "/sessions/{session_id}/queue") return { resource: "sessions", method: "sendMessage" };
+  if (method === "get" && path === "/sessions/{session_id}/queue") return { resource: "sessions", method: "queue" };
+  if (method === "delete" && path === "/sessions/{session_id}/queue/{message_id}") return { resource: "sessions", method: "removeMessage" };
+
+  // Workspaces
+  if (method === "post" && path === "/workspaces") return { resource: "workspaces", method: "create" };
+  if (method === "get" && path === "/workspaces/{workspace_id}") return { resource: "workspaces", method: "get" };
+  if (method === "get" && path === "/workspaces/{workspace_id}/files") return { resource: "workspaces", method: "files" };
+  if (method === "post" && path === "/workspaces/{workspace_id}/files/upload") return { resource: "workspaces", method: "uploadFiles" };
+
+  return null;
+}
+
 // ── Tests ──────────────────────────────────────────────────────────────────
 
 describe("V2 SDK coverage", () => {
@@ -191,6 +222,43 @@ describe("V2 SDK coverage", () => {
 
   it("should have run() helper on client", () => {
     expect(typeof client.run).toBe("function");
+  });
+});
+
+describe("V4 SDK coverage", () => {
+  const spec = loadSpec("v4");
+  const endpoints = extractEndpoints(spec);
+
+  const client = new BrowserUseV4({ apiKey: "test" });
+
+  // /browsers and /profiles mount the same handlers as v3 — use the v3
+  // namespace for those. Not duplicated in the v4 SDK surface.
+  const v4SkippedPaths = (path: string) =>
+    path.startsWith("/browsers") || path.startsWith("/profiles");
+
+  it("should map every v4 endpoint to a known SDK method", () => {
+    const unmapped: string[] = [];
+    for (const ep of endpoints) {
+      if (v4SkippedPaths(ep.path)) continue;
+      const mapping = v4EndpointToSdkMethod(ep);
+      if (!mapping) {
+        unmapped.push(`${ep.method.toUpperCase()} ${ep.path}`);
+      }
+    }
+    expect(unmapped).toEqual([]);
+  });
+
+  it.each(endpoints)("$method $path -> SDK method exists", (ep) => {
+    const mapping = v4EndpointToSdkMethod(ep);
+    if (!mapping) return;
+
+    const resource = (client as any)[mapping.resource];
+    expect(resource).toBeDefined();
+    expect(typeof resource[mapping.method]).toBe("function");
+  });
+
+  it("should have waitForCompletion() helper on runs", () => {
+    expect(typeof client.runs.waitForCompletion).toBe("function");
   });
 });
 
