@@ -1147,6 +1147,10 @@
     {
       "source": "/cloud/browser/open-source-vs-cloud",
       "destination": "/cloud/open-source-vs-cloud"
+    },
+    {
+      "source": "/cloud/browser-api",
+      "destination": "/cloud/browser/create"
     }
   ]
 }
