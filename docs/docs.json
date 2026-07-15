@@ -87,8 +87,7 @@
                       "cloud/agent/streaming",
                       "cloud/agent/workspaces",
                       "cloud/agent/cache-script",
-                      "cloud/agent/human-in-the-loop",
-                      "cloud/agent/performance"
+                      "cloud/agent/human-in-the-loop"
                     ]
                   },
                   {
@@ -546,10 +545,6 @@
     },
     {
       "source": "/introduction",
-      "destination": "/cloud/quickstart"
-    },
-    {
-      "source": "/cloud/introduction",
       "destination": "/cloud/quickstart"
     },
     {
