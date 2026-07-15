@@ -65,7 +65,10 @@
               {
                 "group": "Get Started",
                 "pages": [
+                  "cloud/introduction",
+                  "cloud/open-source-vs-cloud",
                   "cloud/quickstart",
+                  "cloud/pricing",
                   "cloud/vibecoding"
                 ]
               },
@@ -76,6 +79,7 @@
                     "group": "Agent",
                     "icon": "robot",
                     "pages": [
+                      "cloud/agent/overview",
                       "cloud/agent/quickstart",
                       "cloud/agent/models",
                       "cloud/agent/structured-output",
@@ -83,17 +87,32 @@
                       "cloud/agent/streaming",
                       "cloud/agent/workspaces",
                       "cloud/agent/cache-script",
-                      "cloud/agent/human-in-the-loop"
+                      "cloud/agent/human-in-the-loop",
+                      "cloud/agent/performance"
                     ]
                   },
                   {
                     "group": "Browser",
                     "icon": "globe",
                     "pages": [
+                      "cloud/browser/overview",
+                      "cloud/browser/create",
+                      "cloud/browser/sessions",
                       "cloud/browser/stealth",
+                      "cloud/browser/captcha",
                       "cloud/browser/proxies",
+                      "cloud/browser/screenshots",
                       "cloud/browser/live-preview",
-                      "cloud/browser/playwright-puppeteer-selenium",
+                      {
+                        "group": "Automation frameworks",
+                        "icon": "code",
+                        "pages": [
+                          "cloud/browser/playwright",
+                          "cloud/browser/puppeteer",
+                          "cloud/browser/selenium"
+                        ]
+                      },
+                      "cloud/browser/open-source-agent",
                       {
                         "group": "Authentication",
                         "icon": "key",
@@ -111,22 +130,22 @@
                 "group": "More",
                 "pages": [
                   {
+                    "group": "Platform features",
+                    "icon": "server",
+                    "pages": [
+                      "cloud/guides/mcp-server",
+                      "cloud/guides/webhooks",
+                      "cloud/guides/x402"
+                    ]
+                  },
+                  {
                     "group": "Integrations",
                     "icon": "plug",
                     "pages": [
-                      {
-                        "group": "Anthropic",
-                        "icon": "/images/icons/claude.svg",
-                        "pages": [
-                          "cloud/tutorials/integrations/claude-code",
-                          "cloud/tutorials/integrations/claude-managed-agents"
-                        ]
-                      },
+                      "cloud/tutorials/integrations/claude-code",
+                      "cloud/tutorials/integrations/claude-managed-agents",
                       "cloud/tutorials/integrations/openclaw",
                       "cloud/tutorials/integrations/hermes-agent",
-                      "cloud/guides/mcp-server",
-                      "cloud/guides/webhooks",
-                      "cloud/guides/x402",
                       "cloud/tutorials/integrations/n8n"
                     ]
                   },
@@ -487,15 +506,35 @@
     },
     {
       "source": "/cloud/tutorials/integrations/playwright",
-      "destination": "/cloud/browser/playwright-puppeteer-selenium"
+      "destination": "/cloud/browser/playwright"
+    },
+    {
+      "source": "/cloud/browser/playwright-puppeteer-selenium",
+      "destination": "/cloud/browser/playwright"
+    },
+    {
+      "source": "/cloud/captcha-solving",
+      "destination": "/cloud/browser/captcha"
+    },
+    {
+      "source": "/cloud/playwright",
+      "destination": "/cloud/browser/playwright"
+    },
+    {
+      "source": "/cloud/connect-playwright",
+      "destination": "/cloud/browser/playwright"
+    },
+    {
+      "source": "/cloud/puppeteer",
+      "destination": "/cloud/browser/puppeteer"
+    },
+    {
+      "source": "/cloud/selenium",
+      "destination": "/cloud/browser/selenium"
     },
     {
       "source": "/tutorials/integrations/playwright",
-      "destination": "/cloud/browser/playwright-puppeteer-selenium"
-    },
-    {
-      "source": "/cloud/pricing",
-      "destination": "https://browser-use.com/pricing"
+      "destination": "/cloud/browser/playwright"
     },
     {
       "source": "/cloud/models",
@@ -515,7 +554,7 @@
     },
     {
       "source": "/cloud/browsers",
-      "destination": "/cloud/browser/playwright-puppeteer-selenium"
+      "destination": "/cloud/browser/playwright"
     },
     {
       "source": "/quickstart",
@@ -907,7 +946,7 @@
     },
     {
       "source": "/guides/browser-api",
-      "destination": "/cloud/browser/playwright-puppeteer-selenium"
+      "destination": "/cloud/browser/playwright"
     },
     {
       "source": "/guides/proxies-and-stealth",
@@ -987,7 +1026,7 @@
     },
     {
       "source": "/tips/integrations/playwright",
-      "destination": "/cloud/browser/playwright-puppeteer-selenium"
+      "destination": "/cloud/browser/playwright"
     },
     {
       "source": "/tips/integrations/n8n",
@@ -995,7 +1034,7 @@
     },
     {
       "source": "/cloud/tips/integrations/playwright",
-      "destination": "/cloud/browser/playwright-puppeteer-selenium"
+      "destination": "/cloud/browser/playwright"
     },
     {
       "source": "/cloud/tips/integrations/n8n",
@@ -1059,7 +1098,7 @@
     },
     {
       "source": "/concepts/browser",
-      "destination": "/cloud/browser/playwright-puppeteer-selenium"
+      "destination": "/cloud/browser/playwright"
     },
     {
       "source": "/usage/structured-output",
@@ -1104,6 +1143,10 @@
     {
       "source": "/cloud/v1/*",
       "destination": "/cloud/quickstart"
+    },
+    {
+      "source": "/cloud/browser/open-source-vs-cloud",
+      "destination": "/cloud/open-source-vs-cloud"
     }
   ]
 }

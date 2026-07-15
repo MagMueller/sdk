@@ -1,0 +1,47 @@
+---
+title: CAPTCHA Solving
+description: "Browser Use remote browsers solve CAPTCHAs automatically, on by default, on every plan."
+icon: shield-check
+---
+
+Browser Use remote browsers are state-of-the-art for stealth. By using a custom Chromium fork with dozens of patches, web agents get blocked by CAPTCHAs and anti-bot systems noticeably less on the websites users care about most. Read how we do it in [We stealth benchmarked every major cloud browser provider](https://browser-use.com/posts/stealth-benchmark), and see the [benchmark results](https://browser-use.com/benchmarks): 84.8% on BrowserBench and 81% bypass on high-security sites, ahead of every other provider.
+
+When a CAPTCHA does appear, remote browsers have **automatic CAPTCHA solving** built in. You do not need to configure anything, on the browser or on the attached agent or automation library (Playwright, Puppeteer, Selenium). It is on by default on every plan, including the [free tier](/cloud/pricing).
+
+## Setting up a stealth browser
+
+There is nothing to turn on. Stealth and CAPTCHA solving come with every session. Start one:
+
+<CardGroup cols={2}>
+  <Card title="Create a browser session" icon="plus" href="/cloud/browser/create">
+    SDK, REST, or a single WebSocket URL.
+  </Card>
+  <Card title="Connect your framework" icon="code" href="/cloud/browser/playwright">
+    Playwright, Puppeteer, or Selenium over CDP.
+  </Card>
+  <Card title="Stealth" icon="user-secret" href="/cloud/browser/stealth">
+    What the hardened Chromium fork does.
+  </Card>
+  <Card title="Proxies" icon="globe" href="/cloud/browser/proxies">
+    Residential IPs in 195+ countries, on by default.
+  </Card>
+</CardGroup>
+
+## FAQ
+
+**Does the open-source library solve CAPTCHAs?**
+
+Without remote browsers, [open-source](https://github.com/browser-use/browser-use) agents have no stealth or CAPTCHA solving. Giving your agent stealth is easy: run it on a remote browser with a single parameter. See [Cloud browser + open source agent](/cloud/browser/open-source-agent).
+
+**Can I use a third-party CAPTCHA solver?**
+
+No, we do not support third-party CAPTCHA solver plugins on the browser. If your CAPTCHAs are not being solved properly, reach out and we will look into it.
+
+**Do I need to enable anything for CAPTCHA solving?**
+
+No. Remote browsers solve CAPTCHAs for you automatically.
+
+## Further reading
+
+- [Prove you are a robot: CAPTCHAs for agents](https://browser-use.com/posts/prove-you-are-a-robot)
+- [Browser agent bot detection is about to change](https://browser-use.com/posts/bot-detection)

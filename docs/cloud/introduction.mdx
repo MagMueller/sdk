@@ -1,0 +1,44 @@
+---
+title: Introduction
+description: "One API for AI browser agents and stealth cloud browsers. Choose how much control you want."
+icon: hand-wave
+---
+
+Browser Use Cloud gives you two things with one API key:
+
+1. **An AI agent** that completes web tasks from a plain-language prompt. You describe the outcome, the agent drives the browser.
+2. **Stealth cloud browsers** you drive yourself over CDP with Playwright, Puppeteer, or any automation framework.
+
+Every browser, in both modes, runs a [hardened Chromium fork](/cloud/browser/stealth) with anti-fingerprinting, [automatic CAPTCHA solving](/cloud/browser/captcha), and [residential proxies](/cloud/browser/proxies) enabled by default.
+
+## Which one do you want?
+
+**Use the [Agent](/cloud/agent/overview)** when the task is the point and the clicks are not. Price monitoring, form filling, research, multi-step workflows described in a sentence:
+
+```python
+result = await client.run("Get the price of iPhone 16 on amazon.de", proxy_country_code="de")
+```
+
+**Use a [Browser](/cloud/browser/overview)** when you want deterministic control. You have Playwright or Puppeteer scripts already, you need exact selectors and timing, or you're building your own agent:
+
+```python
+browser = await client.browsers.create()
+# connect with Playwright over CDP via browser.cdp_url
+```
+
+The two combine. An agent can run inside a browser session you created, and you can [connect Playwright to the browser behind an agent task](/cloud/browser/playwright) for hybrid workflows: the agent handles fuzzy steps, your code handles deterministic ones.
+
+## Already using the open-source library?
+
+The [Browser Use library](/open-source/introduction) runs agents on your machine with your own LLM keys. Cloud adds managed stealth browsers and a hosted agent on top. You can keep your local agent code and point it at a cloud browser, see [Open source vs Cloud](/cloud/open-source-vs-cloud).
+
+## Start here
+
+- [Quickstart](/cloud/quickstart) — first task in five minutes
+- [Create a browser session](/cloud/browser/create) — every creation method and parameter
+- [Pricing](/cloud/pricing) — what costs what
+
+## Further reading
+
+- [Benchmarks](https://browser-use.com/benchmarks) — accuracy and stealth results vs other providers
+- [The ultimate guide to web scraping (2026)](https://browser-use.com/posts/web-scraping-guide-2026)
