@@ -116,6 +116,7 @@
                     "pages": [
                       {
                         "group": "Anthropic",
+                        "icon": "/images/icons/claude.svg",
                         "pages": [
                           "cloud/tutorials/integrations/claude-code",
                           "cloud/tutorials/integrations/claude-managed-agents"
