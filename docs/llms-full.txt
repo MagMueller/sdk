@@ -7,33 +7,32 @@
 Source: https://docs.browser-use.com/cloud/introduction
 
 
-Browser Use Cloud gives you two things with one API key:
+Browser Use Cloud runs AI browser agents on stealth cloud browsers. You describe a task in plain language and the agent drives the browser to completion. Because the agent runs on a real cloud browser, you can also connect to that same browser yourself over CDP whenever you want hands-on control — the agent and the browser are one system, not a choice between two.
 
-1. **An AI agent** that completes web tasks from a plain-language prompt. You describe the outcome, the agent drives the browser.
-2. **Stealth cloud browsers** you drive yourself over CDP with Playwright, Puppeteer, or any automation framework.
+Every session — whether the agent is driving or you are — runs a [hardened Chromium fork](https://docs.browser-use.com/cloud/browser/stealth) with anti-fingerprinting, [automatic CAPTCHA solving](https://docs.browser-use.com/cloud/browser/captcha), and [residential proxies](https://docs.browser-use.com/cloud/browser/proxies) enabled by default.
 
-Every browser, in both modes, runs a [hardened Chromium fork](https://docs.browser-use.com/cloud/browser/stealth) with anti-fingerprinting, [automatic CAPTCHA solving](https://docs.browser-use.com/cloud/browser/captcha), and [residential proxies](https://docs.browser-use.com/cloud/browser/proxies) enabled by default.
+## Run a task
 
-## Which one do you want?
-
-**Use the [Agent](https://docs.browser-use.com/cloud/agent/overview)** when the task is the point and the clicks are not. Price monitoring, form filling, research, multi-step workflows described in a sentence:
+Describe the outcome and let the [agent](https://docs.browser-use.com/cloud/agent/overview) handle the clicks — price monitoring, form filling, research, multi-step workflows:
 
 ```python
 result = await client.run("Get the price of iPhone 16 on amazon.de", proxy_country_code="de")
 ```
 
-**Use a [Browser](https://docs.browser-use.com/cloud/browser/overview)** when you want deterministic control. You have Playwright or Puppeteer scripts already, you need exact selectors and timing, or you're building your own agent:
+## Drive the browser yourself
+
+The agent runs on a real cloud browser, and you can [connect to it over CDP](https://docs.browser-use.com/cloud/browser/playwright) with Playwright, Puppeteer, or any framework — for exact selectors and timing, or to build your own agent on top:
 
 ```python
 browser = await client.browsers.create()
 # connect with Playwright over CDP via browser.cdp_url
 ```
 
-The two combine. An agent can run inside a browser session you created, and you can [connect Playwright to the browser behind an agent task](https://docs.browser-use.com/cloud/browser/playwright) for hybrid workflows: the agent handles fuzzy steps, your code handles deterministic ones.
+Mix the two in one session: let the agent handle the fuzzy steps and your code handle the deterministic ones.
 
 ## Already using the open-source library?
 
-The [Browser Use library](/open-source/introduction) runs agents on your machine with your own LLM keys. Cloud adds managed stealth browsers and a hosted agent on top. You can keep your local agent code and point it at a cloud browser, see [Open source vs Cloud](https://docs.browser-use.com/cloud/open-source-vs-cloud).
+[API v2](https://docs.browser-use.com/cloud/api-v2-overview) is the [open-source library](/open-source/introduction) running on our infrastructure instead of your own machine — the same agent code, now on managed stealth browsers with no local setup. It also gives you our **bu-1-0** and **bu-2-0** models, which are cheaper, faster, and more accurate than general-purpose models on browser tasks.
 
 ## Start here
 
@@ -241,11 +240,6 @@ Billed against your plan credits, then charged if you exceed them.
 
 When you [bring your own LLM](https://docs.browser-use.com/cloud/agent/models), those tokens go to your own provider instead.
 
-**Browser Use Box** (persistent remote agent environment, billed while running)
-- Small: $1/day — 2 vCPU, 4 GB RAM, 20 GB
-- Medium: $2/day — 2 vCPU, 8 GB RAM, 50 GB
-- Large: $4/day — 4 vCPU, 16 GB RAM, 100 GB
-
 ## Tracking spend
 
 Every browser session object reports its own running cost (`browserCost`, `proxyCost`, `proxyUsedMb`), so spend is inspectable per session. [Stop sessions](https://docs.browser-use.com/cloud/browser/sessions#stopping-a-session) when done — an idle session bills until it stops or [times out](https://docs.browser-use.com/cloud/browser/sessions#timeouts).
@@ -350,6 +344,138 @@ curl -X POST https://api.browser-use.com/api/v3/sessions \
 The best SOTA browser agent — see our [online Mind2Web benchmark](https://browser-use.com/posts/online-mind2web-benchmark).
 
 If you are an LLM, read/include [docs.browser-use.com/llms-full.txt](https://docs.browser-use.com/llms-full.txt) — it contains the complete SDK reference with all code examples in a single file optimized for LLMs.
+
+
+# Sessions
+Source: https://docs.browser-use.com/cloud/agent/sessions
+
+
+A session is the container the agent works in: **one cloud browser and one or more tasks**, sharing the same browser state. When you call `client.run()`, the SDK creates a session and runs your first task inside it — you don't have to manage sessions yourself unless you want to.
+
+```python
+from browser_use_sdk import BrowserUse
+
+client = BrowserUse()
+
+# client.run() creates a session and runs the task inside it
+result = client.run("List the top 5 posts on Hacker News with their points")
+print(result.output)
+```
+
+Create a session explicitly when you want to run several tasks in the same browser, embed a live view before the first task, or manage the session's lifecycle yourself.
+
+## Session vs. task vs. browser session
+
+These three are easy to confuse:
+
+| Concept | What it is |
+| --- | --- |
+| **Session** | The agent's workspace — one browser plus every task run in it. Context (page, cookies, tabs) carries across tasks. |
+| **Task** | A single agent run: one natural-language instruction, its steps, and its output. `client.run()` is one task. |
+| **[Browser session](https://docs.browser-use.com/cloud/browser/overview)** | The raw Chrome instance itself, driven directly over CDP without an agent. |
+
+A session *holds* tasks and *wraps* a browser. If you want the agent to decide the clicks, you're in session/task territory. If you want to drive Chrome yourself, use a [browser session](https://docs.browser-use.com/cloud/browser/overview) directly.
+
+## Create a session and run tasks in it
+
+Pass `session_id` to `client.run()` to run each task in the same session. The browser state carries over between tasks — see [Follow-up tasks](https://docs.browser-use.com/cloud/agent/follow-up-tasks).
+
+```python Python
+from browser_use_sdk import BrowserUse
+
+client = BrowserUse()
+
+session = client.sessions.create()
+
+client.run(
+    "Go to amazon.com, search for laptops, and open the first result",
+    session_id=session.id,
+)
+client.run("Extract the customer reviews", session_id=session.id)
+
+client.sessions.stop(session.id)
+```
+```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk";
+
+const client = new BrowserUse();
+
+const session = await client.sessions.create();
+
+await client.run("Go to amazon.com, search for laptops, and open the first result", {
+  sessionId: session.id,
+});
+await client.run("Extract the customer reviews", { sessionId: session.id });
+
+await client.sessions.stop(session.id);
+```
+
+`sessions.create()` returns a `live_url` you can embed to watch tasks execute — see [Live preview](https://docs.browser-use.com/cloud/browser/live-preview).
+
+  Sessions time out after 15 minutes of inactivity by default. The maximum session duration is 4 hours.
+
+## Lifecycle
+
+A session is `active` while its browser is running and `stopped` once it ends — whether you stop it, it times out, or it hits the 4-hour cap. Stopping a session stops every task still running inside it.
+
+## Manage sessions
+
+```python Python
+# List sessions for the project
+sessions = client.sessions.list()
+
+# Inspect one
+session = client.sessions.get(session_id)
+print(session.status)
+
+# Stop it (and any running tasks)
+client.sessions.stop(session_id)
+
+# Delete it and all its tasks
+client.sessions.delete(session_id)
+```
+```typescript TypeScript
+// List sessions for the project
+const sessions = await client.sessions.list();
+
+// Inspect one
+const session = await client.sessions.get(sessionId);
+console.log(session.status);
+
+// Stop it (and any running tasks)
+await client.sessions.stop(sessionId);
+
+// Delete it and all its tasks
+await client.sessions.delete(sessionId);
+```
+
+## Share a session
+
+Create a public share link to let anyone view a session's replay without an API key.
+
+```python Python
+share = client.sessions.create_share(session_id)
+print(share.share_url)
+
+# Later
+client.sessions.delete_share(session_id)
+```
+```typescript TypeScript
+const share = await client.sessions.createShare(sessionId);
+console.log(share.shareUrl);
+
+// Later
+await client.sessions.deleteShare(sessionId);
+```
+
+For projects on zero-data-retention, `client.sessions.purge(session_id)` immediately deletes all data for a session.
+
+## Next
+
+- [Follow-up tasks](https://docs.browser-use.com/cloud/agent/follow-up-tasks) — run multiple tasks in one session
+- [Streaming](https://docs.browser-use.com/cloud/agent/streaming) — watch steps as they happen
+- [Live preview](https://docs.browser-use.com/cloud/browser/live-preview) — embed the browser in your UI
+- [Browser sessions](https://docs.browser-use.com/cloud/browser/overview) — drive Chrome directly without an agent
 
 
 # Models
@@ -1391,19 +1517,29 @@ The session object carries the operational fields: `status`, `timeoutAt`, `start
 - [Live preview](https://docs.browser-use.com/cloud/browser/live-preview) — watch or embed a running session
 
 
-# Introduction Stealth
+# Stealth
 Source: https://docs.browser-use.com/cloud/browser/stealth
 
 
 See [how we perform in the hardest stealth benchmark](https://browser-use.com/posts/stealth-benchmark).
 
+<Frame caption="Stealth benchmark — success rate on high-security sites, Browser Use vs other cloud browsers">
+  <img src="/cloud/images/stealth-benchmark.png" style={{ borderRadius: '0.5rem' }} alt="Stealth benchmark bar chart: Browser Use 81%, Anchor 77%, Onkernel 67%, Browserless 54%, Headful 49%, Steel 47%, Browserbase 42%, Hyperbrowser 40%, Headless 2%" />
+</Frame>
+
+Browser Use Cloud lands **81%** — ahead of every other cloud browser, and far above a plain headless browser (2%).
+
+We get there by forking Chromium rather than patching detection signals with stealth plugins, so the signals never appear in the first place. [Here's why that approach holds up as anti-bot systems tighten](https://browser-use.com/posts/bot-detection).
+
 ## What's included
 
-Every cloud browser session runs in a hardened Chromium fork with stealth enabled by default — no configuration needed.
+Every cloud browser session runs in a hardened Chromium fork with stealth enabled by default — no configuration needed. [Create a browser session](https://docs.browser-use.com/cloud/browser/create) and it is already on.
 
 - **Anti-detect browser fingerprinting** — Canvas, WebGL, fonts, navigator, and other browser fingerprints are randomized per session to appear as a real user. Passes CreepJS, BrowserLeaks, and other fingerprint detectors.
 - **Ad and cookie banner blocking** — Banners are dismissed automatically so the agent sees clean pages and executes faster.
 - **Cloudflare / anti-bot bypass** — Works on sites protected by Cloudflare, PerimeterX, and other bot detection services.
+
+Stealth keeps most challenges from ever appearing. When one does, it is solved automatically — see [CAPTCHA solving](https://docs.browser-use.com/cloud/browser/captcha) for per-vendor success rates.
 
 ## Residential proxies
 
@@ -1421,13 +1557,32 @@ Residential proxies are enabled by default across 195+ countries. This makes bro
 Source: https://docs.browser-use.com/cloud/browser/captcha
 
 
-Browser Use remote browsers are state-of-the-art for stealth. By using a custom Chromium fork with dozens of patches, web agents get blocked by CAPTCHAs and anti-bot systems noticeably less on the websites users care about most. Read how we do it in [We stealth benchmarked every major cloud browser provider](https://browser-use.com/posts/stealth-benchmark), and see the [benchmark results](https://browser-use.com/benchmarks): 84.8% on BrowserBench and 81% bypass on high-security sites, ahead of every other provider.
+Browser Use remote browsers have **automatic CAPTCHA solving** built in. There is nothing to configure — on the browser, the attached agent, or your automation library (Playwright, Puppeteer, Selenium). It is on by default on every plan, including the [free tier](https://docs.browser-use.com/cloud/pricing).
 
-When a CAPTCHA does appear, remote browsers have **automatic CAPTCHA solving** built in. You do not need to configure anything, on the browser or on the attached agent or automation library (Playwright, Puppeteer, Selenium). It is on by default on every plan, including the [free tier](https://docs.browser-use.com/cloud/pricing).
+The best defense is not tripping a challenge in the first place — that is what [stealth](https://docs.browser-use.com/cloud/browser/stealth) handles (anti-fingerprinting and bot-detection bypass). This page covers what happens when a CAPTCHA or anti-bot system appears anyway: we solve it, and we lead the field on success rate.
 
-## Setting up a stealth browser
+## Success rate by vendor
 
-There is nothing to turn on. Stealth and CAPTCHA solving come with every session. Start one:
+Across the anti-bot and CAPTCHA systems agents hit most, Browser Use Cloud has the **highest overall success rate at 81%** — and the best against **Cloudflare (93%)** and **PerimeterX (81%)**.
+
+| Protection | Browser Use Cloud |
+| --- | --- |
+| Overall | **81%** |
+| Cloudflare | **93%** |
+| PerimeterX | **81%** |
+| Akamai | 85% |
+| DataDome | 69% |
+| reCAPTCHA | 80% |
+
+<Frame caption="Success rate by vendor, Browser Use Cloud vs other cloud browser providers">
+  <img src="/cloud/images/captcha-success-by-vendor.png" style={{ borderRadius: '0.5rem' }} alt="Heatmap of success rate by vendor. Browser Use Cloud leads overall at 81%, with 93% on Cloudflare and 81% on PerimeterX, ahead of Anchor, Onkernel, Browserless, Steel, Browserbase, and Hyperbrowser." />
+</Frame>
+
+Full methodology in [We stealth benchmarked every major cloud browser provider](https://browser-use.com/posts/stealth-benchmark).
+
+## Get started
+
+There is nothing to turn on. CAPTCHA solving comes with every session. Start one:
 
 SDK, REST, or a single WebSocket URL.
 Playwright, Puppeteer, or Selenium over CDP.
@@ -2508,86 +2663,6 @@ Use **Agent Mail** (enabled by default). For end-client scenarios, have them for
 Use **TOTP secret in prompt** — the agent generates codes via pyotp, no human intervention needed.
 
 
-# MCP Server
-Source: https://docs.browser-use.com/cloud/guides/mcp-server
-
-
-```
-https://api.browser-use.com/v3/mcp
-```
-
-Get your API key at [cloud.browser-use.com/settings](https://cloud.browser-use.com/settings?tab=api-keys&new=1).
-
-## Claude Code
-
-```bash
-claude mcp add -t http -H "x-browser-use-api-key: YOUR_API_KEY" browser-use https://api.browser-use.com/v3/mcp
-```
-
-## Claude Desktop
-
-Add to `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "browser-use": {
-      "url": "https://api.browser-use.com/v3/mcp",
-      "headers": {
-        "x-browser-use-api-key": "YOUR_API_KEY"
-      }
-    }
-  }
-}
-```
-
-## Cursor
-
-Add to `.cursor/mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "browser-use": {
-      "url": "https://api.browser-use.com/v3/mcp",
-      "headers": {
-        "x-browser-use-api-key": "YOUR_API_KEY"
-      }
-    }
-  }
-}
-```
-
-## Windsurf
-
-Add to `~/.codeium/windsurf/mcp_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "browser-use": {
-      "serverUrl": "https://api.browser-use.com/v3/mcp",
-      "headers": {
-        "x-browser-use-api-key": "YOUR_API_KEY"
-      }
-    }
-  }
-}
-```
-
-## Available Tools
-
-| Tool | Description |
-|------|-------------|
-| `run_session` | Create a session and run a task. Supports `keep_alive`, `model` (`claude-sonnet-4.6`, `claude-opus-4.6`, `gpt-5.4-mini`), `output_schema`, and `profile_id`. |
-| `get_session` | Poll session status and output. Returns status, step count, cost breakdown, and live URL. |
-| `send_task` | Send a follow-up task to an idle keep-alive session. |
-| `stop_session` | Stop a session. `strategy: "task"` stops only the task, `"session"` destroys the sandbox. |
-| `get_session_messages` | Get the agent's messages — browser actions, reasoning, and results. |
-| `list_sessions` | List recent sessions with status and cost. |
-| `list_browser_profiles` | List browser profiles for authenticated tasks. |
-
-
 # Webhooks
 Source: https://docs.browser-use.com/cloud/guides/webhooks
 
@@ -3084,6 +3159,86 @@ Two likely causes:
 - [`x402` Claude Code skill source](https://github.com/browser-use/browser-use/tree/main/skills/x402)
 
 {/* prettier-ignore-end */}
+
+
+# MCP Server
+Source: https://docs.browser-use.com/cloud/guides/mcp-server
+
+
+```
+https://api.browser-use.com/v3/mcp
+```
+
+Get your API key at [cloud.browser-use.com/settings](https://cloud.browser-use.com/settings?tab=api-keys&new=1).
+
+## Claude Code
+
+```bash
+claude mcp add -t http -H "x-browser-use-api-key: YOUR_API_KEY" browser-use https://api.browser-use.com/v3/mcp
+```
+
+## Claude Desktop
+
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "browser-use": {
+      "url": "https://api.browser-use.com/v3/mcp",
+      "headers": {
+        "x-browser-use-api-key": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+## Cursor
+
+Add to `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "browser-use": {
+      "url": "https://api.browser-use.com/v3/mcp",
+      "headers": {
+        "x-browser-use-api-key": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+## Windsurf
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "browser-use": {
+      "serverUrl": "https://api.browser-use.com/v3/mcp",
+      "headers": {
+        "x-browser-use-api-key": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+## Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `run_session` | Create a session and run a task. Supports `keep_alive`, `model` (`claude-sonnet-4.6`, `claude-opus-4.6`, `gpt-5.4-mini`), `output_schema`, and `profile_id`. |
+| `get_session` | Poll session status and output. Returns status, step count, cost breakdown, and live URL. |
+| `send_task` | Send a follow-up task to an idle keep-alive session. |
+| `stop_session` | Stop a session. `strategy: "task"` stops only the task, `"session"` destroys the sandbox. |
+| `get_session_messages` | Get the agent's messages — browser actions, reasoning, and results. |
+| `list_sessions` | List recent sessions with status and cost. |
+| `list_browser_profiles` | List browser profiles for authenticated tasks. |
 
 
 # Claude Code

@@ -4,13 +4,32 @@ description: "Browser Use remote browsers solve CAPTCHAs automatically, on by de
 icon: shield-check
 ---
 
-Browser Use remote browsers are state-of-the-art for stealth. By using a custom Chromium fork with dozens of patches, web agents get blocked by CAPTCHAs and anti-bot systems noticeably less on the websites users care about most. Read how we do it in [We stealth benchmarked every major cloud browser provider](https://browser-use.com/posts/stealth-benchmark), and see the [benchmark results](https://browser-use.com/benchmarks): 84.8% on BrowserBench and 81% bypass on high-security sites, ahead of every other provider.
+Browser Use remote browsers have **automatic CAPTCHA solving** built in. There is nothing to configure — on the browser, the attached agent, or your automation library (Playwright, Puppeteer, Selenium). It is on by default on every plan, including the [free tier](/cloud/pricing).
 
-When a CAPTCHA does appear, remote browsers have **automatic CAPTCHA solving** built in. You do not need to configure anything, on the browser or on the attached agent or automation library (Playwright, Puppeteer, Selenium). It is on by default on every plan, including the [free tier](/cloud/pricing).
+The best defense is not tripping a challenge in the first place — that is what [stealth](/cloud/browser/stealth) handles (anti-fingerprinting and bot-detection bypass). This page covers what happens when a CAPTCHA or anti-bot system appears anyway: we solve it, and we lead the field on success rate.
 
-## Setting up a stealth browser
+## Success rate by vendor
 
-There is nothing to turn on. Stealth and CAPTCHA solving come with every session. Start one:
+Across the anti-bot and CAPTCHA systems agents hit most, Browser Use Cloud has the **highest overall success rate at 81%** — and the best against **Cloudflare (93%)** and **PerimeterX (81%)**.
+
+| Protection | Browser Use Cloud |
+| --- | --- |
+| Overall | **81%** |
+| Cloudflare | **93%** |
+| PerimeterX | **81%** |
+| Akamai | 85% |
+| DataDome | 69% |
+| reCAPTCHA | 80% |
+
+<Frame caption="Success rate by vendor, Browser Use Cloud vs other cloud browser providers">
+  <img src="/cloud/images/captcha-success-by-vendor.png" style={{ borderRadius: '0.5rem' }} alt="Heatmap of success rate by vendor. Browser Use Cloud leads overall at 81%, with 93% on Cloudflare and 81% on PerimeterX, ahead of Anchor, Onkernel, Browserless, Steel, Browserbase, and Hyperbrowser." />
+</Frame>
+
+Full methodology in [We stealth benchmarked every major cloud browser provider](https://browser-use.com/posts/stealth-benchmark).
+
+## Get started
+
+There is nothing to turn on. CAPTCHA solving comes with every session. Start one:
 
 <CardGroup cols={2}>
   <Card title="Create a browser session" icon="plus" href="/cloud/browser/create">

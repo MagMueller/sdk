@@ -22,7 +22,7 @@ export BROWSER_USE_API_KEY=bu_your_key_here
 
 
 ## Get Started
-- [Introduction](https://docs.browser-use.com/cloud/introduction): One API for AI browser agents and stealth cloud browsers. Choose how much control you want.
+- [Introduction](https://docs.browser-use.com/cloud/introduction): AI browser agents that run on stealth cloud browsers — one API key, driven as much or as little as you want.
 - [Open source vs Cloud](https://docs.browser-use.com/cloud/open-source-vs-cloud): The library and the cloud are different products that combine. Here's which one you want.
 - [Quick start](https://docs.browser-use.com/cloud/quickstart): State-of-the-art AI browser automation with stealth browsers, CAPTCHA solving, residential proxies, and managed infrastructure.
 - [Pricing & free tier](https://docs.browser-use.com/cloud/pricing): Browser Use Cloud plans, the free tier (no card required), and every usage-based rate.
@@ -31,6 +31,7 @@ export BROWSER_USE_API_KEY=bu_your_key_here
 ## Agent
 - [Overview](https://docs.browser-use.com/cloud/agent/overview): The hosted agent takes a task in plain language and drives a stealth browser until it's done.
 - [Introduction](https://docs.browser-use.com/cloud/agent/quickstart): Easiest way to automate the web. Tell this agent in natural language what it should do, and it can interact with the web like a human.
+- [Sessions](https://docs.browser-use.com/cloud/agent/sessions): One cloud browser plus the tasks an agent runs inside it.
 - [Models](https://docs.browser-use.com/cloud/agent/models): Choose the right model for your task.
 - [Structured output](https://docs.browser-use.com/cloud/agent/structured-output): Get validated, typed data back from agent tasks.
 - [Follow-up tasks](https://docs.browser-use.com/cloud/agent/follow-up-tasks): Run multiple tasks in the same browser session.
@@ -43,7 +44,7 @@ export BROWSER_USE_API_KEY=bu_your_key_here
 - [Overview](https://docs.browser-use.com/cloud/browser/overview): Remote stealth browsers you control over CDP. What they are and when to use one.
 - [Create a browser session](https://docs.browser-use.com/cloud/browser/create): Every way to start a cloud browser: SDK, REST, or a single WebSocket URL, with all parameters and the response schema.
 - [Manage browser sessions](https://docs.browser-use.com/cloud/browser/sessions): Session lifecycle: states, timeouts, stopping, disconnect behavior, and what you're billed for.
-- [Introduction Stealth](https://docs.browser-use.com/cloud/browser/stealth): Best stealth on the planet. We fork Chromium to give agents access to all websites.
+- [Stealth](https://docs.browser-use.com/cloud/browser/stealth): Best stealth on the planet. We fork Chromium to give agents access to all websites.
 - [CAPTCHA Solving](https://docs.browser-use.com/cloud/browser/captcha): Browser Use remote browsers solve CAPTCHAs automatically, on by default, on every plan.
 - [Proxies](https://docs.browser-use.com/cloud/browser/proxies): Residential proxies in 195+ countries. On by default.
 - [Screenshots](https://docs.browser-use.com/cloud/browser/screenshots): Take viewport and full-page screenshots from a cloud browser session, and control where they're saved.
@@ -64,11 +65,11 @@ export BROWSER_USE_API_KEY=bu_your_key_here
 - [FAQ](https://docs.browser-use.com/cloud/faq): Common questions and solutions.
 
 ## Platform features
-- [MCP Server](https://docs.browser-use.com/cloud/guides/mcp-server): Run browser automation tasks from your AI coding assistant. Connect to Claude, Cursor, Windsurf, or any MCP client.
 - [Webhooks](https://docs.browser-use.com/cloud/guides/webhooks): Receive real-time notifications when tasks complete. Configure webhook endpoints for async task monitoring.
 - [x402 (pay-per-request)](https://docs.browser-use.com/cloud/guides/x402): Pay for Browser Use Cloud with crypto (USDC on Base). ~30 seconds from wallet to first request.
 
 ## Integrations
+- [MCP Server](https://docs.browser-use.com/cloud/guides/mcp-server): Run browser automation tasks from your AI coding assistant. Connect to Claude, Cursor, Windsurf, or any MCP client.
 - [Claude Code](https://docs.browser-use.com/cloud/tutorials/integrations/claude-code): Give Claude Code cloud browser automation with Browser Use.
 - [Claude Managed Agents](https://docs.browser-use.com/cloud/tutorials/integrations/claude-managed-agents): Give Anthropic's Claude Managed Agents a stealth cloud browser via the Browser Use CLI.
 - [OpenClaw](https://docs.browser-use.com/cloud/tutorials/integrations/openclaw): Give OpenClaw agents browser automation with Browser Use — via CDP or the CLI skill.

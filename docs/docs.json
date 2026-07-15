@@ -81,6 +81,7 @@
                     "pages": [
                       "cloud/agent/overview",
                       "cloud/agent/quickstart",
+                      "cloud/agent/sessions",
                       "cloud/agent/models",
                       "cloud/agent/structured-output",
                       "cloud/agent/follow-up-tasks",
@@ -132,7 +133,6 @@
                     "group": "Platform features",
                     "icon": "server",
                     "pages": [
-                      "cloud/guides/mcp-server",
                       "cloud/guides/webhooks",
                       "cloud/guides/x402"
                     ]
@@ -141,6 +141,7 @@
                     "group": "Integrations",
                     "icon": "plug",
                     "pages": [
+                      "cloud/guides/mcp-server",
                       "cloud/tutorials/integrations/claude-code",
                       "cloud/tutorials/integrations/claude-managed-agents",
                       "cloud/tutorials/integrations/openclaw",
@@ -434,6 +435,46 @@
     {
       "source": "/cloud/new-features/api-v3",
       "destination": "/cloud/agent/quickstart"
+    },
+    {
+      "source": "/cloud/sessions",
+      "destination": "/cloud/agent/sessions"
+    },
+    {
+      "source": "/cloud/browser-session",
+      "destination": "/cloud/browser/sessions"
+    },
+    {
+      "source": "/cloud/mcp",
+      "destination": "/cloud/guides/mcp-server"
+    },
+    {
+      "source": "/cloud/mcp-server",
+      "destination": "/cloud/guides/mcp-server"
+    },
+    {
+      "source": "/cloud/overview",
+      "destination": "/cloud/introduction"
+    },
+    {
+      "source": "/cloud/apis",
+      "destination": "/cloud/api-reference"
+    },
+    {
+      "source": "/cloud/browser-api/stop",
+      "destination": "/cloud/browser/sessions"
+    },
+    {
+      "source": "/cloud/cache-scripts",
+      "destination": "/cloud/agent/cache-script"
+    },
+    {
+      "source": "/cloud/workspaces",
+      "destination": "/cloud/agent/workspaces"
+    },
+    {
+      "source": "/cloud/tutorials/2fa",
+      "destination": "/cloud/guides/2fa"
     },
     {
       "source": "/cloud/guides/sessions",

@@ -50,11 +50,6 @@ Billed against your plan credits, then charged if you exceed them.
 
 When you [bring your own LLM](/cloud/agent/models), those tokens go to your own provider instead.
 
-**Browser Use Box** (persistent remote agent environment, billed while running)
-- Small: $1/day — 2 vCPU, 4 GB RAM, 20 GB
-- Medium: $2/day — 2 vCPU, 8 GB RAM, 50 GB
-- Large: $4/day — 4 vCPU, 16 GB RAM, 100 GB
-
 ## Tracking spend
 
 Every browser session object reports its own running cost (`browserCost`, `proxyCost`, `proxyUsedMb`), so spend is inspectable per session. [Stop sessions](/cloud/browser/sessions#stopping-a-session) when done — an idle session bills until it stops or [times out](/cloud/browser/sessions#timeouts).
