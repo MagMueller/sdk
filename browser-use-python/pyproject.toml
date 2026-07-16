@@ -44,3 +44,11 @@ dev = [
     "pyright>=1.1.408",
     "pytest>=8.4.2",
 ]
+
+[tool.uv]
+# Security constraints on transitive dependencies (pulled in via the optional
+# x402 extra -> web3 -> requests). Not direct deps; pinned here to keep the
+# resolved lockfile clear of known CVEs.
+constraint-dependencies = [
+    "urllib3>=2.7.0",  # CVE-2026-44431, CVE-2026-44432
+]
