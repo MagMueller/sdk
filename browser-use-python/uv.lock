@@ -6,9 +6,6 @@ resolution-markers = [
     "python_full_version < '3.10'",
 ]
 
-[manifest]
-constraints = [{ name = "urllib3", specifier = ">=2.7.0" }]
-
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -327,6 +324,7 @@ examples = [
     { name = "python-dotenv" },
 ]
 x402 = [
+    { name = "urllib3", marker = "python_full_version >= '3.10'" },
     { name = "x402", extra = ["evm"], marker = "python_full_version >= '3.10'" },
 ]
 
@@ -344,6 +342,7 @@ requires-dist = [
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7" },
     { name = "python-dotenv", marker = "extra == 'examples'", specifier = ">=1.0" },
+    { name = "urllib3", marker = "python_full_version >= '3.10' and extra == 'x402'", specifier = ">=2.7.0" },
     { name = "x402", extras = ["evm"], marker = "python_full_version >= '3.10' and extra == 'x402'", specifier = ">=2.9.0" },
 ]
 provides-extras = ["dev", "examples", "x402"]
