@@ -2330,36 +2330,49 @@ Billing: only the browser session ($0.02/hour plus proxy data). Your LLM tokens 
 Source: https://docs.browser-use.com/cloud/guides/authentication
 
 
+Create a profile, then pass its `profile_id` to `run()` — the agent opens a browser seeded from that profile and runs your task on it. Cookies and login state saved during the run persist, so the next run with the same profile is already logged in.
+
 ```python Python
 from browser_use_sdk.v3 import AsyncBrowserUse
 
 client = AsyncBrowserUse()
-profile = await client.profiles.create(name="user-id-1")
-# or search existing
-# profile = (await client.profiles.list(query="user-id-1")).items[0]
-session = await client.sessions.create(profile_id=profile.id)
-result = await client.run("Check browser-use github stars", session_id=session.id)
-print(result.output)
 
-# Always stop the session to persist profile state
-await client.sessions.stop(session.id)
+# 1. Create a profile (stores cookies + login state across runs)
+profile = await client.profiles.create(name="user-id-1")
+# or reuse an existing one:
+# profile = (await client.profiles.list(query="user-id-1")).items[0]
+
+# 2. Run the agent — profile_id attaches a browser seeded from the profile
+result = await client.run(
+    "Go to example.com and return the page title",
+    profile_id=profile.id,
+)
+print(result.output)  # -> "Example Domain"
+
+# 3. Reuse the same profile later — saved login/cookies carry over
+followup = await client.run("Check my GitHub notifications", profile_id=profile.id)
 ```
 ```typescript TypeScript
 import { BrowserUse } from "browser-use-sdk/v3";
 
 const client = new BrowserUse();
-const profile = await client.profiles.create({ name: "user-id-1" });
-// or search existing
-// const profile = (await client.profiles.list({ query: "user-id-1" })).items[0];
-const session = await client.sessions.create({ profileId: profile.id });
-const result = await client.run("Check browser-use github stars", {
-  sessionId: session.id,
-});
-console.log(result.output);
 
-// Always stop the session to persist profile state
-await client.sessions.stop(session.id);
+// 1. Create a profile (stores cookies + login state across runs)
+const profile = await client.profiles.create({ name: "user-id-1" });
+// or reuse an existing one:
+// const profile = (await client.profiles.list({ query: "user-id-1" })).items[0];
+
+// 2. Run the agent — profileId attaches a browser seeded from the profile
+const result = await client.run("Go to example.com and return the page title", {
+  profileId: profile.id,
+});
+console.log(result.output); // -> "Example Domain"
+
+// 3. Reuse the same profile later — saved login/cookies carry over
+const followup = await client.run("Check my GitHub notifications", { profileId: profile.id });
 ```
+
+Passing `profile_id` to `run()` provisions the browser and runs the agent in one call — no separate session step. Profile state is saved automatically when the run ends.
 
 View your profile IDs at [cloud.browser-use.com/settings](https://cloud.browser-use.com/settings?tab=profiles).
 

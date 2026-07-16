@@ -497,6 +497,14 @@
       "destination": "/cloud/guides/authentication"
     },
     {
+      "source": "/browser/overview",
+      "destination": "/cloud/browser/overview"
+    },
+    {
+      "source": "/examples/persistent-browser",
+      "destination": "/cloud/guides/authentication"
+    },
+    {
       "source": "/cloud/browser/keep-alive",
       "destination": "/cloud/browser/sessions"
     },
