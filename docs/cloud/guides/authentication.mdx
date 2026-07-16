@@ -39,6 +39,70 @@ await client.sessions.stop(session.id);
 
 View your profile IDs at [cloud.browser-use.com/settings](https://cloud.browser-use.com/settings?tab=profiles).
 
+## Persist state on a browser you drive (CDP)
+
+Profiles work the same whether the agent drives or you do. Pass `profile_id` to `browsers.create()`, set state over CDP, then **stop the browser to flush cookies and localStorage into the profile**. Reconnect later with the same `profile_id` and the state is there.
+
+<CodeGroup>
+```python Python
+from browser_use_sdk.v3 import AsyncBrowserUse
+from playwright.async_api import async_playwright
+
+client = AsyncBrowserUse()
+profile = await client.profiles.create(name="persist-demo")
+
+# Session 1 — write state, then stop to persist
+b1 = await client.browsers.create(profile_id=profile.id)
+async with async_playwright() as p:
+    pw = await p.chromium.connect_over_cdp(b1.cdp_url)
+    page = pw.contexts[0].pages[0]
+    await page.goto("https://en.wikipedia.org")
+    await page.evaluate("localStorage.setItem('demo', 'hello')")
+    await pw.close()
+await client.browsers.stop(b1.id)   # flushes state into the profile
+
+# Session 2 — same profile, state is back
+b2 = await client.browsers.create(profile_id=profile.id)
+async with async_playwright() as p:
+    pw = await p.chromium.connect_over_cdp(b2.cdp_url)
+    page = pw.contexts[0].pages[0]
+    await page.goto("https://en.wikipedia.org")
+    value = await page.evaluate("localStorage.getItem('demo')")
+    print(value)  # -> hello
+    await pw.close()
+await client.browsers.stop(b2.id)
+```
+```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v3";
+import { chromium } from "playwright";
+
+const client = new BrowserUse();
+const profile = await client.profiles.create({ name: "persist-demo" });
+
+// Session 1 — write state, then stop to persist
+const b1 = await client.browsers.create({ profileId: profile.id });
+let pw = await chromium.connectOverCDP(b1.cdpUrl);
+let page = pw.contexts()[0].pages()[0];
+await page.goto("https://en.wikipedia.org");
+await page.evaluate(() => localStorage.setItem("demo", "hello"));
+await pw.close();
+await client.browsers.stop(b1.id); // flushes state into the profile
+
+// Session 2 — same profile, state is back
+const b2 = await client.browsers.create({ profileId: profile.id });
+pw = await chromium.connectOverCDP(b2.cdpUrl);
+page = pw.contexts()[0].pages()[0];
+await page.goto("https://en.wikipedia.org");
+console.log(await page.evaluate(() => localStorage.getItem("demo"))); // -> hello
+await pw.close();
+await client.browsers.stop(b2.id);
+```
+</CodeGroup>
+
+<Note>
+  Use a site that actually sets cookies/localStorage to verify persistence — `example.com` sets none, so it is a poor test target.
+</Note>
+
 ## Manage profiles
 
 <CodeGroup>
@@ -94,7 +158,7 @@ await client.profiles.delete(profileId);
 - **Per-user profiles:** Create one profile per end-user. Query by name to get the profile ID, or store a mapping between your users and their profile IDs in your database.
 
 <Warning>
-  Profile state is only saved when the session ends. Always call `sessions.stop()` when you are done — if a session is left open or times out, changes may not be persisted. Every code path that uses a profile must stop the session, including error handlers.
+  Profile state is saved when the run ends — call `sessions.stop()` (agent) or `browsers.stop()` (CDP) when you are done. Both paths persist; a session left open or timed out may not save. Stop in a `finally` so every code path, including error handlers, persists.
 </Warning>
 
 ## Further reading

@@ -9,6 +9,9 @@ icon: rocket
 <CodeGroup>
 ```bash Python
 pip install browser-use-sdk
+# In a managed environment (Debian/Docker "externally-managed-environment", PEP 668),
+# use a venv: python3 -m venv .venv && source .venv/bin/activate && pip install browser-use-sdk
+# or: uv pip install browser-use-sdk
 ```
 ```bash TypeScript
 npm install browser-use-sdk
@@ -59,6 +62,7 @@ from playwright.async_api import async_playwright
 async def main():
     client = AsyncBrowserUse()
     browser = await client.browsers.create()
+    print(browser.cdp_url)   # CDP endpoint for Playwright/Puppeteer/Selenium
     print(browser.live_url)  # watch the session in a browser tab
 
     async with async_playwright() as p:
@@ -79,6 +83,7 @@ import { chromium } from "playwright";
 
 const client = new BrowserUse();
 const browser = await client.browsers.create();
+console.log(browser.cdpUrl);  // CDP endpoint for Playwright/Puppeteer/Selenium
 console.log(browser.liveUrl); // watch the session in a browser tab
 
 const pw = await chromium.connectOverCDP(browser.cdpUrl);

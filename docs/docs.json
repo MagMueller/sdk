@@ -477,6 +477,38 @@
       "destination": "/cloud/guides/2fa"
     },
     {
+      "source": "/cloud/browsers/playwright",
+      "destination": "/cloud/browser/playwright"
+    },
+    {
+      "source": "/cloud/browsers/puppeteer",
+      "destination": "/cloud/browser/puppeteer"
+    },
+    {
+      "source": "/cloud/browsers/selenium",
+      "destination": "/cloud/browser/selenium"
+    },
+    {
+      "source": "/cloud/browser/profiles",
+      "destination": "/cloud/guides/authentication"
+    },
+    {
+      "source": "/cloud/profiles",
+      "destination": "/cloud/guides/authentication"
+    },
+    {
+      "source": "/cloud/browser/keep-alive",
+      "destination": "/cloud/browser/sessions"
+    },
+    {
+      "source": "/cloud/browser/stop",
+      "destination": "/cloud/browser/sessions"
+    },
+    {
+      "source": "/customize/captcha-solver",
+      "destination": "/cloud/browser/captcha"
+    },
+    {
       "source": "/cloud/guides/sessions",
       "destination": "/cloud/guides/authentication"
     },

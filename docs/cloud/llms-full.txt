@@ -88,6 +88,9 @@ Source: https://docs.browser-use.com/cloud/quickstart
 
 ```bash Python
 pip install browser-use-sdk
+# In a managed environment (Debian/Docker "externally-managed-environment", PEP 668),
+# use a venv: python3 -m venv .venv && source .venv/bin/activate && pip install browser-use-sdk
+# or: uv pip install browser-use-sdk
 ```
 ```bash TypeScript
 npm install browser-use-sdk
@@ -134,6 +137,7 @@ from playwright.async_api import async_playwright
 async def main():
     client = AsyncBrowserUse()
     browser = await client.browsers.create()
+    print(browser.cdp_url)   # CDP endpoint for Playwright/Puppeteer/Selenium
     print(browser.live_url)  # watch the session in a browser tab
 
     async with async_playwright() as p:
@@ -154,6 +158,7 @@ import { chromium } from "playwright";
 
 const client = new BrowserUse();
 const browser = await client.browsers.create();
+console.log(browser.cdpUrl);  // CDP endpoint for Playwright/Puppeteer/Selenium
 console.log(browser.liveUrl); // watch the session in a browser tab
 
 const pw = await chromium.connectOverCDP(browser.cdpUrl);
@@ -1580,6 +1585,19 @@ Across the anti-bot and CAPTCHA systems agents hit most, Browser Use Cloud has t
 
 Full methodology in [We stealth benchmarked every major cloud browser provider](https://browser-use.com/posts/stealth-benchmark).
 
+## Supported CAPTCHA types
+
+These are the interactive CAPTCHA widgets solved automatically, distinct from the anti-bot systems above (Cloudflare, DataDome, PerimeterX, Akamai) that gate a site before a widget ever appears:
+
+| CAPTCHA type | Solved automatically |
+| --- | --- |
+| reCAPTCHA v2 (checkbox / image challenge) | Yes |
+| reCAPTCHA v3 (score-based) | Yes |
+| hCaptcha | Yes |
+| Cloudflare Turnstile | Yes |
+
+All are handled on by default — no `captcha_type` parameter or per-widget configuration.
+
 ## Get started
 
 There is nothing to turn on. CAPTCHA solving comes with every session. Start one:
@@ -1685,6 +1703,36 @@ const browser = await client.browsers.create({
   },
 });
 ```
+
+## Blocked? Get a fresh IP
+
+Browser Use does not rotate the IP within a running session. When a site starts blocking you, stop the session and create a new one — each session gets a fresh residential IP from the country pool automatically.
+
+```python Python
+from browser_use_sdk.v3 import AsyncBrowserUse
+
+client = AsyncBrowserUse()
+
+async def with_fresh_ip(country="us", profile_id=None):
+    # Stop-and-recreate is how you get a new IP; reattach a profile to keep login state.
+    browser = await client.browsers.create(proxy_country_code=country, profile_id=profile_id)
+    return browser
+```
+```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v3";
+
+const client = new BrowserUse();
+
+async function withFreshIp(country = "us", profileId?: string) {
+  // Stop-and-recreate is how you get a new IP; reattach a profile to keep login state.
+  return client.browsers.create({ proxyCountryCode: country, profileId });
+}
+```
+
+- **New session = new IP.** Recreating the browser is the supported way to rotate.
+- **Keep your login across the rotation** by passing the same [`profile_id`](https://docs.browser-use.com/cloud/guides/authentication) — the fresh IP loads the saved cookies and localStorage.
+- **Switch country** (`proxy_country_code`) to leave a blocked regional pool entirely.
+- **Custom proxies** can rotate per request on their side — use the `custom_proxy` config above with a rotating endpoint.
 
 ## Further reading
 
@@ -2315,6 +2363,66 @@ await client.sessions.stop(session.id);
 
 View your profile IDs at [cloud.browser-use.com/settings](https://cloud.browser-use.com/settings?tab=profiles).
 
+## Persist state on a browser you drive (CDP)
+
+Profiles work the same whether the agent drives or you do. Pass `profile_id` to `browsers.create()`, set state over CDP, then **stop the browser to flush cookies and localStorage into the profile**. Reconnect later with the same `profile_id` and the state is there.
+
+```python Python
+from browser_use_sdk.v3 import AsyncBrowserUse
+from playwright.async_api import async_playwright
+
+client = AsyncBrowserUse()
+profile = await client.profiles.create(name="persist-demo")
+
+# Session 1 — write state, then stop to persist
+b1 = await client.browsers.create(profile_id=profile.id)
+async with async_playwright() as p:
+    pw = await p.chromium.connect_over_cdp(b1.cdp_url)
+    page = pw.contexts[0].pages[0]
+    await page.goto("https://en.wikipedia.org")
+    await page.evaluate("localStorage.setItem('demo', 'hello')")
+    await pw.close()
+await client.browsers.stop(b1.id)   # flushes state into the profile
+
+# Session 2 — same profile, state is back
+b2 = await client.browsers.create(profile_id=profile.id)
+async with async_playwright() as p:
+    pw = await p.chromium.connect_over_cdp(b2.cdp_url)
+    page = pw.contexts[0].pages[0]
+    await page.goto("https://en.wikipedia.org")
+    value = await page.evaluate("localStorage.getItem('demo')")
+    print(value)  # -> hello
+    await pw.close()
+await client.browsers.stop(b2.id)
+```
+```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v3";
+import { chromium } from "playwright";
+
+const client = new BrowserUse();
+const profile = await client.profiles.create({ name: "persist-demo" });
+
+// Session 1 — write state, then stop to persist
+const b1 = await client.browsers.create({ profileId: profile.id });
+let pw = await chromium.connectOverCDP(b1.cdpUrl);
+let page = pw.contexts()[0].pages()[0];
+await page.goto("https://en.wikipedia.org");
+await page.evaluate(() => localStorage.setItem("demo", "hello"));
+await pw.close();
+await client.browsers.stop(b1.id); // flushes state into the profile
+
+// Session 2 — same profile, state is back
+const b2 = await client.browsers.create({ profileId: profile.id });
+pw = await chromium.connectOverCDP(b2.cdpUrl);
+page = pw.contexts()[0].pages()[0];
+await page.goto("https://en.wikipedia.org");
+console.log(await page.evaluate(() => localStorage.getItem("demo"))); // -> hello
+await pw.close();
+await client.browsers.stop(b2.id);
+```
+
+  Use a site that actually sets cookies/localStorage to verify persistence — `example.com` sets none, so it is a poor test target.
+
 ## Manage profiles
 
 ```python Python
@@ -2367,7 +2475,7 @@ await client.profiles.delete(profileId);
 
 - **Per-user profiles:** Create one profile per end-user. Query by name to get the profile ID, or store a mapping between your users and their profile IDs in your database.
 
-  Profile state is only saved when the session ends. Always call `sessions.stop()` when you are done — if a session is left open or times out, changes may not be persisted. Every code path that uses a profile must stop the session, including error handlers.
+  Profile state is saved when the run ends — call `sessions.stop()` (agent) or `browsers.stop()` (CDP) when you are done. Both paths persist; a session left open or timed out may not save. Stop in a `finally` so every code path, including error handlers, persists.
 
 ## Further reading
 
@@ -3169,12 +3277,14 @@ Source: https://docs.browser-use.com/cloud/guides/mcp-server
 https://api.browser-use.com/v3/mcp
 ```
 
+**The MCP server runs tasks on a cloud browser on Browser Use infrastructure — it does not control your local browser.** Each task spins up a hosted stealth browser with proxies and CAPTCHA solving on by default. Authentication is an HTTP header (`x-browser-use-api-key`), not an environment variable.
+
 Get your API key at [cloud.browser-use.com/settings](https://cloud.browser-use.com/settings?tab=api-keys&new=1).
 
 ## Claude Code
 
 ```bash
-claude mcp add -t http -H "x-browser-use-api-key: YOUR_API_KEY" browser-use https://api.browser-use.com/v3/mcp
+claude mcp add --transport http browser-use https://api.browser-use.com/v3/mcp --header "x-browser-use-api-key: YOUR_API_KEY"
 ```
 
 ## Claude Desktop

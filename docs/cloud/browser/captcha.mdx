@@ -27,6 +27,19 @@ Across the anti-bot and CAPTCHA systems agents hit most, Browser Use Cloud has t
 
 Full methodology in [We stealth benchmarked every major cloud browser provider](https://browser-use.com/posts/stealth-benchmark).
 
+## Supported CAPTCHA types
+
+These are the interactive CAPTCHA widgets solved automatically, distinct from the anti-bot systems above (Cloudflare, DataDome, PerimeterX, Akamai) that gate a site before a widget ever appears:
+
+| CAPTCHA type | Solved automatically |
+| --- | --- |
+| reCAPTCHA v2 (checkbox / image challenge) | Yes |
+| reCAPTCHA v3 (score-based) | Yes |
+| hCaptcha | Yes |
+| Cloudflare Turnstile | Yes |
+
+All are handled on by default — no `captcha_type` parameter or per-widget configuration.
+
 ## Get started
 
 There is nothing to turn on. CAPTCHA solving comes with every session. Start one:
