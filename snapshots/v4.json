@@ -15,7 +15,7 @@
         "/runs": {
             "post": {
                 "tags": [
-                    "V4"
+                    "Runs"
                 ],
                 "summary": "Create Run",
                 "operationId": "create_run_runs_post",
@@ -71,7 +71,7 @@
             },
             "get": {
                 "tags": [
-                    "V4"
+                    "Runs"
                 ],
                 "summary": "List Runs",
                 "operationId": "list_runs_runs_get",
@@ -160,7 +160,7 @@
         "/runs/{run_id}/attachments": {
             "get": {
                 "tags": [
-                    "V4"
+                    "Runs"
                 ],
                 "summary": "List Run Attachments",
                 "description": "The upload files attached to a run, for rendering attachment chips.\nOrdered to match the run's attached_file_ids.",
@@ -212,10 +212,252 @@
                 }
             }
         },
+        "/runs/{run_id}": {
+            "get": {
+                "tags": [
+                    "Runs"
+                ],
+                "summary": "Get Run",
+                "operationId": "get_run_runs__run_id__get",
+                "security": [
+                    {
+                        "APIKeyHeader": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "run_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Run Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RunSummary"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
+                    },
+                    "404": {
+                        "description": "Run, session, workspace, or profile not found."
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/runs/{run_id}/status": {
+            "get": {
+                "tags": [
+                    "Runs"
+                ],
+                "summary": "Get Run Status",
+                "description": "Minimal status poll (see RunStatusResponse). POLL rate bucket: selects\nONLY the status/project columns \u2014 a 2s poll never drags the task/result\ntext (TOAST reads) that GET /runs/{id} pays. Poll until terminal, then\nfetch the full summary once.",
+                "operationId": "get_run_status_runs__run_id__status_get",
+                "security": [
+                    {
+                        "APIKeyHeader": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "run_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Run Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RunStatusResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
+                    },
+                    "404": {
+                        "description": "Run, session, workspace, or profile not found."
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/runs/{run_id}/cancel": {
+            "post": {
+                "tags": [
+                    "Runs"
+                ],
+                "summary": "Cancel Run",
+                "description": "Cancel an in-flight run.\n\nIdempotent: a run already in a terminal state (completed / failed /\ncancelled) is returned as-is. Once cancelled, the gateway refuses\nevery subsequent `chat_completions` call from the worker \u2014 so the\nproject cannot be billed further regardless of whether the worker\nsubprocess notices the cancel itself.\n\nThe worker keeps running for at most one more bcode step\n(consuming no LLM tokens because CP 409s them) and then exits when\nbcode realizes the next tool call has no model behind it.",
+                "operationId": "cancel_run_runs__run_id__cancel_post",
+                "security": [
+                    {
+                        "APIKeyHeader": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "run_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Run Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RunSummary"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
+                    },
+                    "404": {
+                        "description": "Run, session, workspace, or profile not found."
+                    },
+                    "502": {
+                        "description": "The request could not be forwarded to the control plane."
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/runs/{run_id}/events": {
+            "get": {
+                "tags": [
+                    "Runs"
+                ],
+                "summary": "Get Run Events",
+                "description": "Paginated event read. `after` is the event id cursor \u2014 clients\ndoing periodic polls pass back the highest id they've seen to get only\nthe delta. Default 0 returns from the start.",
+                "operationId": "get_run_events_runs__run_id__events_get",
+                "security": [
+                    {
+                        "APIKeyHeader": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "run_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Run Id"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 200,
+                            "title": "Limit"
+                        }
+                    },
+                    {
+                        "name": "after",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "title": "After"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RunEventsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
+                    },
+                    "404": {
+                        "description": "Run, session, workspace, or profile not found."
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/sessions": {
             "get": {
                 "tags": [
-                    "V4"
+                    "Sessions"
                 ],
                 "summary": "List Sessions",
                 "description": "List the project's V4 sessions \u2014 one row per session (its most recent\nrun), most-recent first.\n\nA session is a conversation: follow-up runs reuse the same\npublic_session_id, so GET /api/v4/runs would list one row per RUN. This\ncollapses to one row per SESSION directly in Postgres with DISTINCT ON, so a\nchatty session with 100 runs is still a single row (no scan amplification),\nand selects only the slim columns the session list needs \u2014 never the heavy\nper-run text/token/cost fields.\n\nKeyset-paginated on the latest run's (created_at, id): pass `next_cursor`\nback as `cursor` to page. Offset/COUNT was dropped \u2014 it doesn't scale on\nprojects with many sessions.",
@@ -289,10 +531,301 @@
                 }
             }
         },
+        "/sessions/{session_id}/purge": {
+            "post": {
+                "tags": [
+                    "Sessions"
+                ],
+                "summary": "Purge Session",
+                "description": "Immediately purge all data for a V4 session (ZDR projects only).\n\nRedacts DB records and deletes S3 objects (bcode state, workspace files,\nrecordings, downloads, staging uploads) for every run in the session. Same\ncleanup the ZDR cron performs, but on-demand and with no grace period. V4\nanalog of the V2 POST /sessions/{id}/purge. Surfaces shared with a still-live\nsibling run are deferred by the same guards the cron uses.",
+                "operationId": "purge_session_sessions__session_id__purge_post",
+                "security": [
+                    {
+                        "APIKeyHeader": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Session Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Successful Response"
+                    },
+                    "403": {
+                        "description": "Project is not ZDR-enabled."
+                    },
+                    "404": {
+                        "description": "Session not found."
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions/{session_id}": {
+            "get": {
+                "tags": [
+                    "Sessions"
+                ],
+                "summary": "Get Session",
+                "description": "Session detail \u2014 the same slim shape as one GET /sessions row (its\nlatest run). Doubles as the busy/idle poll for a conversation (POLL rate\nbucket): slim columns only, indexed public_session_id lookup, never the\nheavy result/token fields.",
+                "operationId": "get_session_sessions__session_id__get",
+                "security": [
+                    {
+                        "APIKeyHeader": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Session Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SessionInfo"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
+                    },
+                    "404": {
+                        "description": "Run, session, workspace, or profile not found."
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions/{session_id}/queue": {
+            "post": {
+                "tags": [
+                    "Sessions"
+                ],
+                "summary": "Queue Session Message",
+                "description": "Send a message to a session. If the session is busy it waits on the queue\nand runs as the next turn; if idle it drains immediately.\n\n`interrupt=true` cancels the session's active run so this message takes effect\nnow instead of waiting for the current turn (no-op when the session is idle).",
+                "operationId": "queue_session_message_sessions__session_id__queue_post",
+                "security": [
+                    {
+                        "APIKeyHeader": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Session Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/QueueMessageRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QueuedMessage"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
+                    },
+                    "404": {
+                        "description": "Run, session, workspace, or profile not found."
+                    },
+                    "429": {
+                        "description": "The session message queue is full."
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "tags": [
+                    "Sessions"
+                ],
+                "summary": "List Session Queue",
+                "description": "List the session's still-pending queued messages, oldest first.",
+                "operationId": "list_session_queue_sessions__session_id__queue_get",
+                "security": [
+                    {
+                        "APIKeyHeader": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Session Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QueueListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
+                    },
+                    "404": {
+                        "description": "Run, session, workspace, or profile not found."
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/sessions/{session_id}/queue/{message_id}": {
+            "delete": {
+                "tags": [
+                    "Sessions"
+                ],
+                "summary": "Cancel Queued Message",
+                "description": "Remove a still-pending queued message; 409 once the drain has claimed it.",
+                "operationId": "cancel_queued_message_sessions__session_id__queue__message_id__delete",
+                "security": [
+                    {
+                        "APIKeyHeader": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid",
+                            "title": "Session Id"
+                        }
+                    },
+                    {
+                        "name": "message_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Message Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QueuedMessage"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
+                    },
+                    "404": {
+                        "description": "Run, session, workspace, or profile not found."
+                    },
+                    "409": {
+                        "description": "The message is no longer pending and cannot be cancelled."
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/workspaces": {
             "post": {
                 "tags": [
-                    "V4"
+                    "Workspaces"
                 ],
                 "summary": "Create Workspace",
                 "description": "Mint an empty workspace. Lets callers upload input files BEFORE the\nfirst run exists; pass the id as workspaceId on POST /runs.",
@@ -339,7 +872,7 @@
         "/workspaces/{workspace_id}/files/upload": {
             "post": {
                 "tags": [
-                    "V4"
+                    "Workspaces"
                 ],
                 "summary": "Upload Workspace Files",
                 "description": "Presigned PUT URLs for input files, placed under ``uploads/`` in the\nworkspace. The agent pulls them in at the start of every run. URLs are\npinned to the declared Content-Type and exact Content-Length.",
@@ -407,7 +940,7 @@
         "/workspaces/{workspace_id}": {
             "get": {
                 "tags": [
-                    "V4"
+                    "Workspaces"
                 ],
                 "summary": "Get Workspace",
                 "operationId": "get_workspace_workspaces__workspace_id__get",
@@ -452,495 +985,10 @@
                 }
             }
         },
-        "/runs/{run_id}": {
-            "get": {
-                "tags": [
-                    "V4"
-                ],
-                "summary": "Get Run",
-                "operationId": "get_run_runs__run_id__get",
-                "security": [
-                    {
-                        "APIKeyHeader": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "name": "run_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "title": "Run Id"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RunSummary"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
-                    },
-                    "404": {
-                        "description": "Run, session, workspace, or profile not found."
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/runs/{run_id}/status": {
-            "get": {
-                "tags": [
-                    "V4"
-                ],
-                "summary": "Get Run Status",
-                "description": "Minimal status poll (see RunStatusResponse). POLL rate bucket: selects\nONLY the status/project columns \u2014 a 2s poll never drags the task/result\ntext (TOAST reads) that GET /runs/{id} pays. Poll until terminal, then\nfetch the full summary once.",
-                "operationId": "get_run_status_runs__run_id__status_get",
-                "security": [
-                    {
-                        "APIKeyHeader": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "name": "run_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "title": "Run Id"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RunStatusResponse"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
-                    },
-                    "404": {
-                        "description": "Run, session, workspace, or profile not found."
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/sessions/{session_id}": {
-            "get": {
-                "tags": [
-                    "V4"
-                ],
-                "summary": "Get Session",
-                "description": "Session detail \u2014 the same slim shape as one GET /sessions row (its\nlatest run). Doubles as the busy/idle poll for a conversation (POLL rate\nbucket): slim columns only, indexed public_session_id lookup, never the\nheavy result/token fields.",
-                "operationId": "get_session_sessions__session_id__get",
-                "security": [
-                    {
-                        "APIKeyHeader": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "name": "session_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "title": "Session Id"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SessionInfo"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
-                    },
-                    "404": {
-                        "description": "Run, session, workspace, or profile not found."
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/runs/{run_id}/cancel": {
-            "post": {
-                "tags": [
-                    "V4"
-                ],
-                "summary": "Cancel Run",
-                "description": "Cancel an in-flight run.\n\nIdempotent: a run already in a terminal state (completed / failed /\ncancelled) is returned as-is. Once cancelled, the gateway refuses\nevery subsequent `chat_completions` call from the worker \u2014 so the\nproject cannot be billed further regardless of whether the worker\nsubprocess notices the cancel itself.\n\nThe worker keeps running for at most one more bcode step\n(consuming no LLM tokens because CP 409s them) and then exits when\nbcode realizes the next tool call has no model behind it.",
-                "operationId": "cancel_run_runs__run_id__cancel_post",
-                "security": [
-                    {
-                        "APIKeyHeader": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "name": "run_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "title": "Run Id"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RunSummary"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
-                    },
-                    "404": {
-                        "description": "Run, session, workspace, or profile not found."
-                    },
-                    "502": {
-                        "description": "The request could not be forwarded to the control plane."
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/sessions/{session_id}/queue": {
-            "post": {
-                "tags": [
-                    "V4"
-                ],
-                "summary": "Queue Session Message",
-                "description": "Send a message to a session. If the session is busy it waits on the queue\nand runs as the next turn; if idle it drains immediately.\n\n`interrupt=true` cancels the session's active run so this message takes effect\nnow instead of waiting for the current turn (no-op when the session is idle).",
-                "operationId": "queue_session_message_sessions__session_id__queue_post",
-                "security": [
-                    {
-                        "APIKeyHeader": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "name": "session_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "title": "Session Id"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/QueueMessageRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/QueuedMessage"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
-                    },
-                    "404": {
-                        "description": "Run, session, workspace, or profile not found."
-                    },
-                    "429": {
-                        "description": "The session message queue is full."
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "get": {
-                "tags": [
-                    "V4"
-                ],
-                "summary": "List Session Queue",
-                "description": "List the session's still-pending queued messages, oldest first.",
-                "operationId": "list_session_queue_sessions__session_id__queue_get",
-                "security": [
-                    {
-                        "APIKeyHeader": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "name": "session_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "title": "Session Id"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/QueueListResponse"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
-                    },
-                    "404": {
-                        "description": "Run, session, workspace, or profile not found."
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/sessions/{session_id}/queue/{message_id}": {
-            "delete": {
-                "tags": [
-                    "V4"
-                ],
-                "summary": "Cancel Queued Message",
-                "description": "Remove a still-pending queued message; 409 once the drain has claimed it.",
-                "operationId": "cancel_queued_message_sessions__session_id__queue__message_id__delete",
-                "security": [
-                    {
-                        "APIKeyHeader": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "name": "session_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "title": "Session Id"
-                        }
-                    },
-                    {
-                        "name": "message_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "title": "Message Id"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/QueuedMessage"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
-                    },
-                    "404": {
-                        "description": "Run, session, workspace, or profile not found."
-                    },
-                    "409": {
-                        "description": "The message is no longer pending and cannot be cancelled."
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/runs/{run_id}/events": {
-            "get": {
-                "tags": [
-                    "V4"
-                ],
-                "summary": "Get Run Events",
-                "description": "Paginated event read. `after` is the event id cursor \u2014 clients\ndoing periodic polls pass back the highest id they've seen to get only\nthe delta. Default 0 returns from the start.",
-                "operationId": "get_run_events_runs__run_id__events_get",
-                "security": [
-                    {
-                        "APIKeyHeader": []
-                    }
-                ],
-                "parameters": [
-                    {
-                        "name": "run_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "uuid",
-                            "title": "Run Id"
-                        }
-                    },
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "default": 200,
-                            "title": "Limit"
-                        }
-                    },
-                    {
-                        "name": "after",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "default": 0,
-                            "title": "After"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RunEventsResponse"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
-                    },
-                    "404": {
-                        "description": "Run, session, workspace, or profile not found."
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/workspaces/{workspace_id}/files": {
             "get": {
                 "tags": [
-                    "V4"
+                    "Workspaces"
                 ],
                 "summary": "List Workspace Files",
                 "description": "List files the agent has produced for this workspace, paginated.",
@@ -3026,6 +3074,18 @@
                         ],
                         "title": "Screenheight",
                         "description": "Custom screen height in pixels for the browser."
+                    },
+                    "record": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Record",
+                        "description": "Record the browser session to an mp4, retrievable via GET /browsers/{id} once the browser stops. API runs default to off; pass true to enable. Like other browser settings, this only applies when a new browser is provisioned: a follow-up that reuses the session's live browser keeps that browser's recording state. Ignored (always off) for Zero Data Retention projects."
                     }
                 },
                 "additionalProperties": false,
@@ -3044,9 +3104,12 @@
                         "type": "string",
                         "enum": [
                             "glm-5.2",
+                            "grok-4.5",
+                            "kimi-k3",
                             "minimax-m3",
                             "claude-opus-4.7",
                             "claude-opus-4.8",
+                            "claude-fable-5",
                             "claude-sonnet-5",
                             "gpt-5.5",
                             "gpt-5.6",
@@ -3116,6 +3179,22 @@
                                 "type": "null"
                             }
                         ]
+                    },
+                    "maxCostUsd": {
+                        "anyOf": [
+                            {
+                                "type": "number",
+                                "exclusiveMinimum": 0.0
+                            },
+                            {
+                                "type": "string",
+                                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Maxcostusd"
                     }
                 },
                 "additionalProperties": false,

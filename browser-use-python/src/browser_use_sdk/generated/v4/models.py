@@ -650,19 +650,40 @@ class RunBrowserSettings(BaseModel):
         description='Custom screen height in pixels for the browser.',
         title='Screenheight',
     )
+    record: bool | None = Field(
+        None,
+        description="Record the browser session to an mp4, retrievable via GET /browsers/{id} once the browser stops. API runs default to off; pass true to enable. Like other browser settings, this only applies when a new browser is provisioned: a follow-up that reuses the session's live browser keeps that browser's recording state. Ignored (always off) for Zero Data Retention projects.",
+        title='Record',
+    )
 
 
 class Model(Enum):
     glm_5_2 = 'glm-5.2'
+    grok_4_5 = 'grok-4.5'
+    kimi_k3 = 'kimi-k3'
     minimax_m3 = 'minimax-m3'
     claude_opus_4_7 = 'claude-opus-4.7'
     claude_opus_4_8 = 'claude-opus-4.8'
+    claude_fable_5 = 'claude-fable-5'
     claude_sonnet_5 = 'claude-sonnet-5'
     gpt_5_5 = 'gpt-5.5'
     gpt_5_6 = 'gpt-5.6'
     gemini_3_5_flash = 'gemini-3.5-flash'
     gemini_3_1_pro = 'gemini-3.1-pro'
     gemini_3_flash = 'gemini-3-flash'
+
+
+class MaxCostUsd(RootModel[float]):
+    root: float = Field(..., gt=0.0, title='Maxcostusd')
+
+
+class MaxCostUsd1(RootModel[str]):
+    model_config = ConfigDict(
+        regex_engine="python-re",
+    )
+    root: str = Field(
+        ..., pattern='^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$', title='Maxcostusd'
+    )
 
 
 class Status2(Enum):
@@ -1075,6 +1096,9 @@ class RunCreateRequest(BaseModel):
         None, alias='attachedFileIds', title='Attachedfileids'
     )
     judge: RunJudgeSettings | None = None
+    max_cost_usd: MaxCostUsd | MaxCostUsd1 | None = Field(
+        None, alias='maxCostUsd', title='Maxcostusd'
+    )
 
 
 class RunListResponse(BaseModel):

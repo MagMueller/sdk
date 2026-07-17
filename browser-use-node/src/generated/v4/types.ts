@@ -43,6 +43,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run */
+        get: operations["get_run_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{run_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Run Status
+         * @description Minimal status poll (see RunStatusResponse). POLL rate bucket: selects
+         *     ONLY the status/project columns — a 2s poll never drags the task/result
+         *     text (TOAST reads) that GET /runs/{id} pays. Poll until terminal, then
+         *     fetch the full summary once.
+         */
+        get: operations["get_run_status_runs__run_id__status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Run
+         * @description Cancel an in-flight run.
+         *
+         *     Idempotent: a run already in a terminal state (completed / failed /
+         *     cancelled) is returned as-is. Once cancelled, the gateway refuses
+         *     every subsequent `chat_completions` call from the worker — so the
+         *     project cannot be billed further regardless of whether the worker
+         *     subprocess notices the cancel itself.
+         *
+         *     The worker keeps running for at most one more bcode step
+         *     (consuming no LLM tokens because CP 409s them) and then exits when
+         *     bcode realizes the next tool call has no model behind it.
+         */
+        post: operations["cancel_run_runs__run_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{run_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Run Events
+         * @description Paginated event read. `after` is the event id cursor — clients
+         *     doing periodic polls pass back the highest id they've seen to get only
+         *     the delta. Default 0 returns from the start.
+         */
+        get: operations["get_run_events_runs__run_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sessions": {
         parameters: {
             query?: never;
@@ -70,6 +162,103 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{session_id}/purge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Purge Session
+         * @description Immediately purge all data for a V4 session (ZDR projects only).
+         *
+         *     Redacts DB records and deletes S3 objects (bcode state, workspace files,
+         *     recordings, downloads, staging uploads) for every run in the session. Same
+         *     cleanup the ZDR cron performs, but on-demand and with no grace period. V4
+         *     analog of the V2 POST /sessions/{id}/purge. Surfaces shared with a still-live
+         *     sibling run are deferred by the same guards the cron uses.
+         */
+        post: operations["purge_session_sessions__session_id__purge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Session
+         * @description Session detail — the same slim shape as one GET /sessions row (its
+         *     latest run). Doubles as the busy/idle poll for a conversation (POLL rate
+         *     bucket): slim columns only, indexed public_session_id lookup, never the
+         *     heavy result/token fields.
+         */
+        get: operations["get_session_sessions__session_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{session_id}/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Session Queue
+         * @description List the session's still-pending queued messages, oldest first.
+         */
+        get: operations["list_session_queue_sessions__session_id__queue_get"];
+        put?: never;
+        /**
+         * Queue Session Message
+         * @description Send a message to a session. If the session is busy it waits on the queue
+         *     and runs as the next turn; if idle it drains immediately.
+         *
+         *     `interrupt=true` cancels the session's active run so this message takes effect
+         *     now instead of waiting for the current turn (no-op when the session is idle).
+         */
+        post: operations["queue_session_message_sessions__session_id__queue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{session_id}/queue/{message_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Cancel Queued Message
+         * @description Remove a still-pending queued message; 409 once the drain has claimed it.
+         */
+        delete: operations["cancel_queued_message_sessions__session_id__queue__message_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -127,169 +316,6 @@ export interface paths {
         };
         /** Get Workspace */
         get: operations["get_workspace_workspaces__workspace_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/runs/{run_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Run */
-        get: operations["get_run_runs__run_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/runs/{run_id}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Run Status
-         * @description Minimal status poll (see RunStatusResponse). POLL rate bucket: selects
-         *     ONLY the status/project columns — a 2s poll never drags the task/result
-         *     text (TOAST reads) that GET /runs/{id} pays. Poll until terminal, then
-         *     fetch the full summary once.
-         */
-        get: operations["get_run_status_runs__run_id__status_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sessions/{session_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Session
-         * @description Session detail — the same slim shape as one GET /sessions row (its
-         *     latest run). Doubles as the busy/idle poll for a conversation (POLL rate
-         *     bucket): slim columns only, indexed public_session_id lookup, never the
-         *     heavy result/token fields.
-         */
-        get: operations["get_session_sessions__session_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/runs/{run_id}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Cancel Run
-         * @description Cancel an in-flight run.
-         *
-         *     Idempotent: a run already in a terminal state (completed / failed /
-         *     cancelled) is returned as-is. Once cancelled, the gateway refuses
-         *     every subsequent `chat_completions` call from the worker — so the
-         *     project cannot be billed further regardless of whether the worker
-         *     subprocess notices the cancel itself.
-         *
-         *     The worker keeps running for at most one more bcode step
-         *     (consuming no LLM tokens because CP 409s them) and then exits when
-         *     bcode realizes the next tool call has no model behind it.
-         */
-        post: operations["cancel_run_runs__run_id__cancel_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sessions/{session_id}/queue": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Session Queue
-         * @description List the session's still-pending queued messages, oldest first.
-         */
-        get: operations["list_session_queue_sessions__session_id__queue_get"];
-        put?: never;
-        /**
-         * Queue Session Message
-         * @description Send a message to a session. If the session is busy it waits on the queue
-         *     and runs as the next turn; if idle it drains immediately.
-         *
-         *     `interrupt=true` cancels the session's active run so this message takes effect
-         *     now instead of waiting for the current turn (no-op when the session is idle).
-         */
-        post: operations["queue_session_message_sessions__session_id__queue_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sessions/{session_id}/queue/{message_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Cancel Queued Message
-         * @description Remove a still-pending queued message; 409 once the drain has claimed it.
-         */
-        delete: operations["cancel_queued_message_sessions__session_id__queue__message_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/runs/{run_id}/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Run Events
-         * @description Paginated event read. `after` is the event id cursor — clients
-         *     doing periodic polls pass back the highest id they've seen to get only
-         *     the delta. Default 0 returns from the start.
-         */
-        get: operations["get_run_events_runs__run_id__events_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1069,6 +1095,11 @@ export interface components {
              * @description Custom screen height in pixels for the browser.
              */
             screenHeight?: number | null;
+            /**
+             * Record
+             * @description Record the browser session to an mp4, retrievable via GET /browsers/{id} once the browser stops. API runs default to off; pass true to enable. Like other browser settings, this only applies when a new browser is provisioned: a follow-up that reuses the session's live browser keeps that browser's recording state. Ignored (always off) for Zero Data Retention projects.
+             */
+            record?: boolean | null;
         };
         /** RunCreateRequest */
         RunCreateRequest: {
@@ -1079,7 +1110,7 @@ export interface components {
              * @default minimax-m3
              * @enum {string}
              */
-            model: "glm-5.2" | "minimax-m3" | "claude-opus-4.7" | "claude-opus-4.8" | "claude-sonnet-5" | "gpt-5.5" | "gpt-5.6" | "gemini-3.5-flash" | "gemini-3.1-pro" | "gemini-3-flash";
+            model: "glm-5.2" | "grok-4.5" | "kimi-k3" | "minimax-m3" | "claude-opus-4.7" | "claude-opus-4.8" | "claude-fable-5" | "claude-sonnet-5" | "gpt-5.5" | "gpt-5.6" | "gemini-3.5-flash" | "gemini-3.1-pro" | "gemini-3-flash";
             /** Sessionid */
             sessionId?: string | null;
             /** Workspaceid */
@@ -1088,6 +1119,8 @@ export interface components {
             /** Attachedfileids */
             attachedFileIds?: string[] | null;
             judge?: components["schemas"]["RunJudgeSettings"] | null;
+            /** Maxcostusd */
+            maxCostUsd?: number | string | null;
         };
         /** RunCreateResponse */
         RunCreateResponse: {
@@ -1649,174 +1682,6 @@ export interface operations {
             };
         };
     };
-    list_sessions_sessions_get: {
-        parameters: {
-            query?: {
-                /** @description Max sessions per page (max 100). */
-                limit?: number;
-                /** @description Keyset cursor from a prior response. */
-                cursor?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionListResponse"];
-                };
-            };
-            /** @description Malformed pagination cursor. */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Zero Data Retention is enabled on the project (V4 unsupported). */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_workspace_workspaces_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WorkspaceCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceInfo"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_workspace_files_workspaces__workspace_id__files_upload_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                workspace_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WorkspaceFileUploadRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceFileUploadResponse"];
-                };
-            };
-            /** @description Invalid request (bad session/workspace pairing or file path). */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Zero Data Retention is enabled on the project (V4 unsupported). */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Run, session, workspace, or profile not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_workspace_workspaces__workspace_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                workspace_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WorkspaceInfo"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_run_runs__run_id__get: {
         parameters: {
             query?: never;
@@ -1907,51 +1772,6 @@ export interface operations {
             };
         };
     };
-    get_session_sessions__session_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                session_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionInfo"];
-                };
-            };
-            /** @description Zero Data Retention is enabled on the project (V4 unsupported). */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Run, session, workspace, or profile not found. */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     cancel_run_runs__run_id__cancel_post: {
         parameters: {
             query?: never;
@@ -2001,6 +1821,190 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_run_events_runs__run_id__events_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                after?: number;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunEventsResponse"];
+                };
+            };
+            /** @description Zero Data Retention is enabled on the project (V4 unsupported). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Run, session, workspace, or profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sessions_sessions_get: {
+        parameters: {
+            query?: {
+                /** @description Max sessions per page (max 100). */
+                limit?: number;
+                /** @description Keyset cursor from a prior response. */
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionListResponse"];
+                };
+            };
+            /** @description Malformed pagination cursor. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Zero Data Retention is enabled on the project (V4 unsupported). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    purge_session_sessions__session_id__purge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Project is not ZDR-enabled. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Session not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_session_sessions__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionInfo"];
+                };
+            };
+            /** @description Zero Data Retention is enabled on the project (V4 unsupported). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Run, session, workspace, or profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -2158,19 +2162,18 @@ export interface operations {
             };
         };
     };
-    get_run_events_runs__run_id__events_get: {
+    create_workspace_workspaces_post: {
         parameters: {
-            query?: {
-                limit?: number;
-                after?: number;
-            };
+            query?: never;
             header?: never;
-            path: {
-                run_id: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceCreateRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -2178,8 +2181,50 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RunEventsResponse"];
+                    "application/json": components["schemas"]["WorkspaceInfo"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_workspace_files_workspaces__workspace_id__files_upload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceFileUploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceFileUploadResponse"];
+                };
+            };
+            /** @description Invalid request (bad session/workspace pairing or file path). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Zero Data Retention is enabled on the project (V4 unsupported). */
             403: {
@@ -2194,6 +2239,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workspace_workspaces__workspace_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
             };
             /** @description Validation Error */
             422: {
