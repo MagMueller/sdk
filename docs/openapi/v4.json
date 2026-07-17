@@ -531,6 +531,54 @@
         }
       }
     },
+    "/sessions/{session_id}/purge": {
+      "post": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Purge Session",
+        "description": "Immediately purge all data for a V4 session (ZDR projects only).\n\nRedacts DB records and deletes S3 objects (bcode state, workspace files,\nrecordings, downloads, staging uploads) for every run in the session. Same\ncleanup the ZDR cron performs, but on-demand and with no grace period. V4\nanalog of the V2 POST /sessions/{id}/purge. Surfaces shared with a still-live\nsibling run are deferred by the same guards the cron uses.",
+        "operationId": "purge_session_sessions__session_id__purge_post",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "Project is not ZDR-enabled."
+          },
+          "404": {
+            "description": "Session not found."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sessions/{session_id}": {
       "get": {
         "tags": [
@@ -3026,6 +3074,18 @@
             ],
             "title": "Screenheight",
             "description": "Custom screen height in pixels for the browser."
+          },
+          "record": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record",
+            "description": "Record the browser session to an mp4, retrievable via GET /browsers/{id} once the browser stops. API runs default to off; pass true to enable. Like other browser settings, this only applies when a new browser is provisioned: a follow-up that reuses the session's live browser keeps that browser's recording state. Ignored (always off) for Zero Data Retention projects."
           }
         },
         "additionalProperties": false,
@@ -3044,6 +3104,7 @@
             "type": "string",
             "enum": [
               "glm-5.2",
+              "grok-4.5",
               "minimax-m3",
               "claude-opus-4.7",
               "claude-opus-4.8",
@@ -3116,6 +3177,22 @@
                 "type": "null"
               }
             ]
+          },
+          "maxCostUsd": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maxcostusd"
           }
         },
         "additionalProperties": false,
@@ -3918,22 +3995,5 @@
         "name": "X-Browser-Use-API-Key"
       }
     }
-  },
-  "tags": [
-    {
-      "name": "Runs"
-    },
-    {
-      "name": "Sessions"
-    },
-    {
-      "name": "Workspaces"
-    },
-    {
-      "name": "Browsers"
-    },
-    {
-      "name": "Profiles"
-    }
-  ]
+  }
 }
