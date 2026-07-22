@@ -1,0 +1,140 @@
+---
+title: Run a task
+description: "POST a task to an agent. One call starts a run; the run provisions whatever it needs and returns ids you can reuse."
+icon: play
+---
+
+A **run** is one task. You create runs — nothing else. A run automatically gets a browser, a session (for follow-ups), and a workspace (for files) as needed, and returns their ids.
+
+## Start a run
+
+<CodeGroup>
+```python Python
+from browser_use import BrowserUse
+
+client = BrowserUse()
+run = client.agents.browser_use.run(
+    task="Find the cheapest direct flight SFO to Tokyo next month",
+    browser={"proxy_country_code": "us"},   # optional
+)
+print(run.result)   # the answer string (`output` is only set for structured output)
+print(run.session_id)   # pass this back to continue (see Continue a task)
+```
+```typescript TypeScript
+import { BrowserUse } from "browser-use";
+
+const client = new BrowserUse();
+const run = await client.agents.browserUse.run({
+  task: "Find the cheapest direct flight SFO to Tokyo next month",
+  browser: { proxy_country_code: "us" },
+});
+console.log(run.result); // the answer string (`output` is only set for structured output)
+console.log(run.session_id);
+```
+```bash curl
+curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "Find the cheapest direct flight SFO to Tokyo next month",
+    "browser": { "proxy_country_code": "us" }
+  }'
+```
+</CodeGroup>
+
+The raw endpoint returns immediately (the run is async):
+
+```json
+{
+  "id": "run_abc123",
+  "status": "queued",
+  "session_id": "ses_xyz789",
+  "steps_url": "/api/v1/agents/browser-use/runs/run_abc123/steps",
+  "missing_file_ids": []
+}
+```
+
+You get `session_id` (to continue) right away; files live on that conversation automatically (no `workspace_id` to handle — see [Files](/cloud/files)). The **browser is provisioned in the background** — its `browser_id` is not in this response; it appears on `GET /runs/{id}` once ready. Then [watch the run](/cloud/watch-a-run) until `status` is `completed` and read `result` (the answer string; `output` is only populated for [structured output](/cloud/agent/structured-output)). The SDK `run()` waits for you and returns the finished run.
+
+## Run body
+
+Common fields (full list in the [API reference](/cloud/api-v1-reference)):
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `task` | string | **required** — what to do, in plain language |
+| `model` | string | LLM to use (optional; sensible default) |
+| `browser` | object | `{ proxy_country_code, screen_width, screen_height }` — provisions a browser for this run |
+| `browser_profile_id` | string | start logged-in ([profiles](/cloud/browser-profiles)) |
+| `session_id` | string | continue a previous run ([continue a task](/cloud/continue-a-task)) |
+| `attached_file_ids` | string[] | files to give this run (add them first via `POST /agents/{agent}/files` — see [Files](/cloud/files)) |
+| `workspace_id` | string | **advanced** — an explicit workspace for cross-conversation sharing; omit on the normal path ([files](/cloud/files)) |
+| `structured_output` | object | JSON schema — get typed `output` back (`browser-use` only) |
+
+<Note>
+A run **provisions** its browser. It does not accept an existing `browser_id`. If you want to drive a browser yourself over CDP, [create a standalone browser](/cloud/create-browser) instead — that's a different flow.
+</Note>
+
+## Structured output
+
+Pass a JSON schema; `output` comes back matching it.
+
+<CodeGroup>
+```python Python
+run = client.agents.browser_use.run(
+    task="Get the top 3 Hacker News posts",
+    structured_output={
+        "type": "object",
+        "properties": {
+            "posts": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {"title": {"type": "string"}, "points": {"type": "integer"}},
+                },
+            }
+        },
+    },
+)
+print(run.output["posts"])
+```
+```bash curl
+curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "Get the top 3 Hacker News posts",
+    "structured_output": {
+      "type": "object",
+      "properties": {
+        "posts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {"title": {"type": "string"}, "points": {"type": "integer"}}
+          }
+        }
+      }
+    }
+  }'
+```
+</CodeGroup>
+
+## browsercode
+
+Same shape, different agent — for code + files + terminal work:
+
+<CodeGroup>
+```python Python
+run = client.agents.browsercode.run(
+    task="Scrape the prices from this catalog and save them to prices.csv",
+)
+# get the output file: client.agents.browsercode.runs.files(run.id, kind="output") — see Files
+```
+```bash curl
+curl -X POST https://api.browser-use.com/api/v1/agents/browsercode/runs \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "Scrape the prices from this catalog and save them to prices.csv"}'
+```
+</CodeGroup>
