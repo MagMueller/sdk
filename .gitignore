@@ -46,3 +46,7 @@ mock/pressure_*.md
 mock/pressure_scenarios.md
 mock/sync.sh
 mock/README.md
+
+# agent harness state
+.harness/
+.omc/
