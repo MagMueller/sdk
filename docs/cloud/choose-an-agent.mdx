@@ -1,5 +1,6 @@
 ---
 title: Choose an agent
+sidebarTitle: "Overview"
 description: "Two agents: browser-use for browser tasks, browsercode for code + browser. Pick by capability, or let the registry route for you."
 icon: signpost
 ---
@@ -38,7 +39,7 @@ import { BrowserUse } from "browser-use";
 
 const client = new BrowserUse();
 const agents = await client.agents.list();
-for (const a of agents) console.log(a.name, a.capabilities, "—", a.best_for);
+for (const a of agents) console.log(a.name, a.capabilities, "—", a.bestFor);
 ```
 ```bash curl
 curl https://api.browser-use.com/api/v1/agents \
@@ -49,26 +50,28 @@ curl https://api.browser-use.com/api/v1/agents \
 Response:
 
 ```json
-[
-  {
-    "name": "browser-use",
-    "capabilities": ["browser", "files"],
-    "session": "disposable",
-    "best_for": "One-off or short browser tasks: navigating sites, clicking, filling forms, extracting data.",
-    "not_for": "Writing or running code, using a terminal, or long-horizon engineering work.",
-    "example_tasks": ["Book a flight on united.com", "Scrape all prices from this catalog"],
-    "run": "POST /api/v1/agents/browser-use/runs"
-  },
-  {
-    "name": "browsercode",
-    "capabilities": ["browser", "code", "terminal", "files"],
-    "session": "durable",
-    "best_for": "Anything needing code, a terminal, or long-horizon multi-step work — with or without a browser.",
-    "not_for": "Simple one-shot browser navigation (overkill — use browser-use).",
-    "example_tasks": ["Scrape a site then clean the data into a CSV", "Build and run a page monitor"],
-    "run": "POST /api/v1/agents/browsercode/runs"
-  }
-]
+{
+  "agents": [
+    {
+      "name": "browser-use",
+      "capabilities": ["browser", "files"],
+      "session": { "kind": "disposable" },
+      "bestFor": "One-off or short browser tasks: navigating sites, clicking, filling forms, extracting data. Do it and done.",
+      "notFor": "Writing or running code, using a terminal, or long-horizon multi-step engineering work.",
+      "exampleTasks": ["Book a flight on united.com", "Scrape all prices from this catalog"],
+      "run": "POST /api/v1/agents/browser-use/runs"
+    },
+    {
+      "name": "browsercode",
+      "capabilities": ["browser", "code", "terminal", "files"],
+      "session": { "kind": "durable" },
+      "bestFor": "Anything needing code, a terminal, or long-horizon multi-step work, with or without a browser. Extend over many steps or return to it later.",
+      "notFor": "Simple one-shot browser navigation (overkill; use browser-use).",
+      "exampleTasks": ["Scrape a site then clean the data into a CSV", "Build and run a page monitor"],
+      "run": "POST /api/v1/agents/browsercode/runs"
+    }
+  ]
+}
 ```
 
 Filter by capability: `GET /api/v1/agents?capability=code` returns only agents that can run code.

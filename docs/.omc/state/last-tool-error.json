@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd /Users/reagan/Documents/GitHub/sdk/docs; echo \\\"=== grep for 'box' (case-insensitive) in cloud docs ===\\\"; grep -rin \\\"box\\\" cloud/ --include=*.mdx -l 2>/dev/null; echo \\\"=== matches wi...",
+  "error": "Exit code 1\n=== grep for 'box' (case-insensitive) in cloud docs ===\n(eval):1: no matches found: --include=*.mdx",
+  "timestamp": "2026-07-15T21:19:45.848Z",
+  "retry_count": 1
+}

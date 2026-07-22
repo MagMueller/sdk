@@ -1,7 +1,7 @@
 # Browser Use Cloud — Full Documentation
 
 
-# How it works
+# Overview
 Source: https://docs.browser-use.com/cloud/model
 
 
@@ -9,15 +9,15 @@ The entire platform is **three calls on one thing — a run.** Everything else i
 
 ## The one noun: a run
 
-A **run** is one task an agent does. You start a run, watch it finish, and optionally continue it. You never create sessions or browsers — a run gives you a `session_id`, and files live on that conversation automatically (no workspace to manage — see [Files](https://docs.browser-use.com/cloud/files)).
+A **run** is one task an agent does. You start a run, watch it finish, and optionally continue it. You never create sessions or browsers — a run gives you a `sessionId`, and files live on that conversation automatically (no workspace to manage — see [Files](https://docs.browser-use.com/cloud/files)).
 
 ## The three verbs
 
 ```bash
 POST /api/v1/agents/browser-use/runs   { "task": "..." }
-→ { "id": "run_1", "session_id": "ses_1", "status": "queued" }
+→ { "id": "run_1", "sessionId": "ses_1", "status": "queued" }
 ```
-You get back a `run_id` and a `session_id` (to continue) — immediately. Files live on the conversation automatically; there's no workspace to handle.
+You get back a run id and a `sessionId` (to continue) — immediately. Files live on the conversation automatically; there's no workspace to handle.
 ```bash
 GET /api/v1/agents/browser-use/runs/run_1   → { "status": "completed", "output": ... }
 ```
@@ -35,8 +35,8 @@ A run hands you ids. They aren't things you build — they're names for what the
 
 | Id | What it is | How you use it |
 | --- | --- | --- |
-| `session_id` | a name for this thread of runs (the "conversation") | pass it back to continue; files also live on it |
-| `browser_id` | the browser the run used | shows up on `GET /runs/{id}` once provisioned (the browser is made in the background — it's **not** in the create response) |
+| `sessionId` | a name for this thread of runs (the "conversation") | pass it back to continue; files also live on it |
+| `browserId` | the browser the run used | shows up on `GET /runs/{id}` once provisioned (the browser is made in the background — it's **not** in the create response) |
 
 Files live on the conversation automatically — you never handle a `workspace_id`. (A named [workspace](https://docs.browser-use.com/cloud/files#sharing-files-across-conversations) exists only for sharing files across *different* conversations — advanced.)
 
@@ -56,7 +56,7 @@ Read [`GET /agents`](https://docs.browser-use.com/cloud/choose-an-agent) if you 
 You never need these on the hot path — a run makes what it needs. They exist only if you want to prepare something **before** running:
 
 - **Pre-load files** before the first run → [create a workspace](https://docs.browser-use.com/cloud/files#pre-load-files) and upload into it.
-- **Save a login** to reuse → [create a browser profile](https://docs.browser-use.com/cloud/browser-profiles).
+- **Save a login** to reuse → [create a browser profile](https://docs.browser-use.com/cloud/create-profile).
 - **Drive a browser yourself** over CDP (no agent) → [create a standalone browser](https://docs.browser-use.com/cloud/create-browser).
 
 If you're not doing one of those three things, ignore this section entirely.
@@ -109,6 +109,33 @@ The SDK `run()` starts the run and waits for it to finish, then returns the resu
 
 **Where's the answer?** Every completed run has a **`result`** string — the plain-language answer. That's what you read on the golden path. The separate **`output`** field is `null` unless you asked for [structured output](https://docs.browser-use.com/cloud/agent/structured-output) (a typed object, `browser-use` only). Large or file-shaped output from `browsercode` comes back as [files](https://docs.browser-use.com/cloud/files), not in either field.
 
+## Or: spin up a browser instead
+
+Agents and browsers are independent entry points — you don't need an agent run to get a browser. Create one directly and drive it yourself over CDP:
+
+```python Python
+from browser_use import BrowserUse
+
+client = BrowserUse()
+browser = client.browsers.create()
+print(browser.cdp_url)   # connect Playwright/Puppeteer here
+```
+```typescript TypeScript
+import { BrowserUse } from "browser-use";
+
+const client = new BrowserUse();
+const browser = await client.browsers.create();
+console.log(browser.cdpUrl); // connect Playwright/Puppeteer here
+```
+```bash curl
+curl -X POST https://api.browser-use.com/api/v1/browsers \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+See [Create a browser](https://docs.browser-use.com/cloud/create-browser) for options, or [connect your framework](https://docs.browser-use.com/cloud/browser/playwright-puppeteer-selenium) (Playwright, Puppeteer, Selenium).
+
 ## The whole platform in one picture
 
 You run **agents**. Agents use **browsers** (and their saved logins) and **files**. You only ever create runs — everything else is created for you and handed back as ids you can reuse.
@@ -117,10 +144,10 @@ You run **agents**. Agents use **browsers** (and their saved logins) and **files
 | --- | --- |
 | **Agents** | The things you run. Two of them: **`browser-use`** (browser tasks — fast, OSS) and **`browsercode`** (code + browser — data processing, multi-step work). See [Choose an agent](https://docs.browser-use.com/cloud/choose-an-agent). |
 | **Browsers** | The browser an agent drives. A run provisions one automatically — or [create one yourself](https://docs.browser-use.com/cloud/create-browser) and drive it directly over CDP. |
-| **Browser profiles** | Saved login / cookie state. [Create one](https://docs.browser-use.com/cloud/browser-profiles), pass its id into a run to start logged-in. |
+| **Browser profiles** | Saved login / cookie state. [Create one](https://docs.browser-use.com/cloud/create-profile), pass its id into a run to start logged-in. |
 | **Files** | Attach files to a run and get output files back. See [Files](https://docs.browser-use.com/cloud/files). |
 
-There is no separate "create a session" or "create a workspace" step. A run mints a `session_id` (for follow-ups) and returns it — pass it back to continue. Files live on the conversation automatically; you never handle a `workspace_id`. (A named workspace exists only to share files across *different* conversations — advanced, see [Files](https://docs.browser-use.com/cloud/files).)
+There is no separate "create a session" or "create a workspace" step. A run mints a `sessionId` (for follow-ups) and returns it — pass it back to continue. Files live on the conversation automatically; you never handle a workspace id. (A named workspace exists only to share files across *different* conversations — advanced, see [Files](https://docs.browser-use.com/cloud/files).)
 
 ## Next
 
@@ -128,6 +155,8 @@ browser-use vs browsercode — or let your LLM route automatically.
 The full run API: options, browser settings, structured output.
 Follow-ups — pass a session id to keep going.
 Attach files to a run, get output files back.
+A standalone cloud browser you drive yourself.
+Point Playwright, Puppeteer, or Selenium at a cloud browser.
 
 ---
 
@@ -182,7 +211,7 @@ import { BrowserUse } from "browser-use";
 
 const client = new BrowserUse();
 const agents = await client.agents.list();
-for (const a of agents) console.log(a.name, a.capabilities, "—", a.best_for);
+for (const a of agents) console.log(a.name, a.capabilities, "—", a.bestFor);
 ```
 ```bash curl
 curl https://api.browser-use.com/api/v1/agents \
@@ -192,26 +221,28 @@ curl https://api.browser-use.com/api/v1/agents \
 Response:
 
 ```json
-[
-  {
-    "name": "browser-use",
-    "capabilities": ["browser", "files"],
-    "session": "disposable",
-    "best_for": "One-off or short browser tasks: navigating sites, clicking, filling forms, extracting data.",
-    "not_for": "Writing or running code, using a terminal, or long-horizon engineering work.",
-    "example_tasks": ["Book a flight on united.com", "Scrape all prices from this catalog"],
-    "run": "POST /api/v1/agents/browser-use/runs"
-  },
-  {
-    "name": "browsercode",
-    "capabilities": ["browser", "code", "terminal", "files"],
-    "session": "durable",
-    "best_for": "Anything needing code, a terminal, or long-horizon multi-step work — with or without a browser.",
-    "not_for": "Simple one-shot browser navigation (overkill — use browser-use).",
-    "example_tasks": ["Scrape a site then clean the data into a CSV", "Build and run a page monitor"],
-    "run": "POST /api/v1/agents/browsercode/runs"
-  }
-]
+{
+  "agents": [
+    {
+      "name": "browser-use",
+      "capabilities": ["browser", "files"],
+      "session": { "kind": "disposable" },
+      "bestFor": "One-off or short browser tasks: navigating sites, clicking, filling forms, extracting data. Do it and done.",
+      "notFor": "Writing or running code, using a terminal, or long-horizon multi-step engineering work.",
+      "exampleTasks": ["Book a flight on united.com", "Scrape all prices from this catalog"],
+      "run": "POST /api/v1/agents/browser-use/runs"
+    },
+    {
+      "name": "browsercode",
+      "capabilities": ["browser", "code", "terminal", "files"],
+      "session": { "kind": "durable" },
+      "bestFor": "Anything needing code, a terminal, or long-horizon multi-step work, with or without a browser. Extend over many steps or return to it later.",
+      "notFor": "Simple one-shot browser navigation (overkill; use browser-use).",
+      "exampleTasks": ["Scrape a site then clean the data into a CSV", "Build and run a page monitor"],
+      "run": "POST /api/v1/agents/browsercode/runs"
+    }
+  ]
+}
 ```
 
 Filter by capability: `GET /api/v1/agents?capability=code` returns only agents that can run code.
@@ -257,7 +288,7 @@ const run = await client.agents.browserUse.run({
   browser: { proxy_country_code: "us" },
 });
 console.log(run.result); // the answer string (`output` is only set for structured output)
-console.log(run.session_id);
+console.log(run.sessionId);
 ```
 ```bash curl
 curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
@@ -275,13 +306,13 @@ The raw endpoint returns immediately (the run is async):
 {
   "id": "run_abc123",
   "status": "queued",
-  "session_id": "ses_xyz789",
-  "steps_url": "/api/v1/agents/browser-use/runs/run_abc123/steps",
-  "missing_file_ids": []
+  "sessionId": "ses_xyz789",
+  "stepsUrl": "/api/v1/agents/browser-use/runs/run_abc123/steps",
+  "missingFileIds": []
 }
 ```
 
-You get `session_id` (to continue) right away; files live on that conversation automatically (no `workspace_id` to handle — see [Files](https://docs.browser-use.com/cloud/files)). The **browser is provisioned in the background** — its `browser_id` is not in this response; it appears on `GET /runs/{id}` once ready. Then [watch the run](https://docs.browser-use.com/cloud/watch-a-run) until `status` is `completed` and read `result` (the answer string; `output` is only populated for [structured output](https://docs.browser-use.com/cloud/agent/structured-output)). The SDK `run()` waits for you and returns the finished run.
+You get `sessionId` (to continue) right away; files live on that conversation automatically (no workspace id to handle — see [Files](https://docs.browser-use.com/cloud/files)). The **browser is provisioned in the background** — its `browserId` is not in this response; it appears on `GET /runs/{id}` once ready. Then [watch the run](https://docs.browser-use.com/cloud/watch-a-run) until `status` is `completed` and read `result` (the answer string; `output` is only populated for [structured output](https://docs.browser-use.com/cloud/agent/structured-output)). The SDK `run()` waits for you and returns the finished run.
 
 ## Run body
 
@@ -292,7 +323,7 @@ Common fields (full list in the [API reference](https://docs.browser-use.com/clo
 | `task` | string | **required** — what to do, in plain language |
 | `model` | string | LLM to use (optional; sensible default) |
 | `browser` | object | `{ proxy_country_code, screen_width, screen_height }` — provisions a browser for this run |
-| `browser_profile_id` | string | start logged-in ([profiles](https://docs.browser-use.com/cloud/browser-profiles)) |
+| `browser_profile_id` | string | start logged-in ([profiles](https://docs.browser-use.com/cloud/use-a-profile)) |
 | `session_id` | string | continue a previous run ([continue a task](https://docs.browser-use.com/cloud/continue-a-task)) |
 | `attached_file_ids` | string[] | files to give this run (add them first via `POST /agents/{agent}/files` — see [Files](https://docs.browser-use.com/cloud/files)) |
 | `workspace_id` | string | **advanced** — an explicit workspace for cross-conversation sharing; omit on the normal path ([files](https://docs.browser-use.com/cloud/files)) |
@@ -395,7 +426,7 @@ const follow = await client.agents.browserUse.run({
 console.log(follow.result);
 ```
 ```bash curl
-# first run returns { "session_id": "ses_xyz789", ... }
+# first run returns { "sessionId": "ses_xyz789", ... }
 curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
@@ -408,7 +439,7 @@ On a continuation you send only the new `task` (plus optional `attached_file_ids
 - **Proxy, screen size, model** — inherited too. You can't change them mid-thread; start a new run for a different config.
 - **Files** — every file the thread added or produced is still on the conversation's disk. New files: add + attach them on the follow-up.
 
-The list filter query param is `?sessionId=` (**camelCase**), even though request bodies use snake_case `session_id`. Sending `?session_id=` is silently ignored and returns *all* your runs — use `sessionId`.
+Request bodies accept both `session_id` and `sessionId`; responses always return `sessionId`. The list filter query param is `?sessionId=` — sending `?session_id=` is silently ignored and returns *all* your runs.
 
 ## Agent differences
 
@@ -482,7 +513,7 @@ curl -X POST https://api.browser-use.com/api/v1/agents/browsercode/runs \
 
 No `workspace_id`. Adding a file gets you an id; **attaching** it on a run is what makes the agent get it. Add many at once (`{"files": [{"name":"a.csv"},{"name":"b.csv"}]}` → many ids) and attach them all.
 
-Attach a bad id and the run still starts (`202`) — the unknown ids come back in **`missing_file_ids`** on the create response. Always check that array; a missing file is not an error status.
+Attach a bad id and the run still starts (`202`) — the unknown ids come back in **`missingFileIds`** on the create response. Always check that array; a missing file is not an error status.
 
 ## Get output files back
 
@@ -496,13 +527,13 @@ for f in files:
 ```bash curl
 curl "https://api.browser-use.com/api/v1/agents/browsercode/runs/RUN_ID/files?kind=output" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
-# → { "items": [{ "id": "out_1", "name": "clean.csv", "kind": "output", "download_url": "https://..." }] }
+# → { "items": [{ "id": "out_1", "name": "clean.csv", "kind": "output", "downloadUrl": "https://..." }] }
 
-# download_url is a presigned direct link — fetch it straight (no API endpoint, no key)
+# downloadUrl is a presigned direct link — fetch it straight (no API endpoint, no key)
 curl -L "https://.../presigned-download-url" -o clean.csv
 ```
 
-`download_url` is a **presigned, expiring link** you GET directly — it points straight at storage, not at a Browser Use endpoint. If it expires, re-list to get a fresh one.
+`downloadUrl` is a **presigned, expiring link** you GET directly (the Python SDK exposes it as `download_url`) — it points straight at storage, not at a Browser Use endpoint. If it expires, re-list to get a fresh one.
 
 ## Structured output from `browsercode` — it's a file
 
@@ -540,7 +571,7 @@ Attach files on the first run, then continue with `session_id` — later runs sh
 ```bash curl
 # run 1 adds + uses a file
 curl -X POST .../agents/browsercode/runs -d '{"task":"analyze data.csv", "attached_file_ids":["up_1"]}'
-# → { "session_id": "ses_x", ... }
+# → { "sessionId": "ses_x", ... }
 
 # run 2 continues the thread and adds another file
 curl -X POST .../agents/browsercode/files -d '{"files":[{"name":"extra.csv"}]}'   # → up_2
@@ -665,12 +696,12 @@ The [registry](https://docs.browser-use.com/cloud/choose-an-agent) tells you whi
 
 ## Find the browser a run used
 
-`browser_id` appears on the run once its browser is provisioned (null while queued). Use it to fetch the [recording or downloads](https://docs.browser-use.com/cloud/manage-browser).
+`browserId` appears on the run once its browser is provisioned (null while queued). Use it to fetch the [recording or downloads](https://docs.browser-use.com/cloud/manage-browser).
 
 ```bash curl
 curl "https://api.browser-use.com/api/v1/agents/browser-use/runs/run_abc123" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
-# → { "id": "run_abc123", "browser_id": "br_...", "status": "completed", ... }
+# → { "id": "run_abc123", "browserId": "br_...", "status": "completed", ... }
 ```
 
 
@@ -709,6 +740,47 @@ curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs/run_abc1
 Never end a run or browser by `PATCH`-ing a status field. Lifecycle transitions are always named actions (`/stop`). This is deliberate — an agent handles a named intent far more reliably than a partial state edit.
 
 
+# Open-source agent on the cloud
+Source: https://docs.browser-use.com/cloud/open-source-agent
+
+
+The `browser-use` agent you run on the cloud **is the [open-source browser-use agent](https://github.com/browser-use/browser-use)** — the same agent, hosted for you. Same behavior, and you can run the exact same models. The difference is where it runs: on the cloud it drives our [stealth browsers](https://docs.browser-use.com/cloud/browser/stealth) — hardened Chromium with randomized fingerprints, automatic [CAPTCHA solving](https://docs.browser-use.com/cloud/browser/captcha), and residential proxies — so it gets past the bot detection that blocks a local Chromium.
+
+One call, no infrastructure:
+
+```bash curl
+curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "List the top 5 posts on Hacker News with their points"}'
+```
+
+## Self-host or cloud?
+
+| | Self-hosted (open source) | Cloud |
+| --- | --- | --- |
+| **Agent** | browser-use | The same browser-use |
+| **Setup** | Your machines, your browser, your keys | None — one API call |
+| **Browser** | Whatever you run locally | Stealth browsers: anti-fingerprinting, CAPTCHA solving, residential proxies |
+| **Logins** | Manage your own browser state | [Profiles](https://docs.browser-use.com/cloud/create-profile) — saved login state by id |
+
+Self-host when you want full control on your own infra. Use the cloud when you want the same agent with zero setup and browsers that don't get blocked — see [Stealth](https://docs.browser-use.com/cloud/browser/stealth).
+
+
+# Browsers
+Source: https://docs.browser-use.com/cloud/browsers
+
+
+A **browser** is a real Chromium instance running on our infrastructure — hardened for [stealth](https://docs.browser-use.com/cloud/browser/stealth), behind [residential proxies](https://docs.browser-use.com/cloud/browser/proxies), with [CAPTCHA solving](https://docs.browser-use.com/cloud/browser/captcha) built in. Agent runs provision one automatically; or create one yourself and drive it directly with Playwright, Puppeteer, or raw CDP.
+
+Start a browser and get its CDP URL.
+List, filter, stop, and fetch downloads or recordings.
+Playwright, Puppeteer, and Selenium over one WebSocket URL.
+Watch live, embed in your app, get the MP4 after.
+Saved login state — start browsers already logged in.
+What's on by default and how to tune it.
+
+
 # Create a browser
 Source: https://docs.browser-use.com/cloud/create-browser
 
@@ -732,7 +804,7 @@ import { BrowserUse } from "browser-use";
 
 const client = new BrowserUse();
 const browser = await client.browsers.create({ proxy_country_code: "us" });
-console.log(browser.cdp_url);
+console.log(browser.cdpUrl);
 ```
 ```bash curl
 curl -X POST https://api.browser-use.com/api/v1/browsers \
@@ -743,7 +815,7 @@ curl -X POST https://api.browser-use.com/api/v1/browsers \
 
 ## Connect over CDP
 
-The `cdp_url` is a standard Chrome DevTools Protocol endpoint.
+The `cdpUrl` is a standard Chrome DevTools Protocol endpoint.
 
 ```python Python
 from playwright.sync_api import sync_playwright
@@ -755,13 +827,13 @@ with sync_playwright() as p:
     print(page.title())
 ```
 
-Field name is `cdp_url` in the REST API and Python SDK, `cdpUrl` in the TypeScript SDK. Same value, language-idiomatic casing.
+The REST API returns **`cdpUrl`** (camelCase, like every response field). The Python SDK exposes it as `cdp_url`, the TypeScript SDK as `cdpUrl` — same value, language-idiomatic casing.
 
 ## Provision options
 
 | Field | Notes |
 | --- | --- |
-| `browser_profile_id` | start logged-in ([profiles](https://docs.browser-use.com/cloud/browser-profiles)) |
+| `browser_profile_id` | start logged-in ([profiles](https://docs.browser-use.com/cloud/use-a-profile)) |
 | `proxy_country_code` | residential proxy, e.g. `"us"`, `"de"` |
 | `screen_width` / `screen_height` | viewport |
 
@@ -786,7 +858,7 @@ for_session = client.browsers.list(session_id="ses_xyz789")  # what a session us
 curl "https://api.browser-use.com/api/v1/browsers?status=idle" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
 
-curl "https://api.browser-use.com/api/v1/browsers?sessionId=ses_xyz789" \
+curl "https://api.browser-use.com/api/v1/browsers?agentSessionId=ses_xyz789" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
 ```
 
@@ -815,7 +887,7 @@ curl "https://api.browser-use.com/api/v1/browsers/br_abc123/recording" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
 ```
 
-To fetch recordings for an agent run: get its `browser_id` from `GET /runs/{id}`, then call `/browsers/{browser_id}/recording`.
+To fetch recordings for an agent run: get its `browserId` from `GET /runs/{id}`, then call `/browsers/{browser_id}/recording`.
 
 ## Downloads
 
@@ -824,10 +896,10 @@ To fetch recordings for an agent run: get its `browser_id` from `GET /runs/{id}`
 ```bash curl
 curl "https://api.browser-use.com/api/v1/browsers/br_abc123/downloads?includeUrls=true" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
-# → { "items": [{ "id": "dl_...", "name": "report.pdf", "download_url": "https://..." }] }
+# → { "items": [{ "id": "dl_...", "name": "report.pdf", "downloadUrl": "https://..." }] }
 ```
 
-Each item's `download_url` serves the bytes (same download mechanism as output files).
+Each item's `downloadUrl` serves the bytes (same download mechanism as output files).
 
 ## Browser lifecycle (no keep_alive)
 
@@ -838,11 +910,11 @@ Browsers clean themselves up — there is no `keep_alive` flag to manage. A brow
 Source: https://docs.browser-use.com/cloud/browser/live-preview
 
 
-Every run's browser can be watched live and is recorded. Both the live view and the recording live on the **browser** the run used — you get the `browser_id` from the run, then read them off the browser.
+Every run's browser can be watched live and is recorded. Both the live view and the recording live on the **browser** the run used — you get the `browserId` from the run, then read them off the browser.
 
 ## Watch a run live
 
-Start a run, get its `browser_id` from `GET /runs/{id}` (it appears once the browser is provisioned), then read the browser's `live_view_url`.
+Start a run, get its `browserId` from `GET /runs/{id}` (it appears once the browser is provisioned), then read the browser's `liveViewUrl`.
 
 ```python Python
 from browser_use import BrowserUse
@@ -856,18 +928,18 @@ browser = client.browsers.get(run.browser_id)
 print(browser.live_view_url)   # open this to watch live
 ```
 ```bash curl
-# 1. get the run → browser_id (null until provisioned)
+# 1. get the run → browserId (null until provisioned)
 curl "https://api.browser-use.com/api/v1/agents/browser-use/runs/RUN_ID" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
-# → { "browser_id": "br_123", ... }
+# → { "browserId": "br_123", ... }
 
 # 2. the browser carries the live view url
 curl "https://api.browser-use.com/api/v1/browsers/br_123" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
-# → { "live_view_url": "https://live.browser-use.com?wss=...", ... }
+# → { "liveViewUrl": "https://live.browser-use.com?wss=...", ... }
 ```
 
-A [standalone browser](https://docs.browser-use.com/cloud/create-browser) returns `live_view_url` immediately on `POST /browsers` (it's provisioned synchronously).
+A [standalone browser](https://docs.browser-use.com/cloud/create-browser) returns `liveViewUrl` immediately on `POST /browsers` (it's provisioned synchronously).
 
 ## Embed it in your app
 
@@ -901,18 +973,18 @@ curl "https://api.browser-use.com/api/v1/browsers/BROWSER_ID/recording" \
 # → { "url": "https://.../recording.mp4?..." }
 ```
 
-To find the `BROWSER_ID` for a run, read `browser_id` off `GET /runs/{id}` (as above). See [Manage a browser](https://docs.browser-use.com/cloud/manage-browser) for the full browser API.
+To find the `BROWSER_ID` for a run, read `browserId` off `GET /runs/{id}` (as above). See [Manage a browser](https://docs.browser-use.com/cloud/manage-browser) for the full browser API.
 
 Recording URLs are presigned and **expire after 1 hour**. Download or serve the MP4 promptly; save it to your own storage if you need it later. A run that never opened a browser has no recording.
 
 
-# Browser profiles
-Source: https://docs.browser-use.com/cloud/browser-profiles
+# Create a profile
+Source: https://docs.browser-use.com/cloud/create-profile
 
 
 A **browser profile** is saved login/cookie state — the "stay logged in" of a real browser. It's a standalone, project-owned resource: you create it once, then reference it by id whenever you want a browser or an agent run to start already logged in.
 
-## Create a profile
+## Create
 
 ```python Python
 from browser_use import BrowserUse
@@ -921,6 +993,13 @@ client = BrowserUse()
 profile = client.browser_profiles.create(name="my-gmail")
 print(profile.id)   # bp_...
 ```
+```typescript TypeScript
+import { BrowserUse } from "browser-use";
+
+const client = new BrowserUse();
+const profile = await client.browserProfiles.create({ name: "my-gmail" });
+console.log(profile.id); // bp_...
+```
 ```bash curl
 curl -X POST https://api.browser-use.com/api/v1/browser-profiles \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
@@ -928,28 +1007,7 @@ curl -X POST https://api.browser-use.com/api/v1/browser-profiles \
   -d '{"name": "my-gmail"}'
 ```
 
-The agent (or you, over CDP) logs in once inside a browser started with this profile; the session is saved back to the profile for next time.
-
-## Use a profile
-
-Pass `browser_profile_id` into a run or a standalone browser — same field either way.
-
-```python Python
-# in an agent run
-run = client.agents.browser_use.run(
-    task="Check my inbox and summarize unread emails",
-    browser_profile_id=profile.id,
-)
-
-# or a standalone browser
-browser = client.browsers.create(browser_profile_id=profile.id)
-```
-```bash curl
-curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
-  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"task": "Check my inbox", "browser_profile_id": "bp_123"}'
-```
+A new profile is empty. It gets its state the first time it's used: the agent (or you, over CDP) logs in once inside a browser started with this profile, and when that run or browser ends, the session is saved back into the profile for next time. See [Use a profile](https://docs.browser-use.com/cloud/use-a-profile) for how to attach it and how persistence works.
 
 ## Manage
 
@@ -968,6 +1026,78 @@ curl -X PATCH https://api.browser-use.com/api/v1/browser-profiles/bp_123 \
 ```
 
 A profile is a creation input, passed by id — never nested under a browser. There is no `browsers/{id}/profile`.
+
+## Next
+
+Attach the profile to an agent run or a browser you drive yourself.
+Have the agent do the first login and save the session.
+
+
+# Use a profile
+Source: https://docs.browser-use.com/cloud/use-a-profile
+
+
+Pass `browser_profile_id` into a run or a standalone browser — same field either way. The browser starts with the profile's saved cookies and logins already in place. Don't have a profile yet? [Create one](https://docs.browser-use.com/cloud/create-profile) first.
+
+## Attach it
+
+```python Python
+# in an agent run
+run = client.agents.browser_use.run(
+    task="Check my inbox and summarize unread emails",
+    browser_profile_id=profile.id,
+)
+
+# or a standalone browser
+browser = client.browsers.create(browser_profile_id=profile.id)
+```
+```bash curl
+curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task": "Check my inbox", "browser_profile_id": "bp_123"}'
+```
+
+## Persist state on a browser you drive (CDP)
+
+Profiles work the same whether the agent drives or you do. Pass `browser_profile_id` to `browsers.create()`, set state over CDP, then **stop the browser to flush cookies and localStorage into the profile**. Reconnect later with the same `browser_profile_id` and the state is there.
+
+```python Python
+from browser_use import BrowserUse
+from playwright.sync_api import sync_playwright
+
+client = BrowserUse()
+profile = client.browser_profiles.create(name="persist-demo")
+
+# Browser 1 — write state, then stop to persist
+b1 = client.browsers.create(browser_profile_id=profile.id)
+with sync_playwright() as p:
+    pw = p.chromium.connect_over_cdp(b1.cdp_url)
+    page = pw.contexts[0].pages[0]
+    page.goto("https://en.wikipedia.org")
+    page.evaluate("localStorage.setItem('demo', 'hello')")
+    pw.close()
+client.browsers.stop(b1.id)   # flushes state into the profile
+
+# Browser 2 — same profile, state is back
+b2 = client.browsers.create(browser_profile_id=profile.id)
+with sync_playwright() as p:
+    pw = p.chromium.connect_over_cdp(b2.cdp_url)
+    page = pw.contexts[0].pages[0]
+    page.goto("https://en.wikipedia.org")
+    print(page.evaluate("localStorage.getItem('demo')"))  # -> hello
+    pw.close()
+client.browsers.stop(b2.id)
+```
+
+Use a site that actually sets cookies/localStorage to verify persistence — `example.com` sets none, so it is a poor test target.
+
+Profile state is saved when the run or browser ends. An agent run persists automatically when it finishes; a browser you drive yourself should be stopped with `browsers.stop()` when you are done — a browser left to time out may not save. Stop in a `finally` so every code path, including error handlers, persists.
+
+## Next
+
+Create, list, rename, and delete profiles.
+Have the agent do the first login and save the session.
 
 
 # Authentication
@@ -1023,7 +1153,7 @@ For accounts with 2FA, the agent can pause and hand control to you to complete t
 
 ## How it fits together
 
-- A **profile** is standalone, project-owned login state — [create and manage it](https://docs.browser-use.com/cloud/browser-profiles).
+- A **profile** is standalone, project-owned login state — [create and manage it](https://docs.browser-use.com/cloud/create-profile).
 - Pass `browser_profile_id` into any **run** (or standalone [browser](https://docs.browser-use.com/cloud/create-browser)) to start logged in.
 - One profile per identity you automate (my-gmail, my-linkedin, …); reuse across as many runs as you like.
 
@@ -1084,23 +1214,124 @@ curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
 Both produce a `browser_profile_id` you reuse on every run.
 
 
-# Introduction Stealth
+# Stealth & proxies
+Source: https://docs.browser-use.com/cloud/browser/stealth-and-proxies
+
+
+Every cloud browser runs in a **hardened Chromium fork** built to look like a real user: Canvas, WebGL, font, and navigator fingerprints are randomized per session, ad and cookie banners are dismissed automatically, and CAPTCHAs are solved for you. Nothing to configure — it's on by default for agent runs and browsers you drive yourself. In [the hardest public stealth benchmark](https://browser-use.com/posts/stealth-benchmark), Browser Use passes **81%** of protected sites — the highest score of any cloud browser tested.
+
+Requests route through **residential proxies in 195+ countries**, US by default, so traffic originates from real-user IPs in the geography you choose. Bring your own proxy if you have one.
+
+What the hardened browser does and how it benchmarks.
+Automatic solving — success rates by vendor and type.
+Set a country, disable, or get a fresh IP.
+See region-locked prices and content from any country.
+Route through your own HTTP or SOCKS5 proxy.
+
+
+# Stealth
 Source: https://docs.browser-use.com/cloud/browser/stealth
 
 
 See [how we perform in the hardest stealth benchmark](https://browser-use.com/posts/stealth-benchmark).
 
+<Frame caption="Stealth benchmark — success rate on high-security sites, Browser Use vs other cloud browsers">
+  <img src="/cloud/images/stealth-benchmark.png" style={{ borderRadius: '0.5rem' }} alt="Stealth benchmark bar chart: Browser Use 81%, Anchor 77%, Onkernel 67%, Browserless 54%, Headful 49%, Steel 47%, Browserbase 42%, Hyperbrowser 40%, Headless 2%" />
+</Frame>
+
+Browser Use lands **81%** — ahead of every other cloud browser, and far above a plain headless browser (2%).
+
+We get there by forking Chromium rather than patching detection signals with stealth plugins, so the signals never appear in the first place. [Here's why that approach holds up as anti-bot systems tighten](https://browser-use.com/posts/bot-detection).
+
 ## What's included
 
-Every cloud browser session runs in a hardened Chromium fork with stealth enabled by default — no configuration needed.
+Every cloud browser runs in a hardened Chromium fork with stealth enabled by default — no configuration needed. [Create a browser](https://docs.browser-use.com/cloud/create-browser) and it is already on; agent runs get the same browser automatically.
 
-- **Anti-detect browser fingerprinting** — Canvas, WebGL, fonts, navigator, and other browser fingerprints are randomized per session to appear as a real user. Passes CreepJS, BrowserLeaks, and other fingerprint detectors.
+- **Anti-detect browser fingerprinting** — Canvas, WebGL, fonts, navigator, and other browser fingerprints are randomized per browser to appear as a real user. Passes CreepJS, BrowserLeaks, and other fingerprint detectors.
 - **Ad and cookie banner blocking** — Banners are dismissed automatically so the agent sees clean pages and executes faster.
 - **Cloudflare / anti-bot bypass** — Works on sites protected by Cloudflare, PerimeterX, and other bot detection services.
 
+Stealth keeps most challenges from ever appearing. When one does, it is solved automatically — see [CAPTCHA solving](https://docs.browser-use.com/cloud/browser/captcha) for per-vendor success rates.
+
 ## Residential proxies
 
-Residential proxies are enabled by default across 195+ countries. This makes browser sessions appear as real users from the target geography. See [Proxies](https://docs.browser-use.com/cloud/browser/proxies) for details on geo-targeting and custom proxy configuration.
+Residential proxies are enabled by default across 195+ countries. This makes browsers appear as real users from the target geography. See [Proxies](https://docs.browser-use.com/cloud/browser/proxies) for details on geo-targeting and custom proxy configuration.
+
+## Further reading
+
+- [Benchmarks](https://browser-use.com/benchmarks) — 84.8% on BrowserBench and 81% bypass on high-security sites, against other providers
+- [We stealth benchmarked every major cloud browser provider](https://browser-use.com/posts/stealth-benchmark)
+- [Browser agent bot detection is about to change](https://browser-use.com/posts/bot-detection)
+- [Stealth Browser Infrastructure](https://browser-use.com/posts/browser-infra)
+
+
+# CAPTCHA Solving
+Source: https://docs.browser-use.com/cloud/browser/captcha
+
+
+Browser Use cloud browsers have **automatic CAPTCHA solving** built in. There is nothing to configure — on the browser, the agent driving it, or your automation library (Playwright, Puppeteer, Selenium). It is on by default on every plan, including the free tier (see [Billing](https://docs.browser-use.com/cloud/billing)).
+
+The best defense is not tripping a challenge in the first place — that is what [stealth](https://docs.browser-use.com/cloud/browser/stealth) handles (anti-fingerprinting and bot-detection bypass). This page covers what happens when a CAPTCHA or anti-bot system appears anyway: we solve it, and we lead the field on success rate.
+
+## Success rate by vendor
+
+Across the anti-bot and CAPTCHA systems agents hit most, Browser Use has the **highest overall success rate at 81%** — and the best against **Cloudflare (93%)** and **PerimeterX (81%)**.
+
+| Protection | Browser Use |
+| --- | --- |
+| Overall | **81%** |
+| Cloudflare | **93%** |
+| PerimeterX | **81%** |
+| Akamai | 85% |
+| DataDome | 69% |
+| reCAPTCHA | 80% |
+
+<Frame caption="Success rate by vendor, Browser Use vs other cloud browser providers">
+  <img src="/cloud/images/captcha-success-by-vendor.png" style={{ borderRadius: '0.5rem' }} alt="Heatmap of success rate by vendor. Browser Use leads overall at 81%, with 93% on Cloudflare and 81% on PerimeterX, ahead of Anchor, Onkernel, Browserless, Steel, Browserbase, and Hyperbrowser." />
+</Frame>
+
+Full methodology in [We stealth benchmarked every major cloud browser provider](https://browser-use.com/posts/stealth-benchmark).
+
+## Supported CAPTCHA types
+
+These are the interactive CAPTCHA widgets solved automatically, distinct from the anti-bot systems above (Cloudflare, DataDome, PerimeterX, Akamai) that gate a site before a widget ever appears:
+
+| CAPTCHA type | Solved automatically |
+| --- | --- |
+| reCAPTCHA v2 (checkbox / image challenge) | Yes |
+| reCAPTCHA v3 (score-based) | Yes |
+| hCaptcha | Yes |
+| Cloudflare Turnstile | Yes |
+
+All are handled on by default — no `captcha_type` parameter or per-widget configuration.
+
+## Get started
+
+There is nothing to turn on. CAPTCHA solving comes with every browser. Start one:
+
+Provision a browser and drive it yourself over CDP.
+Playwright, Puppeteer, or Selenium over CDP.
+What the hardened Chromium fork does.
+Residential IPs in 195+ countries, on by default.
+
+## FAQ
+
+**Does the open-source library solve CAPTCHAs?**
+
+Without cloud browsers, [open-source](https://github.com/browser-use/browser-use) agents have no stealth or CAPTCHA solving. Giving your agent stealth is easy: run it on a cloud browser — [create a browser](https://docs.browser-use.com/cloud/create-browser) and point the library at its CDP URL.
+
+**Can I use a third-party CAPTCHA solver?**
+
+No, we do not support third-party CAPTCHA solver plugins on the browser. If your CAPTCHAs are not being solved properly, reach out and we will look into it.
+
+**Do I need to enable anything for CAPTCHA solving?**
+
+No. Cloud browsers solve CAPTCHAs for you automatically.
+
+## Further reading
+
+- [Prove you are a robot: CAPTCHAs for agents](https://browser-use.com/posts/prove-you-are-a-robot)
+- [Browser agent bot detection is about to change](https://browser-use.com/posts/bot-detection)
 
 
 # Proxies
@@ -1171,10 +1402,42 @@ curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
   -d '{"task": "Check http://localhost:3000 loads", "browser": {"proxy_country_code": null}}'
 ```
 
+## Blocked? Get a fresh IP
+
+Browser Use does not rotate the IP within a running browser. When a site starts blocking you, stop the browser and create a new one — each browser gets a fresh residential IP from the country pool automatically.
+
+```python Python
+from browser_use import BrowserUse
+
+client = BrowserUse()
+
+# Stop-and-recreate is how you get a new IP; reattach a profile to keep login state.
+client.browsers.stop(old_browser.id)
+browser = client.browsers.create(proxy_country_code="us", browser_profile_id="bp_123")
+```
+```bash curl
+curl -X POST https://api.browser-use.com/api/v1/browsers/br_old/stop \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
+
+curl -X POST https://api.browser-use.com/api/v1/browsers \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"proxy_country_code": "us", "browser_profile_id": "bp_123"}'
+```
+
+- **New browser = new IP.** Recreating the browser is the supported way to rotate.
+- **Keep your login across the rotation** by passing the same [`browser_profile_id`](https://docs.browser-use.com/cloud/use-a-profile) — the fresh IP loads the saved cookies and localStorage.
+- **Switch country** (`proxy_country_code`) to leave a blocked regional pool entirely.
+- **Custom proxies** can rotate per request on their side — use a [custom proxy](https://docs.browser-use.com/cloud/browser/custom-proxy) with a rotating endpoint.
+
 ## Next
 
 Route through a country to see region-locked prices, catalogs, and content.
 Bring your own HTTP or SOCKS5 proxy.
+
+## Further reading
+
+- [We stealth benchmarked every major cloud browser provider](https://browser-use.com/posts/stealth-benchmark) — how proxy quality affects bypass rates
 
 
 # Geo-scraping
@@ -1311,6 +1574,104 @@ Both HTTP and SOCKS5 proxies are supported. When `custom_proxy` is set, `proxy_c
 Custom proxies require an active subscription. Credentials are used only to route this browser and are never stored in run history.
 
 
+# Screenshots
+Source: https://docs.browser-use.com/cloud/browser/screenshots
+
+
+A cloud browser is a normal CDP endpoint, so screenshots work the way your framework takes them, and they save wherever your code runs.
+
+## Where screenshots are saved
+
+The most-asked question first: screenshots taken through Playwright or Puppeteer are written by *your* code, to a path *you* choose. Nothing is stored on the browser — the browser's automatic [recording](https://docs.browser-use.com/cloud/manage-browser#recording) is separate.
+
+```python Python
+from playwright.async_api import async_playwright
+from browser_use import BrowserUse
+
+client = BrowserUse()
+browser = client.browsers.create()
+
+async with async_playwright() as p:
+    pw = await p.chromium.connect_over_cdp(browser.cdp_url)
+    page = pw.contexts[0].pages[0]
+    await page.goto("https://example.com")
+    await page.screenshot(path="shots/example.png")  # your machine, your path
+
+client.browsers.stop(browser.id)
+```
+```typescript TypeScript
+import { chromium } from "playwright";
+import { BrowserUse } from "browser-use";
+
+const client = new BrowserUse();
+const browser = await client.browsers.create();
+
+const pw = await chromium.connectOverCDP(browser.cdp_url);
+const page = pw.contexts()[0].pages()[0];
+await page.goto("https://example.com");
+await page.screenshot({ path: "shots/example.png" });
+
+await client.browsers.stop(browser.id);
+```
+
+## Full page, not just the viewport
+
+By default a screenshot captures the visible viewport. For the whole page, top to bottom:
+
+```python
+await page.screenshot(path="full.png", full_page=True)
+```
+
+Playwright stitches the scroll automatically. The result contains page content only, no URL bar or browser chrome, because CDP screenshots capture the rendered page, not the window.
+
+## Resolution
+
+Screenshot dimensions follow the browser's screen size, set at [browser creation](https://docs.browser-use.com/cloud/create-browser) with `screen_width` and `screen_height`. Set them explicitly if screenshots must match a target resolution:
+
+```python
+browser = client.browsers.create(screen_width=1920, screen_height=1080)
+```
+
+## Screenshots vs recording
+
+Screenshots are moments; [recording](https://docs.browser-use.com/cloud/manage-browser#recording) is the whole browser session as video — every browser records automatically, and you fetch a fresh MP4 URL on demand. For debugging agent behavior, recording is usually what you want; for artifacts and QA evidence, screenshots.
+
+## From agent tasks
+
+Ask the agent to take screenshots as part of a task and collect them from the run's [output files](https://docs.browser-use.com/cloud/files) (`GET /runs/{id}/files?kind=output`).
+
+
+# Account
+Source: https://docs.browser-use.com/cloud/account
+
+
+Everything you create — runs, browsers, profiles, files — belongs to your **project**. There is one project per account, and your API key identifies it. Create and manage keys at [cloud.browser-use.com](https://cloud.browser-use.com/settings?tab=api-keys&new=1).
+
+## Check your project
+
+`GET /project` is the "who am I" call — a cheap way to validate an API key and see which project it belongs to.
+
+```bash curl
+curl https://api.browser-use.com/api/v1/project \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
+```
+
+```json
+{
+  "id": "prj_abc123",
+  "name": "my-project",
+  "createdAt": "2026-07-01T12:00:00Z"
+}
+```
+
+A `404` means the key doesn't map to a project — check the key.
+
+## Next
+
+Credits, plans, and what runs cost.
+Concurrency and rate limits per plan.
+
+
 # Billing
 Source: https://docs.browser-use.com/cloud/billing
 
@@ -1333,23 +1694,23 @@ curl "https://api.browser-use.com/api/v1/project/billing" \
 ```json
 {
   "credits": {
-    "balance_usd": "142.50",
-    "monthly_usd": "100.00",
-    "additional_usd": "42.50",
-    "runway_days": 6.5
+    "balanceUsd": "142.50",
+    "monthlyUsd": "100.00",
+    "additionalUsd": "42.50",
+    "runwayDays": 6.5
   },
   "plan": {
     "id": "business",
     "name": "Business",
     "status": "active",
-    "period_end": "2026-08-01T00:00:00Z"
+    "periodEnd": "2026-08-01T00:00:00Z"
   }
 }
 ```
 
-- `monthly_usd` — resets each billing period.
-- `additional_usd` — top-ups, never reset.
-- `runway_days` — estimated days of credit left at your recent spend rate (`null` if unknown).
+- `monthlyUsd` — resets each billing period.
+- `additionalUsd` — top-ups, never reset.
+- `runwayDays` — estimated days of credit left at your recent spend rate (`null` if unknown).
 
 
 # Limits
@@ -1372,12 +1733,12 @@ curl "https://api.browser-use.com/api/v1/project/limits" \
 
 ```json
 {
-  "concurrent_sessions": { "granted": 100, "active": 12, "remaining": 88 },
-  "team_members": { "limit": 100 }
+  "concurrentSessions": { "granted": 100, "active": 12, "remaining": 88 },
+  "teamMembers": { "limit": 100 }
 }
 ```
 
-`concurrent_sessions` counts every live browser (agent-driven or standalone). If `remaining` is 0, new runs queue or 429 until a browser frees up — [list idle browsers and stop them](https://docs.browser-use.com/cloud/manage-browser) to free slots immediately.
+`concurrentSessions` counts every live browser (agent-driven or standalone). If `remaining` is 0, new runs queue or 429 until a browser frees up — [list idle browsers and stop them](https://docs.browser-use.com/cloud/manage-browser) to free slots immediately.
 
 
 # Claude Code
@@ -1797,12 +2158,14 @@ Source: https://docs.browser-use.com/cloud/guides/mcp-server
 https://api.browser-use.com/v3/mcp
 ```
 
+**The MCP server runs tasks on a cloud browser on Browser Use infrastructure — it does not control your local browser.** Each task spins up a hosted stealth browser with proxies and CAPTCHA solving on by default. Authentication is an HTTP header (`x-browser-use-api-key`), not an environment variable.
+
 Get your API key at [cloud.browser-use.com/settings](https://cloud.browser-use.com/settings?tab=api-keys&new=1).
 
 ## Claude Code
 
 ```bash
-claude mcp add -t http -H "x-browser-use-api-key: YOUR_API_KEY" browser-use https://api.browser-use.com/v3/mcp
+claude mcp add --transport http browser-use https://api.browser-use.com/v3/mcp --header "x-browser-use-api-key: YOUR_API_KEY"
 ```
 
 ## Claude Desktop
@@ -2191,7 +2554,7 @@ with sync_playwright() as p:
 
 ## Option 2: SDK
 
-Create a browser via the SDK, get a `cdp_url`, and connect with Playwright or Puppeteer.
+Create a browser via the SDK, get its CDP URL (`cdpUrl` on the wire, `cdp_url` in Python), and connect with Playwright or Puppeteer.
 
 ### Playwright
 
@@ -2730,7 +3093,7 @@ Use **TOTP secret in prompt** — the agent generates codes via pyotp, no human 
 Source: https://docs.browser-use.com/cloud/guides/x402
 
 
-<!-- prettier-ignore-start -->
+{/* prettier-ignore-start */}
 
 [x402](https://www.x402.org) is a payment protocol [created by Coinbase](https://www.coinbase.com/developer-platform/discover/launches/x402) that lets APIs, or AI agents, charge for requests directly with crypto.
 
@@ -3041,7 +3404,7 @@ Two likely causes:
 - [Standard API key auth](https://docs.browser-use.com/cloud/quickstart) — alternative if you don't want pay-per-use
 - [`x402` Claude Code skill source](https://github.com/browser-use/browser-use/tree/main/skills/x402)
 
-<!-- prettier-ignore-end -->
+{/* prettier-ignore-end */}
 
 
 # Chat UI

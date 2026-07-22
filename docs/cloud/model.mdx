@@ -1,5 +1,5 @@
 ---
-title: How it works
+title: Overview
 description: "The whole API in one page: you run tasks. A run gives you back ids. Reuse the ids. That's it."
 icon: circle-nodes
 ---
@@ -8,7 +8,7 @@ The entire platform is **three calls on one thing — a run.** Everything else i
 
 ## The one noun: a run
 
-A **run** is one task an agent does. You start a run, watch it finish, and optionally continue it. You never create sessions or browsers — a run gives you a `session_id`, and files live on that conversation automatically (no workspace to manage — see [Files](/cloud/files)).
+A **run** is one task an agent does. You start a run, watch it finish, and optionally continue it. You never create sessions or browsers — a run gives you a `sessionId`, and files live on that conversation automatically (no workspace to manage — see [Files](/cloud/files)).
 
 ## The three verbs
 
@@ -16,9 +16,9 @@ A **run** is one task an agent does. You start a run, watch it finish, and optio
   <Step title="Start a run">
     ```bash
     POST /api/v1/agents/browser-use/runs   { "task": "..." }
-    → { "id": "run_1", "session_id": "ses_1", "status": "queued" }
+    → { "id": "run_1", "sessionId": "ses_1", "status": "queued" }
     ```
-    You get back a `run_id` and a `session_id` (to continue) — immediately. Files live on the conversation automatically; there's no workspace to handle.
+    You get back a run id and a `sessionId` (to continue) — immediately. Files live on the conversation automatically; there's no workspace to handle.
   </Step>
   <Step title="Watch it finish">
     ```bash
@@ -42,8 +42,8 @@ A run hands you ids. They aren't things you build — they're names for what the
 
 | Id | What it is | How you use it |
 | --- | --- | --- |
-| `session_id` | a name for this thread of runs (the "conversation") | pass it back to continue; files also live on it |
-| `browser_id` | the browser the run used | shows up on `GET /runs/{id}` once provisioned (the browser is made in the background — it's **not** in the create response) |
+| `sessionId` | a name for this thread of runs (the "conversation") | pass it back to continue; files also live on it |
+| `browserId` | the browser the run used | shows up on `GET /runs/{id}` once provisioned (the browser is made in the background — it's **not** in the create response) |
 
 Files live on the conversation automatically — you never handle a `workspace_id`. (A named [workspace](/cloud/files#sharing-files-across-conversations) exists only for sharing files across *different* conversations — advanced.)
 
@@ -65,7 +65,7 @@ Read [`GET /agents`](/cloud/choose-an-agent) if you (or your LLM) want to pick p
 You never need these on the hot path — a run makes what it needs. They exist only if you want to prepare something **before** running:
 
 - **Pre-load files** before the first run → [create a workspace](/cloud/files#pre-load-files) and upload into it.
-- **Save a login** to reuse → [create a browser profile](/cloud/browser-profiles).
+- **Save a login** to reuse → [create a browser profile](/cloud/create-profile).
 - **Drive a browser yourself** over CDP (no agent) → [create a standalone browser](/cloud/create-browser).
 
 If you're not doing one of those three things, ignore this section entirely.

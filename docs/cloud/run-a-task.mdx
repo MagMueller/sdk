@@ -29,7 +29,7 @@ const run = await client.agents.browserUse.run({
   browser: { proxy_country_code: "us" },
 });
 console.log(run.result); // the answer string (`output` is only set for structured output)
-console.log(run.session_id);
+console.log(run.sessionId);
 ```
 ```bash curl
 curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
@@ -48,13 +48,13 @@ The raw endpoint returns immediately (the run is async):
 {
   "id": "run_abc123",
   "status": "queued",
-  "session_id": "ses_xyz789",
-  "steps_url": "/api/v1/agents/browser-use/runs/run_abc123/steps",
-  "missing_file_ids": []
+  "sessionId": "ses_xyz789",
+  "stepsUrl": "/api/v1/agents/browser-use/runs/run_abc123/steps",
+  "missingFileIds": []
 }
 ```
 
-You get `session_id` (to continue) right away; files live on that conversation automatically (no `workspace_id` to handle — see [Files](/cloud/files)). The **browser is provisioned in the background** — its `browser_id` is not in this response; it appears on `GET /runs/{id}` once ready. Then [watch the run](/cloud/watch-a-run) until `status` is `completed` and read `result` (the answer string; `output` is only populated for [structured output](/cloud/agent/structured-output)). The SDK `run()` waits for you and returns the finished run.
+You get `sessionId` (to continue) right away; files live on that conversation automatically (no workspace id to handle — see [Files](/cloud/files)). The **browser is provisioned in the background** — its `browserId` is not in this response; it appears on `GET /runs/{id}` once ready. Then [watch the run](/cloud/watch-a-run) until `status` is `completed` and read `result` (the answer string; `output` is only populated for [structured output](/cloud/agent/structured-output)). The SDK `run()` waits for you and returns the finished run.
 
 ## Run body
 
@@ -65,7 +65,7 @@ Common fields (full list in the [API reference](/cloud/api-v1-reference)):
 | `task` | string | **required** — what to do, in plain language |
 | `model` | string | LLM to use (optional; sensible default) |
 | `browser` | object | `{ proxy_country_code, screen_width, screen_height }` — provisions a browser for this run |
-| `browser_profile_id` | string | start logged-in ([profiles](/cloud/browser-profiles)) |
+| `browser_profile_id` | string | start logged-in ([profiles](/cloud/use-a-profile)) |
 | `session_id` | string | continue a previous run ([continue a task](/cloud/continue-a-task)) |
 | `attached_file_ids` | string[] | files to give this run (add them first via `POST /agents/{agent}/files` — see [Files](/cloud/files)) |
 | `workspace_id` | string | **advanced** — an explicit workspace for cross-conversation sharing; omit on the normal path ([files](/cloud/files)) |

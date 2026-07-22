@@ -35,7 +35,7 @@ const follow = await client.agents.browserUse.run({
 console.log(follow.result);
 ```
 ```bash curl
-# first run returns { "session_id": "ses_xyz789", ... }
+# first run returns { "sessionId": "ses_xyz789", ... }
 curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
@@ -50,7 +50,7 @@ On a continuation you send only the new `task` (plus optional `attached_file_ids
 - **Files** — every file the thread added or produced is still on the conversation's disk. New files: add + attach them on the follow-up.
 
 <Note>
-The list filter query param is `?sessionId=` (**camelCase**), even though request bodies use snake_case `session_id`. Sending `?session_id=` is silently ignored and returns *all* your runs — use `sessionId`.
+Request bodies accept both `session_id` and `sessionId`; responses always return `sessionId`. The list filter query param is `?sessionId=` — sending `?session_id=` is silently ignored and returns *all* your runs.
 </Note>
 
 ## Agent differences

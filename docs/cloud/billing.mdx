@@ -24,20 +24,20 @@ curl "https://api.browser-use.com/api/v1/project/billing" \
 ```json
 {
   "credits": {
-    "balance_usd": "142.50",
-    "monthly_usd": "100.00",
-    "additional_usd": "42.50",
-    "runway_days": 6.5
+    "balanceUsd": "142.50",
+    "monthlyUsd": "100.00",
+    "additionalUsd": "42.50",
+    "runwayDays": 6.5
   },
   "plan": {
     "id": "business",
     "name": "Business",
     "status": "active",
-    "period_end": "2026-08-01T00:00:00Z"
+    "periodEnd": "2026-08-01T00:00:00Z"
   }
 }
 ```
 
-- `monthly_usd` — resets each billing period.
-- `additional_usd` — top-ups, never reset.
-- `runway_days` — estimated days of credit left at your recent spend rate (`null` if unknown).
+- `monthlyUsd` — resets each billing period.
+- `additionalUsd` — top-ups, never reset.
+- `runwayDays` — estimated days of credit left at your recent spend rate (`null` if unknown).

@@ -1,0 +1,7 @@
+{
+  "tool_name": "mcp__2027-evals__update_prompt",
+  "tool_input_preview": "{\"promptId\":\"9f370ae6-b90a-4185-91a6-8c3c076923d1\",\"text\":\"Using only the Browserbase documentation (https://browserbase.com), write a script that provisions a cloud browser, obtains its CDP URL, conn...",
+  "error": "Cannot edit prompt text when published reports are linked",
+  "timestamp": "2026-07-16T17:01:36.150Z",
+  "retry_count": 1
+}

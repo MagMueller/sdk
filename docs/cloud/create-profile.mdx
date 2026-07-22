@@ -1,12 +1,12 @@
 ---
-title: Browser profiles
-description: "Saved login and cookie state. Create a profile, pass its id into a run or browser to start logged-in."
+title: Create a profile
+description: "Saved login and cookie state. Create a profile once, reference it by id forever."
 icon: id-card
 ---
 
 A **browser profile** is saved login/cookie state — the "stay logged in" of a real browser. It's a standalone, project-owned resource: you create it once, then reference it by id whenever you want a browser or an agent run to start already logged in.
 
-## Create a profile
+## Create
 
 <CodeGroup>
 ```python Python
@@ -16,6 +16,13 @@ client = BrowserUse()
 profile = client.browser_profiles.create(name="my-gmail")
 print(profile.id)   # bp_...
 ```
+```typescript TypeScript
+import { BrowserUse } from "browser-use";
+
+const client = new BrowserUse();
+const profile = await client.browserProfiles.create({ name: "my-gmail" });
+console.log(profile.id); // bp_...
+```
 ```bash curl
 curl -X POST https://api.browser-use.com/api/v1/browser-profiles \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
@@ -24,30 +31,7 @@ curl -X POST https://api.browser-use.com/api/v1/browser-profiles \
 ```
 </CodeGroup>
 
-The agent (or you, over CDP) logs in once inside a browser started with this profile; the session is saved back to the profile for next time.
-
-## Use a profile
-
-Pass `browser_profile_id` into a run or a standalone browser — same field either way.
-
-<CodeGroup>
-```python Python
-# in an agent run
-run = client.agents.browser_use.run(
-    task="Check my inbox and summarize unread emails",
-    browser_profile_id=profile.id,
-)
-
-# or a standalone browser
-browser = client.browsers.create(browser_profile_id=profile.id)
-```
-```bash curl
-curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
-  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"task": "Check my inbox", "browser_profile_id": "bp_123"}'
-```
-</CodeGroup>
+A new profile is empty. It gets its state the first time it's used: the agent (or you, over CDP) logs in once inside a browser started with this profile, and when that run or browser ends, the session is saved back into the profile for next time. See [Use a profile](/cloud/use-a-profile) for how to attach it and how persistence works.
 
 ## Manage
 
@@ -70,3 +54,14 @@ curl -X PATCH https://api.browser-use.com/api/v1/browser-profiles/bp_123 \
 <Note>
 A profile is a creation input, passed by id — never nested under a browser. There is no `browsers/{id}/profile`.
 </Note>
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Use a profile" href="/cloud/use-a-profile" icon="key">
+    Attach the profile to an agent run or a browser you drive yourself.
+  </Card>
+  <Card title="Log in with the agent" href="/cloud/browser/authentication" icon="lock">
+    Have the agent do the first login and save the session.
+  </Card>
+</CardGroup>

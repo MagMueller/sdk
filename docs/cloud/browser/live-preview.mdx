@@ -4,11 +4,11 @@ description: "Watch the agent's browser live, embed it in your app, and get an M
 icon: eye
 ---
 
-Every run's browser can be watched live and is recorded. Both the live view and the recording live on the **browser** the run used — you get the `browser_id` from the run, then read them off the browser.
+Every run's browser can be watched live and is recorded. Both the live view and the recording live on the **browser** the run used — you get the `browserId` from the run, then read them off the browser.
 
 ## Watch a run live
 
-Start a run, get its `browser_id` from `GET /runs/{id}` (it appears once the browser is provisioned), then read the browser's `live_view_url`.
+Start a run, get its `browserId` from `GET /runs/{id}` (it appears once the browser is provisioned), then read the browser's `liveViewUrl`.
 
 <CodeGroup>
 ```python Python
@@ -23,19 +23,19 @@ browser = client.browsers.get(run.browser_id)
 print(browser.live_view_url)   # open this to watch live
 ```
 ```bash curl
-# 1. get the run → browser_id (null until provisioned)
+# 1. get the run → browserId (null until provisioned)
 curl "https://api.browser-use.com/api/v1/agents/browser-use/runs/RUN_ID" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
-# → { "browser_id": "br_123", ... }
+# → { "browserId": "br_123", ... }
 
 # 2. the browser carries the live view url
 curl "https://api.browser-use.com/api/v1/browsers/br_123" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
-# → { "live_view_url": "https://live.browser-use.com?wss=...", ... }
+# → { "liveViewUrl": "https://live.browser-use.com?wss=...", ... }
 ```
 </CodeGroup>
 
-A [standalone browser](/cloud/create-browser) returns `live_view_url` immediately on `POST /browsers` (it's provisioned synchronously).
+A [standalone browser](/cloud/create-browser) returns `liveViewUrl` immediately on `POST /browsers` (it's provisioned synchronously).
 
 ## Embed it in your app
 
@@ -71,7 +71,7 @@ curl "https://api.browser-use.com/api/v1/browsers/BROWSER_ID/recording" \
 ```
 </CodeGroup>
 
-To find the `BROWSER_ID` for a run, read `browser_id` off `GET /runs/{id}` (as above). See [Manage a browser](/cloud/manage-browser) for the full browser API.
+To find the `BROWSER_ID` for a run, read `browserId` off `GET /runs/{id}` (as above). See [Manage a browser](/cloud/manage-browser) for the full browser API.
 
 <Warning>
 Recording URLs are presigned and **expire after 1 hour**. Download or serve the MP4 promptly; save it to your own storage if you need it later. A run that never opened a browser has no recording.

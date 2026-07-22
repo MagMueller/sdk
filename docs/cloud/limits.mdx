@@ -22,9 +22,9 @@ curl "https://api.browser-use.com/api/v1/project/limits" \
 
 ```json
 {
-  "concurrent_sessions": { "granted": 100, "active": 12, "remaining": 88 },
-  "team_members": { "limit": 100 }
+  "concurrentSessions": { "granted": 100, "active": 12, "remaining": 88 },
+  "teamMembers": { "limit": 100 }
 }
 ```
 
-`concurrent_sessions` counts every live browser (agent-driven or standalone). If `remaining` is 0, new runs queue or 429 until a browser frees up — [list idle browsers and stop them](/cloud/manage-browser) to free slots immediately.
+`concurrentSessions` counts every live browser (agent-driven or standalone). If `remaining` is 0, new runs queue or 429 until a browser frees up — [list idle browsers and stop them](/cloud/manage-browser) to free slots immediately.

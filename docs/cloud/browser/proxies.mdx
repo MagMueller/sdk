@@ -72,6 +72,36 @@ curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
 ```
 </CodeGroup>
 
+## Blocked? Get a fresh IP
+
+Browser Use does not rotate the IP within a running browser. When a site starts blocking you, stop the browser and create a new one — each browser gets a fresh residential IP from the country pool automatically.
+
+<CodeGroup>
+```python Python
+from browser_use import BrowserUse
+
+client = BrowserUse()
+
+# Stop-and-recreate is how you get a new IP; reattach a profile to keep login state.
+client.browsers.stop(old_browser.id)
+browser = client.browsers.create(proxy_country_code="us", browser_profile_id="bp_123")
+```
+```bash curl
+curl -X POST https://api.browser-use.com/api/v1/browsers/br_old/stop \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
+
+curl -X POST https://api.browser-use.com/api/v1/browsers \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"proxy_country_code": "us", "browser_profile_id": "bp_123"}'
+```
+</CodeGroup>
+
+- **New browser = new IP.** Recreating the browser is the supported way to rotate.
+- **Keep your login across the rotation** by passing the same [`browser_profile_id`](/cloud/use-a-profile) — the fresh IP loads the saved cookies and localStorage.
+- **Switch country** (`proxy_country_code`) to leave a blocked regional pool entirely.
+- **Custom proxies** can rotate per request on their side — use a [custom proxy](/cloud/browser/custom-proxy) with a rotating endpoint.
+
 ## Next
 
 <CardGroup cols={2}>
@@ -82,3 +112,7 @@ curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
     Bring your own HTTP or SOCKS5 proxy.
   </Card>
 </CardGroup>
+
+## Further reading
+
+- [We stealth benchmarked every major cloud browser provider](https://browser-use.com/posts/stealth-benchmark) — how proxy quality affects bypass rates

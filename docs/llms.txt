@@ -23,7 +23,7 @@ export BROWSER_USE_API_KEY=bu_your_key_here
 
 
 ## Get started
-- [How it works](https://docs.browser-use.com/cloud/model): The whole API in one page: you run tasks. A run gives you back ids. Reuse the ids. That's it.
+- [Overview](https://docs.browser-use.com/cloud/model): The whole API in one page: you run tasks. A run gives you back ids. Reuse the ids. That's it.
 - [Quickstart](https://docs.browser-use.com/cloud/quickstart): Run your first browser task in under a minute. Send a task, get the result back.
 - [Prompt for Vibecoders](https://docs.browser-use.com/cloud/vibecoding): Complete Cloud SDK reference for AI coding agents.
 
@@ -34,24 +34,31 @@ export BROWSER_USE_API_KEY=bu_your_key_here
 - [Files](https://docs.browser-use.com/cloud/files): Give an agent files and get its output files back. Files live on the conversation, not a workspace you manage.
 - [Watch a run](https://docs.browser-use.com/cloud/watch-a-run): Poll a run's status until it finishes. browser-use exposes steps; browsercode exposes events.
 - [Stop a run](https://docs.browser-use.com/cloud/stop-a-run): End a run with POST /stop. One verb for ending things — runs and browsers both use /stop.
+- [Open-source agent on the cloud](https://docs.browser-use.com/cloud/open-source-agent): The cloud browser-use agent is the open-source agent, hosted — same agent, same models, running on stealth browsers.
 
 ## Browsers
+- [Browsers](https://docs.browser-use.com/cloud/browsers): Stealth cloud browsers you can drive over CDP — or let an agent drive for you.
 - [Create a browser](https://docs.browser-use.com/cloud/create-browser): Provision a browser you drive yourself over CDP — no agent required. Agents provision their own; this is for direct control.
 - [Manage a browser](https://docs.browser-use.com/cloud/manage-browser): List browsers, stop them, and fetch recordings and downloads. Works for standalone browsers and the browsers an agent used.
 - [Live preview & recording](https://docs.browser-use.com/cloud/browser/live-preview): Watch the agent's browser live, embed it in your app, and get an MP4 recording after the run.
+- [Screenshots](https://docs.browser-use.com/cloud/browser/screenshots): Take viewport and full-page screenshots from a cloud browser, and control where they're saved.
 
-## Login & profiles
-- [Browser profiles](https://docs.browser-use.com/cloud/browser-profiles): Saved login and cookie state. Create a profile, pass its id into a run or browser to start logged-in.
+## Profiles
+- [Create a profile](https://docs.browser-use.com/cloud/create-profile): Saved login and cookie state. Create a profile once, reference it by id forever.
+- [Use a profile](https://docs.browser-use.com/cloud/use-a-profile): Pass a profile id into a run or browser to start logged-in, and stop cleanly so new state persists.
 - [Authentication](https://docs.browser-use.com/cloud/browser/authentication): Log into websites and stay logged in. Save login state once in a profile, reuse it on every run.
 - [Sync cookies](https://docs.browser-use.com/cloud/browser/sync-cookies): Copy your existing local browser logins into a cloud profile. No passwords, no re-login.
 
 ## Stealth & proxies
-- [Introduction Stealth](https://docs.browser-use.com/cloud/browser/stealth): Best stealth on the planet. We fork Chromium to give agents access to all websites.
+- [Stealth & proxies](https://docs.browser-use.com/cloud/browser/stealth-and-proxies): Hardened Chromium, randomized fingerprints, CAPTCHA solving, and residential proxies in 195+ countries — all on by default.
+- [Stealth](https://docs.browser-use.com/cloud/browser/stealth): Best stealth on the planet. We fork Chromium to give agents access to all websites.
+- [CAPTCHA Solving](https://docs.browser-use.com/cloud/browser/captcha): Browser Use cloud browsers solve CAPTCHAs automatically, on by default, on every plan.
 - [Proxies](https://docs.browser-use.com/cloud/browser/proxies): Residential proxies in 195+ countries, on by default. Set a country, disable, or bring your own.
 - [Geo-scraping](https://docs.browser-use.com/cloud/browser/geo-scraping): Route the browser through a specific country to see region-locked prices, catalogs, and content.
 - [Custom proxy](https://docs.browser-use.com/cloud/browser/custom-proxy): Bring your own HTTP or SOCKS5 proxy instead of the built-in residential proxies.
 
 ## Account
+- [Account](https://docs.browser-use.com/cloud/account): Your project: one per account. Check identity with GET /project, then billing and limits.
 - [Billing](https://docs.browser-use.com/cloud/billing): Check your credit balance, plan, and estimated runway.
 - [Limits](https://docs.browser-use.com/cloud/limits): Check your concurrency and team-member limits, and how many browser slots are in use.
 

@@ -59,7 +59,7 @@ curl -X POST https://api.browser-use.com/api/v1/agents/browsercode/runs \
 No `workspace_id`. Adding a file gets you an id; **attaching** it on a run is what makes the agent get it. Add many at once (`{"files": [{"name":"a.csv"},{"name":"b.csv"}]}` → many ids) and attach them all.
 
 <Note>
-Attach a bad id and the run still starts (`202`) — the unknown ids come back in **`missing_file_ids`** on the create response. Always check that array; a missing file is not an error status.
+Attach a bad id and the run still starts (`202`) — the unknown ids come back in **`missingFileIds`** on the create response. Always check that array; a missing file is not an error status.
 </Note>
 
 ## Get output files back
@@ -75,14 +75,14 @@ for f in files:
 ```bash curl
 curl "https://api.browser-use.com/api/v1/agents/browsercode/runs/RUN_ID/files?kind=output" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
-# → { "items": [{ "id": "out_1", "name": "clean.csv", "kind": "output", "download_url": "https://..." }] }
+# → { "items": [{ "id": "out_1", "name": "clean.csv", "kind": "output", "downloadUrl": "https://..." }] }
 
-# download_url is a presigned direct link — fetch it straight (no API endpoint, no key)
+# downloadUrl is a presigned direct link — fetch it straight (no API endpoint, no key)
 curl -L "https://.../presigned-download-url" -o clean.csv
 ```
 </CodeGroup>
 
-`download_url` is a **presigned, expiring link** you GET directly — it points straight at storage, not at a Browser Use endpoint. If it expires, re-list to get a fresh one.
+`downloadUrl` is a **presigned, expiring link** you GET directly (the Python SDK exposes it as `download_url`) — it points straight at storage, not at a Browser Use endpoint. If it expires, re-list to get a fresh one.
 
 ## Structured output from `browsercode` — it's a file
 
@@ -124,7 +124,7 @@ Attach files on the first run, then continue with `session_id` — later runs sh
 ```bash curl
 # run 1 adds + uses a file
 curl -X POST .../agents/browsercode/runs -d '{"task":"analyze data.csv", "attached_file_ids":["up_1"]}'
-# → { "session_id": "ses_x", ... }
+# → { "sessionId": "ses_x", ... }
 
 # run 2 continues the thread and adds another file
 curl -X POST .../agents/browsercode/files -d '{"files":[{"name":"extra.csv"}]}'   # → up_2

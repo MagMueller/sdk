@@ -45,6 +45,35 @@ The SDK `run()` starts the run and waits for it to finish, then returns the resu
 **Where's the answer?** Every completed run has a **`result`** string — the plain-language answer. That's what you read on the golden path. The separate **`output`** field is `null` unless you asked for [structured output](/cloud/agent/structured-output) (a typed object, `browser-use` only). Large or file-shaped output from `browsercode` comes back as [files](/cloud/files), not in either field.
 </Note>
 
+## Or: spin up a browser instead
+
+Agents and browsers are independent entry points — you don't need an agent run to get a browser. Create one directly and drive it yourself over CDP:
+
+<CodeGroup>
+```python Python
+from browser_use import BrowserUse
+
+client = BrowserUse()
+browser = client.browsers.create()
+print(browser.cdp_url)   # connect Playwright/Puppeteer here
+```
+```typescript TypeScript
+import { BrowserUse } from "browser-use";
+
+const client = new BrowserUse();
+const browser = await client.browsers.create();
+console.log(browser.cdpUrl); // connect Playwright/Puppeteer here
+```
+```bash curl
+curl -X POST https://api.browser-use.com/api/v1/browsers \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+</CodeGroup>
+
+See [Create a browser](/cloud/create-browser) for options, or [connect your framework](/cloud/browser/playwright-puppeteer-selenium) (Playwright, Puppeteer, Selenium).
+
 ## The whole platform in one picture
 
 You run **agents**. Agents use **browsers** (and their saved logins) and **files**. You only ever create runs — everything else is created for you and handed back as ids you can reuse.
@@ -53,11 +82,11 @@ You run **agents**. Agents use **browsers** (and their saved logins) and **files
 | --- | --- |
 | **Agents** | The things you run. Two of them: **`browser-use`** (browser tasks — fast, OSS) and **`browsercode`** (code + browser — data processing, multi-step work). See [Choose an agent](/cloud/choose-an-agent). |
 | **Browsers** | The browser an agent drives. A run provisions one automatically — or [create one yourself](/cloud/create-browser) and drive it directly over CDP. |
-| **Browser profiles** | Saved login / cookie state. [Create one](/cloud/browser-profiles), pass its id into a run to start logged-in. |
+| **Browser profiles** | Saved login / cookie state. [Create one](/cloud/create-profile), pass its id into a run to start logged-in. |
 | **Files** | Attach files to a run and get output files back. See [Files](/cloud/files). |
 
 <Note>
-There is no separate "create a session" or "create a workspace" step. A run mints a `session_id` (for follow-ups) and returns it — pass it back to continue. Files live on the conversation automatically; you never handle a `workspace_id`. (A named workspace exists only to share files across *different* conversations — advanced, see [Files](/cloud/files).)
+There is no separate "create a session" or "create a workspace" step. A run mints a `sessionId` (for follow-ups) and returns it — pass it back to continue. Files live on the conversation automatically; you never handle a workspace id. (A named workspace exists only to share files across *different* conversations — advanced, see [Files](/cloud/files).)
 </Note>
 
 ## Next
@@ -74,6 +103,12 @@ There is no separate "create a session" or "create a workspace" step. A run mint
   </Card>
   <Card title="Files" href="/cloud/files" icon="folder">
     Attach files to a run, get output files back.
+  </Card>
+  <Card title="Create a browser" href="/cloud/create-browser" icon="window">
+    A standalone cloud browser you drive yourself.
+  </Card>
+  <Card title="Connect Playwright" href="/cloud/browser/playwright-puppeteer-selenium" icon="code">
+    Point Playwright, Puppeteer, or Selenium at a cloud browser.
   </Card>
 </CardGroup>
 

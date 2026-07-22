@@ -19,7 +19,7 @@ for_session = client.browsers.list(session_id="ses_xyz789")  # what a session us
 curl "https://api.browser-use.com/api/v1/browsers?status=idle" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
 
-curl "https://api.browser-use.com/api/v1/browsers?sessionId=ses_xyz789" \
+curl "https://api.browser-use.com/api/v1/browsers?agentSessionId=ses_xyz789" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
 ```
 </CodeGroup>
@@ -53,7 +53,7 @@ curl "https://api.browser-use.com/api/v1/browsers/br_abc123/recording" \
 ```
 </CodeGroup>
 
-To fetch recordings for an agent run: get its `browser_id` from `GET /runs/{id}`, then call `/browsers/{browser_id}/recording`.
+To fetch recordings for an agent run: get its `browserId` from `GET /runs/{id}`, then call `/browsers/{browser_id}/recording`.
 
 ## Downloads
 
@@ -62,10 +62,10 @@ To fetch recordings for an agent run: get its `browser_id` from `GET /runs/{id}`
 ```bash curl
 curl "https://api.browser-use.com/api/v1/browsers/br_abc123/downloads?includeUrls=true" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
-# → { "items": [{ "id": "dl_...", "name": "report.pdf", "download_url": "https://..." }] }
+# → { "items": [{ "id": "dl_...", "name": "report.pdf", "downloadUrl": "https://..." }] }
 ```
 
-Each item's `download_url` serves the bytes (same download mechanism as output files).
+Each item's `downloadUrl` serves the bytes (same download mechanism as output files).
 
 ## Browser lifecycle (no keep_alive)
 

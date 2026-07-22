@@ -26,7 +26,7 @@ import { BrowserUse } from "browser-use";
 
 const client = new BrowserUse();
 const browser = await client.browsers.create({ proxy_country_code: "us" });
-console.log(browser.cdp_url);
+console.log(browser.cdpUrl);
 ```
 ```bash curl
 curl -X POST https://api.browser-use.com/api/v1/browsers \
@@ -38,7 +38,7 @@ curl -X POST https://api.browser-use.com/api/v1/browsers \
 
 ## Connect over CDP
 
-The `cdp_url` is a standard Chrome DevTools Protocol endpoint.
+The `cdpUrl` is a standard Chrome DevTools Protocol endpoint.
 
 ```python Python
 from playwright.sync_api import sync_playwright
@@ -51,14 +51,14 @@ with sync_playwright() as p:
 ```
 
 <Note>
-Field name is `cdp_url` in the REST API and Python SDK, `cdpUrl` in the TypeScript SDK. Same value, language-idiomatic casing.
+The REST API returns **`cdpUrl`** (camelCase, like every response field). The Python SDK exposes it as `cdp_url`, the TypeScript SDK as `cdpUrl` — same value, language-idiomatic casing.
 </Note>
 
 ## Provision options
 
 | Field | Notes |
 | --- | --- |
-| `browser_profile_id` | start logged-in ([profiles](/cloud/browser-profiles)) |
+| `browser_profile_id` | start logged-in ([profiles](/cloud/use-a-profile)) |
 | `proxy_country_code` | residential proxy, e.g. `"us"`, `"de"` |
 | `screen_width` / `screen_height` | viewport |
 

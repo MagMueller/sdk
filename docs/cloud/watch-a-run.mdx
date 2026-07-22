@@ -57,10 +57,10 @@ The [registry](/cloud/choose-an-agent) tells you which watch verb an agent uses.
 
 ## Find the browser a run used
 
-`browser_id` appears on the run once its browser is provisioned (null while queued). Use it to fetch the [recording or downloads](/cloud/manage-browser).
+`browserId` appears on the run once its browser is provisioned (null while queued). Use it to fetch the [recording or downloads](/cloud/manage-browser).
 
 ```bash curl
 curl "https://api.browser-use.com/api/v1/agents/browser-use/runs/run_abc123" \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
-# → { "id": "run_abc123", "browser_id": "br_...", "status": "completed", ... }
+# → { "id": "run_abc123", "browserId": "br_...", "status": "completed", ... }
 ```

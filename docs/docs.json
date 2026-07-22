@@ -81,20 +81,23 @@
                   "cloud/continue-a-task",
                   "cloud/files",
                   "cloud/watch-a-run",
-                  "cloud/stop-a-run"
+                  "cloud/stop-a-run",
+                  "cloud/open-source-agent"
                 ]
               },
               {
                 "group": "Browsers",
                 "icon": "window",
                 "pages": [
+                  "cloud/browsers",
                   "cloud/create-browser",
                   "cloud/manage-browser",
                   "cloud/browser/live-preview",
                   {
-                    "group": "Login & profiles",
+                    "group": "Profiles",
                     "pages": [
-                      "cloud/browser-profiles",
+                      "cloud/create-profile",
+                      "cloud/use-a-profile",
                       "cloud/browser/authentication",
                       "cloud/browser/sync-cookies"
                     ]
@@ -102,18 +105,22 @@
                   {
                     "group": "Stealth & proxies",
                     "pages": [
+                      "cloud/browser/stealth-and-proxies",
                       "cloud/browser/stealth",
+                      "cloud/browser/captcha",
                       "cloud/browser/proxies",
                       "cloud/browser/geo-scraping",
                       "cloud/browser/custom-proxy"
                     ]
-                  }
+                  },
+                  "cloud/browser/screenshots"
                 ]
               },
               {
                 "group": "Account",
                 "icon": "gauge",
                 "pages": [
+                  "cloud/account",
                   "cloud/billing",
                   "cloud/limits"
                 ]
@@ -1233,11 +1240,19 @@
     },
     {
       "source": "/cloud/profiles",
-      "destination": "/cloud/browser-profiles"
+      "destination": "/cloud/create-profile"
     },
     {
       "source": "/cloud/browser/profiles",
-      "destination": "/cloud/browser-profiles"
+      "destination": "/cloud/create-profile"
+    },
+    {
+      "source": "/cloud/browser-profiles",
+      "destination": "/cloud/create-profile"
+    },
+    {
+      "source": "/cloud/use-profile",
+      "destination": "/cloud/use-a-profile"
     },
     {
       "source": "/cloud/sync-cookies",
