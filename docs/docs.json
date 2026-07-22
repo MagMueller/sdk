@@ -129,6 +129,7 @@
               {
                 "group": "More",
                 "pages": [
+                  "cloud/guides/overview",
                   {
                     "group": "Platform features",
                     "icon": "server",
@@ -503,6 +504,14 @@
     {
       "source": "/examples/persistent-browser",
       "destination": "/cloud/guides/authentication"
+    },
+    {
+      "source": "/guides",
+      "destination": "/cloud/guides/overview"
+    },
+    {
+      "source": "/cloud/guides",
+      "destination": "/cloud/guides/overview"
     },
     {
       "source": "/cloud/browser/keep-alive",
