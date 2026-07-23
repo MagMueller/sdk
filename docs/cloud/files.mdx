@@ -12,7 +12,7 @@ You never create or name a "workspace" on the normal path. A run makes a disk fo
 
 | | Short answer | Structured / large output |
 | --- | --- | --- |
-| **`browser-use`** | `result` string on the run | `output` field, typed — pass a `structured_output` schema (see [Structured output](/cloud/agent/structured-output)) |
+| **`browser-use`** | `result` string on the run | describe the JSON shape in the task, parse `result` (typed `output` via a request schema: not available yet) |
 | **`browsercode`** | `result` string on the run | **a file** — ask for it in the task, then fetch it (below) |
 
 Every run has a short **`result`** string. For anything bigger, `browsercode` writes a **file**, and that's what you fetch.
@@ -114,7 +114,7 @@ curl "https://api.browser-use.com/api/v1/agents/browsercode/runs/RUN_ID/files?ki
 </CodeGroup>
 
 <Note>
-`browsercode`'s output is **always files** — a CSV, a report, a chart PNG, a schema'd `output.json`. Name the file in the task, fetch it with `?kind=output`. Only `browser-use` returns typed data inline via `structured_output`.
+`browsercode`'s output is **always files** — a CSV, a report, a chart PNG, a schema'd `output.json`. Name the file in the task, fetch it with `?kind=output`. `browser-use` answers inline via the `result` string — describe the exact JSON shape you want in the task text and parse `result` (a `structured_output` request parameter is not available yet).
 </Note>
 
 ## Files carry across the conversation
@@ -149,16 +149,20 @@ Rule of thumb: **the agent made it → output files** (`?kind=output`); **a webs
 
 A common workflow: `browser-use` scrapes data, then `browsercode` processes it. They're separate agents, so the handoff is explicit — pass the first agent's result into the second.
 
-The clean way: have `browser-use` return **typed data** (via `structured_output`), then feed it into `browsercode`'s task or attach it as a file.
+The clean way: have `browser-use` return the data as JSON in its `result` (describe the shape in the task), then feed it into `browsercode`'s task or attach it as a file.
 
 <CodeGroup>
 ```python Python
-# 1. browser-use scrapes → typed output
+import json
+
+# 1. browser-use scrapes → JSON in the result string
 scrape = client.agents.browser_use.run(
-    task="Scrape all product names and prices from this catalog",
-    structured_output={"type": "object", "properties": {"products": {"type": "array"}}},
+    task=(
+        "Scrape all product names and prices from this catalog. "
+        'Return ONLY a JSON object: {"products": [{"name": str, "price": number}]}'
+    ),
 )
-data = scrape.output   # typed dict
+data = json.loads(scrape.result)
 
 # 2. hand it to browsercode — attach as a file, or inline it in the task
 up = client.agents.browsercode.files(files=[("products.json", json.dumps(data))])

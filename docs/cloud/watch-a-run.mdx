@@ -32,7 +32,7 @@ curl "https://api.browser-use.com/api/v1/agents/browser-use/runs/run_abc123/stat
 
 `/status` is the cheap poll target — status, `result`, `output`, cost. Use `GET /runs/{id}` for the full object.
 
-**`result` vs `output`:** `result` is the plain-language answer string, present on every completed run — read it on the golden path. `output` is `null` unless you requested [structured output](/cloud/agent/structured-output) (typed object, `browser-use` only). `browscode`'s larger output comes back as [files](/cloud/files), not in either field.
+**`result` vs `output`:** `result` is the plain-language answer string, present on every completed run — read it on the golden path. `output` is reserved for structured output and is `null` today (no request parameter enables it yet — put the JSON shape you want in the `task` text and parse `result`). `browsercode`'s larger output comes back as [files](/cloud/files), not in either field.
 
 ## See what the agent is doing
 

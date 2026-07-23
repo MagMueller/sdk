@@ -24,13 +24,13 @@ profile = client.browser_profiles.create(name="my-gmail")
 # 2. log in once (the profile now remembers it)
 client.agents.browser_use.run(
     task="Log into gmail.com with email me@example.com and password ...",
-    browser_profile_id=profile.id,
+    browser={"profile_id": profile.id},
 )
 
 # 3. reuse forever — already logged in
 run = client.agents.browser_use.run(
     task="Summarize my unread emails",
-    browser_profile_id=profile.id,
+    browser={"profile_id": profile.id},
 )
 print(run.output)
 ```
@@ -39,7 +39,7 @@ print(run.output)
 curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"task": "Summarize my unread emails", "browser_profile_id": "bp_123"}'
+  -d '{"task": "Summarize my unread emails", "browser": {"profile_id": "bp_123"}}'
 ```
 </CodeGroup>
 

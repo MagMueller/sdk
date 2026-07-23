@@ -4,28 +4,32 @@ description: "Pass a profile id into a run or browser to start logged-in, and st
 icon: key
 ---
 
-Pass `browser_profile_id` into a run or a standalone browser — same field either way. The browser starts with the profile's saved cookies and logins already in place. Don't have a profile yet? [Create one](/cloud/create-profile) first.
+On an **agent run**, the profile id goes inside the `browser` object: `browser={"profile_id": ...}`. On a **standalone browser**, it is a top-level param: `browser_profile_id`. The browser starts with the profile's saved cookies and logins already in place. Don't have a profile yet? [Create one](/cloud/create-profile) first.
 
 ## Attach it
 
 <CodeGroup>
 ```python Python
-# in an agent run
+# in an agent run — profile rides inside the browser object
 run = client.agents.browser_use.run(
     task="Check my inbox and summarize unread emails",
-    browser_profile_id=profile.id,
+    browser={"profile_id": profile.id},
 )
 
-# or a standalone browser
+# on a standalone browser — top-level param
 browser = client.browsers.create(browser_profile_id=profile.id)
 ```
 ```bash curl
 curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"task": "Check my inbox", "browser_profile_id": "bp_123"}'
+  -d '{"task": "Check my inbox", "browser": {"profile_id": "bp_123"}}'
 ```
 </CodeGroup>
+
+<Warning>
+Do NOT pass `browser_profile_id` as a top-level field on a run — the API rejects it with `422 "Extra inputs are not permitted"`. Top-level `browser_profile_id` is valid only on `POST /browsers`.
+</Warning>
 
 ## Persist state on a browser you drive (CDP)
 

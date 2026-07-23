@@ -80,12 +80,12 @@ Filter by capability: `GET /api/v1/agents?capability=code` returns only agents t
 
 Whichever agent you run, you pass shared resources the same way:
 
-- `browser` (+ `browser_profile_id`) — the browser to use.
-- `workspace_id` — files (only for agents with the `files` capability).
+- `browser` — the browser settings for the run, including `profile_id` to start logged-in ([profiles](/cloud/use-a-profile)).
+- `attached_file_ids` — files to give the run ([files](/cloud/files)); `workspace_id` exists only for `browsercode`'s advanced cross-conversation sharing.
 - `session_id` — continue a previous run's thread.
 
 An agent never invents its own version of these. Learn one, use both.
 
 <Warning>
-Capabilities are enforced. Sending `workspace_id` to an agent without the `files` capability returns `400` naming the right agent. Errors tell you the correct choice — read them.
+Capabilities are enforced — sending a field an agent doesn't support returns a `422` naming the problem (e.g. `workspace_id` on `browser-use`). Errors tell you the correct choice — read them.
 </Warning>

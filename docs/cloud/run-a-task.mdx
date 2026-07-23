@@ -64,12 +64,14 @@ Common fields (full list in the [API reference](/cloud/api-v1-reference)):
 | --- | --- | --- |
 | `task` | string | **required** — what to do, in plain language |
 | `model` | string | LLM to use (optional; sensible default) |
-| `browser` | object | `{ proxy_country_code, screen_width, screen_height }` — provisions a browser for this run |
-| `browser_profile_id` | string | start logged-in ([profiles](/cloud/use-a-profile)) |
+| `browser` | object | `{ proxy_country_code, screen_width, screen_height, profile_id }` — provisions a browser for this run; `profile_id` starts it logged-in ([profiles](/cloud/use-a-profile)) |
 | `session_id` | string | continue a previous run ([continue a task](/cloud/continue-a-task)) |
 | `attached_file_ids` | string[] | files to give this run (add them first via `POST /agents/{agent}/files` — see [Files](/cloud/files)) |
-| `workspace_id` | string | **advanced** — an explicit workspace for cross-conversation sharing; omit on the normal path ([files](/cloud/files)) |
-| `structured_output` | object | JSON schema — get typed `output` back (`browser-use` only) |
+| `workspace_id` | string | **advanced**, `browsercode` only — an explicit workspace for cross-conversation sharing; omit on the normal path ([files](/cloud/files)) |
+
+<Warning>
+There is no top-level `browser_profile_id` on a run — pass it inside `browser` (`{"browser": {"profile_id": "..."}}`). And there is no `structured_output` request field yet: completed runs have a typed `output` field in the response, but the request parameter is not accepted by the API today (`422 Extra inputs are not permitted`). To get structured data now, describe the exact JSON shape you want in the `task` text and parse `result`.
+</Warning>
 
 <Note>
 A run **provisions** its browser. It does not accept an existing `browser_id`. If you want to drive a browser yourself over CDP, [create a standalone browser](/cloud/create-browser) instead — that's a different flow.
@@ -77,48 +79,31 @@ A run **provisions** its browser. It does not accept an existing `browser_id`. I
 
 ## Structured output
 
-Pass a JSON schema; `output` comes back matching it.
+There is **no `structured_output` request parameter yet** — sending one returns `422 "Extra inputs are not permitted"`. Until it ships, get structured data by describing the exact JSON shape in the `task` text and parsing `result`:
 
 <CodeGroup>
 ```python Python
+import json
+
 run = client.agents.browser_use.run(
-    task="Get the top 3 Hacker News posts",
-    structured_output={
-        "type": "object",
-        "properties": {
-            "posts": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {"title": {"type": "string"}, "points": {"type": "integer"}},
-                },
-            }
-        },
-    },
+    task=(
+        "Get the top 3 Hacker News posts. Return ONLY a JSON object, no prose: "
+        '{"posts": [{"title": str, "points": int}]}'
+    ),
 )
-print(run.output["posts"])
+posts = json.loads(run.result)["posts"]
 ```
 ```bash curl
 curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "task": "Get the top 3 Hacker News posts",
-    "structured_output": {
-      "type": "object",
-      "properties": {
-        "posts": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {"title": {"type": "string"}, "points": {"type": "integer"}}
-          }
-        }
-      }
-    }
-  }'
+  -d '{"task": "Get the top 3 Hacker News posts. Return ONLY a JSON object, no prose: {\"posts\": [{\"title\": str, \"points\": int}]}"}'
 ```
 </CodeGroup>
+
+<Note>
+The run response reserves a typed **`output`** field for native structured output; it is `null` until the request-side schema parameter is released.
+</Note>
 
 ## browsercode
 

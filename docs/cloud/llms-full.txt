@@ -72,7 +72,9 @@ Start with the [Quickstart](https://docs.browser-use.com/cloud/quickstart).
 Source: https://docs.browser-use.com/cloud/quickstart
 
 
-Browser Use Cloud runs AI agents that use a real browser. You send a task in plain language; an agent does it and returns the result. Managed infrastructure — stealth browsers, CAPTCHA solving, proxies — no setup.
+Browser Use Cloud runs AI agents that use a real browser. You send a task in plain language; an agent does it and returns the result. Managed infrastructure — stealth browsers ([81% stealth benchmark](https://docs.browser-use.com/cloud/browser/stealth), [93% Cloudflare CAPTCHA solve rate](https://docs.browser-use.com/cloud/browser/captcha)), proxies — no setup.
+
+**Cloud vs library:** this is the **hosted cloud platform** — everything here happens on our infrastructure via an API key, including the hosted [open-source agent](https://docs.browser-use.com/cloud/open-source-agent). If you want the local Python library (`pip install browser-use`, runs a browser on your machine, needs your own LLM key), that's the [open-source docs](/open-source) — a different product surface.
 
 ## 1. Get an API key
 
@@ -82,20 +84,26 @@ Create one in one click at [cloud.browser-use.com](https://cloud.browser-use.com
 export BROWSER_USE_API_KEY=bu_your_key_here
 ```
 
-## 2. Run a task
+## 2. Pick an agent, run a task
+
+There are **two agents**: `browser-use` (the default — fast, cheap, right for most browser tasks) and `browsercode` (code + terminal + browser, for long-horizon or data-processing work). If in doubt, use `browser-use`; see [Choose an agent](https://docs.browser-use.com/cloud/choose-an-agent).
 
 ```python Python
 from browser_use import BrowserUse
 
 client = BrowserUse()  # reads BROWSER_USE_API_KEY
-run = client.run("List the top 5 posts on Hacker News with their points")
+run = client.agents.browser_use.run(
+    task="List the top 5 posts on Hacker News with their points",
+)
 print(run.result)   # the answer, as a string
 ```
 ```typescript TypeScript
 import { BrowserUse } from "browser-use";
 
 const client = new BrowserUse(); // reads BROWSER_USE_API_KEY
-const run = await client.run("List the top 5 posts on Hacker News with their points");
+const run = await client.agents.browserUse.run({
+  task: "List the top 5 posts on Hacker News with their points",
+});
 console.log(run.result); // the answer, as a string
 ```
 ```bash curl
@@ -107,7 +115,7 @@ curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
 
 The SDK `run()` starts the run and waits for it to finish, then returns the result. The raw `curl` call returns immediately with a run `id` and `status: "running"` — poll [`GET /agents/browser-use/runs/{id}`](https://docs.browser-use.com/cloud/watch-a-run) until `status` is `completed`, then read `result`.
 
-**Where's the answer?** Every completed run has a **`result`** string — the plain-language answer. That's what you read on the golden path. The separate **`output`** field is `null` unless you asked for [structured output](https://docs.browser-use.com/cloud/agent/structured-output) (a typed object, `browser-use` only). Large or file-shaped output from `browsercode` comes back as [files](https://docs.browser-use.com/cloud/files), not in either field.
+**Where's the answer?** Every completed run has a **`result`** string — the plain-language answer. That's what you read on the golden path. The separate **`output`** field is reserved for structured output and is `null` today — to get typed data now, describe the exact JSON shape you want in the `task` text and parse `result`. Large or file-shaped output from `browsercode` comes back as [files](https://docs.browser-use.com/cloud/files), not in either field.
 
 ## Or: spin up a browser instead
 
@@ -251,13 +259,13 @@ Filter by capability: `GET /api/v1/agents?capability=code` returns only agents t
 
 Whichever agent you run, you pass shared resources the same way:
 
-- `browser` (+ `browser_profile_id`) — the browser to use.
-- `workspace_id` — files (only for agents with the `files` capability).
+- `browser` — the browser settings for the run, including `profile_id` to start logged-in ([profiles](https://docs.browser-use.com/cloud/use-a-profile)).
+- `attached_file_ids` — files to give the run ([files](https://docs.browser-use.com/cloud/files)); `workspace_id` exists only for `browsercode`'s advanced cross-conversation sharing.
 - `session_id` — continue a previous run's thread.
 
 An agent never invents its own version of these. Learn one, use both.
 
-Capabilities are enforced. Sending `workspace_id` to an agent without the `files` capability returns `400` naming the right agent. Errors tell you the correct choice — read them.
+Capabilities are enforced — sending a field an agent doesn't support returns a `422` naming the problem (e.g. `workspace_id` on `browser-use`). Errors tell you the correct choice — read them.
 
 
 # Run a task
@@ -322,57 +330,38 @@ Common fields (full list in the [API reference](https://docs.browser-use.com/clo
 | --- | --- | --- |
 | `task` | string | **required** — what to do, in plain language |
 | `model` | string | LLM to use (optional; sensible default) |
-| `browser` | object | `{ proxy_country_code, screen_width, screen_height }` — provisions a browser for this run |
-| `browser_profile_id` | string | start logged-in ([profiles](https://docs.browser-use.com/cloud/use-a-profile)) |
+| `browser` | object | `{ proxy_country_code, screen_width, screen_height, profile_id }` — provisions a browser for this run; `profile_id` starts it logged-in ([profiles](https://docs.browser-use.com/cloud/use-a-profile)) |
 | `session_id` | string | continue a previous run ([continue a task](https://docs.browser-use.com/cloud/continue-a-task)) |
 | `attached_file_ids` | string[] | files to give this run (add them first via `POST /agents/{agent}/files` — see [Files](https://docs.browser-use.com/cloud/files)) |
-| `workspace_id` | string | **advanced** — an explicit workspace for cross-conversation sharing; omit on the normal path ([files](https://docs.browser-use.com/cloud/files)) |
-| `structured_output` | object | JSON schema — get typed `output` back (`browser-use` only) |
+| `workspace_id` | string | **advanced**, `browsercode` only — an explicit workspace for cross-conversation sharing; omit on the normal path ([files](https://docs.browser-use.com/cloud/files)) |
+
+There is no top-level `browser_profile_id` on a run — pass it inside `browser` (`{"browser": {"profile_id": "..."}}`). And there is no `structured_output` request field yet: completed runs have a typed `output` field in the response, but the request parameter is not accepted by the API today (`422 Extra inputs are not permitted`). To get structured data now, describe the exact JSON shape you want in the `task` text and parse `result`.
 
 A run **provisions** its browser. It does not accept an existing `browser_id`. If you want to drive a browser yourself over CDP, [create a standalone browser](https://docs.browser-use.com/cloud/create-browser) instead — that's a different flow.
 
 ## Structured output
 
-Pass a JSON schema; `output` comes back matching it.
+There is **no `structured_output` request parameter yet** — sending one returns `422 "Extra inputs are not permitted"`. Until it ships, get structured data by describing the exact JSON shape in the `task` text and parsing `result`:
 
 ```python Python
+import json
+
 run = client.agents.browser_use.run(
-    task="Get the top 3 Hacker News posts",
-    structured_output={
-        "type": "object",
-        "properties": {
-            "posts": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {"title": {"type": "string"}, "points": {"type": "integer"}},
-                },
-            }
-        },
-    },
+    task=(
+        "Get the top 3 Hacker News posts. Return ONLY a JSON object, no prose: "
+        '{"posts": [{"title": str, "points": int}]}'
+    ),
 )
-print(run.output["posts"])
+posts = json.loads(run.result)["posts"]
 ```
 ```bash curl
 curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "task": "Get the top 3 Hacker News posts",
-    "structured_output": {
-      "type": "object",
-      "properties": {
-        "posts": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {"title": {"type": "string"}, "points": {"type": "integer"}}
-          }
-        }
-      }
-    }
-  }'
+  -d '{"task": "Get the top 3 Hacker News posts. Return ONLY a JSON object, no prose: {\"posts\": [{\"title\": str, \"points\": int}]}"}'
 ```
+
+The run response reserves a typed **`output`** field for native structured output; it is `null` until the request-side schema parameter is released.
 
 ## browsercode
 
@@ -469,7 +458,7 @@ You never create or name a "workspace" on the normal path. A run makes a disk fo
 
 | | Short answer | Structured / large output |
 | --- | --- | --- |
-| **`browser-use`** | `result` string on the run | `output` field, typed — pass a `structured_output` schema (see [Structured output](https://docs.browser-use.com/cloud/agent/structured-output)) |
+| **`browser-use`** | `result` string on the run | describe the JSON shape in the task, parse `result` (typed `output` via a request schema: not available yet) |
 | **`browsercode`** | `result` string on the run | **a file** — ask for it in the task, then fetch it (below) |
 
 Every run has a short **`result`** string. For anything bigger, `browsercode` writes a **file**, and that's what you fetch.
@@ -562,7 +551,7 @@ curl "https://api.browser-use.com/api/v1/agents/browsercode/runs/RUN_ID/files?ki
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY"
 ```
 
-`browsercode`'s output is **always files** — a CSV, a report, a chart PNG, a schema'd `output.json`. Name the file in the task, fetch it with `?kind=output`. Only `browser-use` returns typed data inline via `structured_output`.
+`browsercode`'s output is **always files** — a CSV, a report, a chart PNG, a schema'd `output.json`. Name the file in the task, fetch it with `?kind=output`. `browser-use` answers inline via the `result` string — describe the exact JSON shape you want in the task text and parse `result` (a `structured_output` request parameter is not available yet).
 
 ## Files carry across the conversation
 
@@ -594,15 +583,19 @@ Rule of thumb: **the agent made it → output files** (`?kind=output`); **a webs
 
 A common workflow: `browser-use` scrapes data, then `browsercode` processes it. They're separate agents, so the handoff is explicit — pass the first agent's result into the second.
 
-The clean way: have `browser-use` return **typed data** (via `structured_output`), then feed it into `browsercode`'s task or attach it as a file.
+The clean way: have `browser-use` return the data as JSON in its `result` (describe the shape in the task), then feed it into `browsercode`'s task or attach it as a file.
 
 ```python Python
-# 1. browser-use scrapes → typed output
+import json
+
+# 1. browser-use scrapes → JSON in the result string
 scrape = client.agents.browser_use.run(
-    task="Scrape all product names and prices from this catalog",
-    structured_output={"type": "object", "properties": {"products": {"type": "array"}}},
+    task=(
+        "Scrape all product names and prices from this catalog. "
+        'Return ONLY a JSON object: {"products": [{"name": str, "price": number}]}'
+    ),
 )
-data = scrape.output   # typed dict
+data = json.loads(scrape.result)
 
 # 2. hand it to browsercode — attach as a file, or inline it in the task
 up = client.agents.browsercode.files(files=[("products.json", json.dumps(data))])
@@ -673,7 +666,7 @@ curl "https://api.browser-use.com/api/v1/agents/browser-use/runs/run_abc123/stat
 
 `/status` is the cheap poll target — status, `result`, `output`, cost. Use `GET /runs/{id}` for the full object.
 
-**`result` vs `output`:** `result` is the plain-language answer string, present on every completed run — read it on the golden path. `output` is `null` unless you requested [structured output](https://docs.browser-use.com/cloud/agent/structured-output) (typed object, `browser-use` only). `browscode`'s larger output comes back as [files](https://docs.browser-use.com/cloud/files), not in either field.
+**`result` vs `output`:** `result` is the plain-language answer string, present on every completed run — read it on the golden path. `output` is reserved for structured output and is `null` today (no request parameter enables it yet — put the JSON shape you want in the `task` text and parse `result`). `browsercode`'s larger output comes back as [files](https://docs.browser-use.com/cloud/files), not in either field.
 
 ## See what the agent is doing
 
@@ -1037,26 +1030,28 @@ Have the agent do the first login and save the session.
 Source: https://docs.browser-use.com/cloud/use-a-profile
 
 
-Pass `browser_profile_id` into a run or a standalone browser — same field either way. The browser starts with the profile's saved cookies and logins already in place. Don't have a profile yet? [Create one](https://docs.browser-use.com/cloud/create-profile) first.
+On an **agent run**, the profile id goes inside the `browser` object: `browser={"profile_id": ...}`. On a **standalone browser**, it is a top-level param: `browser_profile_id`. The browser starts with the profile's saved cookies and logins already in place. Don't have a profile yet? [Create one](https://docs.browser-use.com/cloud/create-profile) first.
 
 ## Attach it
 
 ```python Python
-# in an agent run
+# in an agent run — profile rides inside the browser object
 run = client.agents.browser_use.run(
     task="Check my inbox and summarize unread emails",
-    browser_profile_id=profile.id,
+    browser={"profile_id": profile.id},
 )
 
-# or a standalone browser
+# on a standalone browser — top-level param
 browser = client.browsers.create(browser_profile_id=profile.id)
 ```
 ```bash curl
 curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"task": "Check my inbox", "browser_profile_id": "bp_123"}'
+  -d '{"task": "Check my inbox", "browser": {"profile_id": "bp_123"}}'
 ```
+
+Do NOT pass `browser_profile_id` as a top-level field on a run — the API rejects it with `422 "Extra inputs are not permitted"`. Top-level `browser_profile_id` is valid only on `POST /browsers`.
 
 ## Persist state on a browser you drive (CDP)
 
@@ -1123,13 +1118,13 @@ profile = client.browser_profiles.create(name="my-gmail")
 # 2. log in once (the profile now remembers it)
 client.agents.browser_use.run(
     task="Log into gmail.com with email me@example.com and password ...",
-    browser_profile_id=profile.id,
+    browser={"profile_id": profile.id},
 )
 
 # 3. reuse forever — already logged in
 run = client.agents.browser_use.run(
     task="Summarize my unread emails",
-    browser_profile_id=profile.id,
+    browser={"profile_id": profile.id},
 )
 print(run.output)
 ```
@@ -1138,7 +1133,7 @@ print(run.output)
 curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"task": "Summarize my unread emails", "browser_profile_id": "bp_123"}'
+  -d '{"task": "Summarize my unread emails", "browser": {"profile_id": "bp_123"}}'
 ```
 
 Prefer not to send raw passwords in a task? [Sync your existing browser logins](https://docs.browser-use.com/cloud/browser/sync-cookies) instead — no credentials in the request.

@@ -4,7 +4,11 @@ description: "Run your first browser task in under a minute. Send a task, get th
 icon: rocket
 ---
 
-Browser Use Cloud runs AI agents that use a real browser. You send a task in plain language; an agent does it and returns the result. Managed infrastructure — stealth browsers, CAPTCHA solving, proxies — no setup.
+Browser Use Cloud runs AI agents that use a real browser. You send a task in plain language; an agent does it and returns the result. Managed infrastructure — stealth browsers ([81% stealth benchmark](/cloud/browser/stealth), [93% Cloudflare CAPTCHA solve rate](/cloud/browser/captcha)), proxies — no setup.
+
+<Note>
+**Cloud vs library:** this is the **hosted cloud platform** — everything here happens on our infrastructure via an API key, including the hosted [open-source agent](/cloud/open-source-agent). If you want the local Python library (`pip install browser-use`, runs a browser on your machine, needs your own LLM key), that's the [open-source docs](/open-source) — a different product surface.
+</Note>
 
 ## 1. Get an API key
 
@@ -14,21 +18,27 @@ Create one in one click at [cloud.browser-use.com](https://cloud.browser-use.com
 export BROWSER_USE_API_KEY=bu_your_key_here
 ```
 
-## 2. Run a task
+## 2. Pick an agent, run a task
+
+There are **two agents**: `browser-use` (the default — fast, cheap, right for most browser tasks) and `browsercode` (code + terminal + browser, for long-horizon or data-processing work). If in doubt, use `browser-use`; see [Choose an agent](/cloud/choose-an-agent).
 
 <CodeGroup>
 ```python Python
 from browser_use import BrowserUse
 
 client = BrowserUse()  # reads BROWSER_USE_API_KEY
-run = client.run("List the top 5 posts on Hacker News with their points")
+run = client.agents.browser_use.run(
+    task="List the top 5 posts on Hacker News with their points",
+)
 print(run.result)   # the answer, as a string
 ```
 ```typescript TypeScript
 import { BrowserUse } from "browser-use";
 
 const client = new BrowserUse(); // reads BROWSER_USE_API_KEY
-const run = await client.run("List the top 5 posts on Hacker News with their points");
+const run = await client.agents.browserUse.run({
+  task: "List the top 5 posts on Hacker News with their points",
+});
 console.log(run.result); // the answer, as a string
 ```
 ```bash curl
@@ -42,7 +52,7 @@ curl -X POST https://api.browser-use.com/api/v1/agents/browser-use/runs \
 The SDK `run()` starts the run and waits for it to finish, then returns the result. The raw `curl` call returns immediately with a run `id` and `status: "running"` — poll [`GET /agents/browser-use/runs/{id}`](/cloud/watch-a-run) until `status` is `completed`, then read `result`.
 
 <Note>
-**Where's the answer?** Every completed run has a **`result`** string — the plain-language answer. That's what you read on the golden path. The separate **`output`** field is `null` unless you asked for [structured output](/cloud/agent/structured-output) (a typed object, `browser-use` only). Large or file-shaped output from `browsercode` comes back as [files](/cloud/files), not in either field.
+**Where's the answer?** Every completed run has a **`result`** string — the plain-language answer. That's what you read on the golden path. The separate **`output`** field is reserved for structured output and is `null` today — to get typed data now, describe the exact JSON shape you want in the `task` text and parse `result`. Large or file-shaped output from `browsercode` comes back as [files](/cloud/files), not in either field.
 </Note>
 
 ## Or: spin up a browser instead
