@@ -1,46 +1,66 @@
 ---
-title: Introduction
-description: "Run a long-horizon browser agent with one task and a few lines of code."
+title: Run a task
+description: "Give a high-accuracy browser agent a goal and get the result."
 icon: rocket
 ---
 
-The SDK wraps the [API v4 Reference](/cloud/api-v4-overview). Create a run, wait for it to finish, then read `result`.
+Create an [API key](https://cloud.browser-use.com/settings?tab=api-keys&new=1) and export it:
+
+```bash
+export BROWSER_USE_API_KEY=your_key
+```
 
 <CodeGroup>
 ```python Python
-from browser_use_sdk.v4 import AsyncBrowserUse
+from browser_use_sdk.v4 import BrowserUse
 
-client = AsyncBrowserUse()
-created = await client.runs.create("List the top 20 Hacker News posts and their points")
-run = await client.runs.wait_for_completion(created.id)
+client = BrowserUse()
+run = client.runs.create("Find the top Hacker News story")
+run = client.runs.wait_for_completion(run.id)
 print(run.result)
 ```
 ```typescript TypeScript
 import { BrowserUse } from "browser-use-sdk/v4";
 
 const client = new BrowserUse();
-const created = await client.runs.create({
-  task: "List the top 20 Hacker News posts and their points",
+const run = await client.runs.create({
+  task: "Find the top Hacker News story",
 });
-const run = await client.runs.waitForCompletion(created.id);
-console.log(run.result);
+const result = await client.runs.waitForCompletion(run.id);
+console.log(result.result);
 ```
 ```bash curl
-curl -X POST https://api.browser-use.com/api/v4/runs \
-  -H "X-Browser-Use-API-Key: YOUR_API_KEY" \
+curl https://api.browser-use.com/api/v4/runs \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"task": "List the top 20 Hacker News posts and their points"}'
+  -d '{"task":"Find the top Hacker News story"}'
 ```
 </CodeGroup>
 
-`runs.create()` automatically creates a session and workspace. `wait_for_completion()` / `waitForCompletion()` polls the lightweight [run status endpoint](/cloud/api-v4/runs/get-run-status), then fetches the full [run result](/cloud/api-v4/runs/get-run) once it reaches `completed`, `failed`, or `cancelled`.
+Install the SDK with `pip install browser-use-sdk` or
+`npm install browser-use-sdk`. Curl needs no installation.
 
-Use the agent for:
+Every new run implicitly creates a **session** and a **workspace**:
 
-- Data extraction and research across many pages
-- Form filling, downloads, and multi-step workflows
-- Authenticated work with browser profiles
-- Long-running tasks that create or consume files
-- Follow-up turns that preserve the same conversation, workspace, and live browser
+<Frame>
+  <img
+    src="/cloud/images/v4-agent-overview.png"
+    alt="A run belongs to a conversation session and uses a persistent workspace"
+  />
+</Frame>
 
-See [Follow-up tasks](/cloud/agent/follow-up-tasks), [Live messages](/cloud/agent/streaming), and [Workspaces & files](/cloud/agent/workspaces) for the main V4 patterns.
+<CardGroup cols={3}>
+  <Card title="Sessions" icon="comments" href="/cloud/agent/sessions">
+    Continue the same conversation and browser.
+  </Card>
+  <Card title="Workspaces" icon="folder" href="/cloud/agent/workspaces">
+    Keep files across runs and sessions.
+  </Card>
+  <Card title="Observability" icon="chart-line" href="/cloud/agent/observability">
+    Poll ordered events while a run is active.
+  </Card>
+</CardGroup>
+
+<Card title="Copy the API V4 docs for an LLM" icon="sparkles" href="/cloud/llms.txt">
+  Give this compact context file to your coding agent.
+</Card>

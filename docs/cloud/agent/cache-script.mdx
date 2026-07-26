@@ -1,75 +1,28 @@
 ---
 title: Deterministic rerun
-description: "Have the agent save and test a reusable script, then run it again from the same workspace."
+description: "Have the agent save, test, and reuse a script in a workspace."
 icon: bolt
 ---
 
-For repeated workflows, create a dedicated workspace and ask the agent to turn its successful process into a script. The important part is explicit: tell it to reproduce what it just did, test the script, and save instructions for the next run.
+Create one [workspace](/cloud/agent/workspaces) for the workflow, then use
+these prompts with the same `workspace_id` / `workspaceId`. The [run
+code](/cloud/agent/quickstart) stays exactly the same.
 
-You can create the workspace in the dashboard or through the API:
+## First run
 
-<CodeGroup>
-```python Python
-from browser_use_sdk.v4 import AsyncBrowserUse
+```text
+Complete this task: get the top five Hacker News stories as JSON.
 
-client = AsyncBrowserUse()
-workspace = await client.workspaces.create(name="hn-scraper")
-
-created = await client.runs.create(
-    """
-    Get the top five Hacker News stories as JSON.
-    Then create helper functions or a script that performs exactly what you did.
-    Test it, save it as scripts/hn_top.py, and save reuse instructions in
-    scripts/README.md.
-    """,
-    workspace_id=workspace.id,
-)
-first = await client.runs.wait_for_completion(created.id)
-print(first.result)
+Then reproduce exactly what you did as helper functions or a script. Test it,
+save it in this workspace, and add a README with instructions for using it again.
 ```
-```typescript TypeScript
-import { BrowserUse } from "browser-use-sdk/v4";
 
-const client = new BrowserUse();
-const workspace = await client.workspaces.create({ name: "hn-scraper" });
+## Later runs
 
-const created = await client.runs.create({
-  task: `
-    Get the top five Hacker News stories as JSON.
-    Then create helper functions or a script that performs exactly what you did.
-    Test it, save it as scripts/hn_top.py, and save reuse instructions in
-    scripts/README.md.
-  `,
-  workspaceId: workspace.id,
-});
-const first = await client.runs.waitForCompletion(created.id);
-console.log(first.result);
+```text
+Use the existing workspace script to get the top ten Hacker News stories.
+Follow its README. Only fix and retest the script if it no longer works.
 ```
-</CodeGroup>
 
-Later, start a new run in the same workspace and tell the agent to use the saved script:
-
-<CodeGroup>
-```python Python
-created = await client.runs.create(
-    "Run scripts/hn_top.py for the top 10 stories. Use the existing script; fix and retest it only if needed.",
-    workspace_id=workspace.id,
-)
-rerun = await client.runs.wait_for_completion(created.id)
-print(rerun.result)
-```
-```typescript TypeScript
-const created = await client.runs.create({
-  task: "Run scripts/hn_top.py for the top 10 stories. Use the existing script; fix and retest it only if needed.",
-  workspaceId: workspace.id,
-});
-const rerun = await client.runs.waitForCompletion(created.id);
-console.log(rerun.result);
-```
-</CodeGroup>
-
-This pattern gives the agent a fast, inspectable path and lets it repair the script when the website changes. Keep one workspace per workflow so scripts, fixtures, outputs, and instructions stay together.
-
-<Warning>
-  V4 does not automatically turn a task into a cached $0-LLM execution. Each rerun starts an agent, so it still has token cost. The saved script usually makes the run faster and cheaper, but you should measure it for your workflow.
-</Warning>
+This still starts an agent and uses tokens. The saved script gives the agent a
+faster, more predictable path; it is not automatic zero-LLM execution.

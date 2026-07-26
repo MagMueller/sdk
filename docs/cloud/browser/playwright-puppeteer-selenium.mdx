@@ -1,12 +1,17 @@
 ---
 title: Playwright, Puppeteer, Selenium
-description: "Connect your automation framework to Browser Use's stealth infrastructure via CDP."
+description: "Control a Browser Use cloud browser directly over CDP."
 icon: code
 ---
 
 Every session runs in a [hardened Chromium fork](/cloud/browser/stealth) with stealth, anti-fingerprinting, and [residential proxies](/cloud/browser/proxies) enabled by default — no configuration needed.
 
-## Option 1: WebSocket URL (no SDK)
+<Note>
+  This page is for direct browser control. To give an AI agent a goal instead,
+  [create an API V4 run](/cloud/agent/quickstart).
+</Note>
+
+## WebSocket URL
 
 Connect with a single URL. All configuration is passed as query parameters.
 
@@ -14,16 +19,16 @@ Connect with a single URL. All configuration is passed as query parameters.
 
 <CodeGroup>
 ```python Python
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 
 WSS_URL = "wss://connect.browser-use.com?apiKey=YOUR_API_KEY&proxyCountryCode=us"
 
-async with async_playwright() as p:
-    browser = await p.chromium.connect_over_cdp(WSS_URL)
+with sync_playwright() as p:
+    browser = p.chromium.connect_over_cdp(WSS_URL)
     page = browser.contexts[0].pages[0]
-    await page.goto("https://example.com")
-    print(await page.title())
-    await browser.close()
+    page.goto("https://example.com")
+    print(page.title())
+    browser.close()
 # Browser is automatically stopped when the WebSocket disconnects
 ```
 ```typescript TypeScript
@@ -56,24 +61,8 @@ await browser.close();
 
 ### Selenium
 
-Selenium requires a local WebSocket proxy to connect to Browser Use's remote CDP endpoint. Use [selenium-wire](https://github.com/wkeeling/selenium-wire) or connect through Playwright's CDP bridge instead:
-
-```python
-from playwright.sync_api import sync_playwright
-
-WSS_URL = "wss://connect.browser-use.com?apiKey=YOUR_API_KEY&proxyCountryCode=us"
-
-with sync_playwright() as p:
-    browser = p.chromium.connect_over_cdp(WSS_URL)
-    page = browser.contexts[0].pages[0]
-    page.goto("https://example.com")
-    print(page.title())
-    browser.close()
-```
-
-<Note>
-  Selenium's `debugger_address` only supports local `host:port` connections. For remote CDP over WebSocket, use Playwright or Puppeteer instead.
-</Note>
+Selenium's `debugger_address` only supports local `host:port` connections.
+Use Playwright or Puppeteer for remote CDP over WebSocket.
 
 ## Query parameters
 
@@ -86,72 +75,7 @@ with sync_playwright() as p:
 | `browserScreenWidth` | `int` | Browser width in pixels. |
 | `browserScreenHeight` | `int` | Browser height in pixels. |
 
-## Option 2: SDK
-
-Create a browser via the SDK, get a `cdp_url`, and connect with Playwright or Puppeteer.
-
-### Playwright
-
-<CodeGroup>
-```python Python
-from browser_use_sdk.v3 import AsyncBrowserUse
-from playwright.async_api import async_playwright
-
-client = AsyncBrowserUse()
-browser = await client.browsers.create()
-print(browser.cdp_url)   # https://uuid.cdpN.browser-use.com
-print(browser.live_url)  # https://live.browser-use.com?wss=...
-
-async with async_playwright() as p:
-    pw_browser = await p.chromium.connect_over_cdp(browser.cdp_url)
-    page = pw_browser.contexts[0].pages[0]
-    await page.goto("https://example.com")
-    print(await page.title())
-    await pw_browser.close()
-
-await client.browsers.stop(browser.id)
-```
-```typescript TypeScript
-import { BrowserUse } from "browser-use-sdk/v3";
-import { chromium } from "playwright";
-
-const client = new BrowserUse();
-const browser = await client.browsers.create();
-console.log(browser.cdpUrl);  // https://uuid.cdpN.browser-use.com
-console.log(browser.liveUrl); // https://live.browser-use.com?wss=...
-
-const pwBrowser = await chromium.connectOverCDP(browser.cdpUrl);
-const page = pwBrowser.contexts()[0].pages()[0];
-await page.goto("https://example.com");
-console.log(await page.title());
-await pwBrowser.close();
-
-await client.browsers.stop(browser.id);
-```
-</CodeGroup>
-
-### Puppeteer
-
-```typescript
-import { BrowserUse } from "browser-use-sdk/v3";
-import puppeteer from "puppeteer-core";
-
-const client = new BrowserUse();
-const browser = await client.browsers.create();
-
-// Puppeteer needs the WebSocket URL from /json/version
-const resp = await fetch(`${browser.cdpUrl}/json/version`);
-const { webSocketDebuggerUrl } = await resp.json();
-
-const pwBrowser = await puppeteer.connect({ browserWSEndpoint: webSocketDebuggerUrl });
-const [page] = await pwBrowser.pages();
-await page.goto("https://example.com");
-console.log(await page.title());
-await pwBrowser.close();
-
-await client.browsers.stop(browser.id);
-```
-
 <Warning>
-  Always stop browser sessions when done. Sessions left running will continue to incur charges until the timeout expires.
+  Close the CDP connection when done. Browsers left running continue to incur
+  charges until their timeout expires.
 </Warning>

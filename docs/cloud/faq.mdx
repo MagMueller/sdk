@@ -40,22 +40,18 @@ If it still doesn't work, contact support inside the [Cloud Dashboard](https://c
 
 The SDK auto-retries 429 responses with exponential backoff. If persistent, you may need more concurrent sessions — contact support.
 
-## v2 vs v3 vs v4 — which should I use?
+## V2 or V4 — which should I use?
 
-**Use v4 for new agent integrations.** It is designed for long-horizon work:
+Use **V4** for difficult tasks where accuracy matters. It supports:
 
 - Run-focused API with a cheap status polling endpoint
-- Conversation sessions with queued and interrupting follow-ups
+- Conversation sessions with follow-ups
 - Persistent workspaces and turn-scoped file attachments
 - Incremental events for custom UIs and monitoring
 - Per-run cost totals, cost caps, and optional judgement
 
-V3 remains available for existing integrations and older features that have not moved to V4, including server-side structured-output schemas and automatic script caching. V2 is the legacy API closest to the open-source browser agent.
+Use **V2** when tasks are simple and your priority is very low cost and
+predictable speed. Its accuracy is substantially lower.
 
-```python
-# v4 (recommended for new agent runs)
-from browser_use_sdk.v4 import AsyncBrowserUse
-
-# v3 (existing session-based integrations)
-from browser_use_sdk.v3 import AsyncBrowserUse as AsyncBrowserUseV3
-```
+See Browser Use at #1 on the
+[Odysseys benchmark](https://odysseysbench.com/leaderboard).

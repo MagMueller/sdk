@@ -52,6 +52,26 @@ describe("v4 runs.waitForCompletion", () => {
     });
   });
 
+  it("does not require proxyCountryCode for other browser settings", async () => {
+    const http = {
+      post: vi.fn(async () => ({
+        id: RUN_ID,
+        sessionId: SESSION_ID,
+        workspaceId: WORKSPACE_ID,
+        status: "queued",
+      })),
+    };
+    const runs = new Runs(http as any);
+    const request: RunCreateRequest = {
+      task: "Record this run",
+      browserSettings: { record: true },
+    };
+
+    await runs.create(request);
+
+    expect(http.post).toHaveBeenCalledWith("/runs", request);
+  });
+
   it("polls status until terminal, then fetches the full run once", async () => {
     const statuses = ["queued", "running", "completed"];
     let statusCalls = 0;

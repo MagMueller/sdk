@@ -1,69 +1,41 @@
 ---
 title: Structured output
-description: "Ask for JSON, then validate the V4 run result in your application."
+description: "Ask for JSON and validate the V4 result in your application."
 icon: table
 ---
 
-V4 returns the agent's final answer as a string in `run.result`. Ask the agent for JSON only, then validate it with Pydantic or Zod in your application.
-
-<Note>
-  V4 does not currently accept an `output_schema` / `outputSchema` request field. Validation happens client-side.
-</Note>
+V4 returns `run.result` as a string. Ask for JSON only, then validate it
+client-side:
 
 <CodeGroup>
 ```python Python
-from browser_use_sdk.v4 import AsyncBrowserUse
 from pydantic import BaseModel
 
-class Post(BaseModel):
-    name: str
+class Story(BaseModel):
+    title: str
     points: int
-    comments: int
 
-class HNPosts(BaseModel):
-    posts: list[Post]
-
-client = AsyncBrowserUse()
-created = await client.runs.create(
-    """
-    List the top 20 Hacker News posts.
-    Return JSON only in this shape:
-    {"posts": [{"name": "string", "points": 0, "comments": 0}]}
-    """
+run = client.runs.create(
+    'Find the top HN story. Return only {"title":"...","points":0}.'
 )
-run = await client.runs.wait_for_completion(created.id)
-posts = HNPosts.model_validate_json(run.result or "{}")
-
-for post in posts.posts:
-    print(f"{post.name} ({post.points} pts)")
+run = client.runs.wait_for_completion(run.id)
+story = Story.model_validate_json(run.result or "{}")
 ```
 ```typescript TypeScript
-import { BrowserUse } from "browser-use-sdk/v4";
 import { z } from "zod";
 
-const HNPosts = z.object({
-  posts: z.array(z.object({
-    name: z.string(),
-    points: z.number(),
-    comments: z.number(),
-  })),
+const Story = z.object({
+  title: z.string(),
+  points: z.number(),
 });
 
-const client = new BrowserUse();
-const created = await client.runs.create({
-  task: `
-    List the top 20 Hacker News posts.
-    Return JSON only in this shape:
-    {"posts": [{"name": "string", "points": 0, "comments": 0}]}
-  `,
+const run = await client.runs.create({
+  task: 'Find the top HN story. Return only {"title":"...","points":0}.',
 });
-const run = await client.runs.waitForCompletion(created.id);
-const posts = HNPosts.parse(JSON.parse(run.result ?? "{}"));
-
-for (const post of posts.posts) {
-  console.log(`${post.name} (${post.points} pts)`);
-}
+const result = await client.runs.waitForCompletion(run.id);
+const story = Story.parse(JSON.parse(result.result ?? "{}"));
 ```
 </CodeGroup>
 
-For strict production flows, handle JSON parse or validation failures and retry with a follow-up message that includes the validation error.
+V4 does not accept `output_schema` / `outputSchema`. Handle validation errors
+and retry with a [session follow-up](/cloud/agent/sessions) when needed.

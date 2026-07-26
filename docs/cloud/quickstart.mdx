@@ -1,10 +1,18 @@
 ---
 title: Quick start
-description: "State-of-the-art AI browser automation with stealth browsers, CAPTCHA solving, residential proxies, and managed infrastructure."
+description: "Run a high-accuracy browser task with Python, TypeScript, or curl."
 icon: rocket
 ---
 
+Get a key at [cloud.browser-use.com/settings](https://cloud.browser-use.com/settings?tab=api-keys&new=1), then:
+
+```bash
+export BROWSER_USE_API_KEY=your_key
+```
+
 ## 1. Install
+
+Skip this step if you use curl.
 
 <CodeGroup>
 ```bash Python
@@ -15,58 +23,40 @@ npm install browser-use-sdk
 ```
 </CodeGroup>
 
-Get a key at [cloud.browser-use.com/settings](https://cloud.browser-use.com/settings?tab=api-keys&new=1), then:
-
-```bash
-export BROWSER_USE_API_KEY=your_key
-```
-
-## 2. Run your first task
+## 2. Run a task
 
 <CodeGroup>
 ```python Python
-import asyncio
-from browser_use_sdk.v4 import AsyncBrowserUse
+from browser_use_sdk.v4 import BrowserUse
 
-async def main():
-    client = AsyncBrowserUse()
-    created = await client.runs.create("List the top 20 Hacker News posts and their points")
-    run = await client.runs.wait_for_completion(created.id)
-    print(run.result)
-
-asyncio.run(main())
+client = BrowserUse()
+run = client.runs.create("Find the top Hacker News story")
+run = client.runs.wait_for_completion(run.id)
+print(run.result)
 ```
 ```typescript TypeScript
 import { BrowserUse } from "browser-use-sdk/v4";
 
 const client = new BrowserUse();
-const created = await client.runs.create({
-  task: "List the top 20 Hacker News posts and their points",
+const run = await client.runs.create({
+  task: "Find the top Hacker News story",
 });
-const run = await client.runs.waitForCompletion(created.id);
-console.log(run.result);
+const result = await client.runs.waitForCompletion(run.id);
+console.log(result.result);
+```
+```bash curl
+curl https://api.browser-use.com/api/v4/runs \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"task":"Find the top Hacker News story"}'
 ```
 </CodeGroup>
 
-Want a full working app? Check out the [Chat UI example](/cloud/tutorials/chat-ui).
-
-## Agent vs Browser
-
-| | **Agent** | **Browser** |
-|---|---|---|
-| **Method** | `runs.create()` | `browsers.create()` |
-| **What it does** | AI agent runs your task | Raw browser via CDP |
-| task | ✓ | — |
-| model | ✓ | — |
-| proxy | `browserSettings` | ✓ |
-| custom proxy | `browserSettings` | ✓ |
-| profile | `browserSettings` | ✓ |
-| recording | `browserSettings` | ✓ |
-| workspace & files | ✓ | — |
-| follow-up conversation | ✓ | — |
-| screen size | `browserSettings` | ✓ |
-| timeout | — | ✓ |
-
----
-
-If you are an LLM, read/include [docs.browser-use.com/llms-full.txt](https://docs.browser-use.com/llms-full.txt) — it contains the complete SDK reference with all code examples in a single file optimized for LLMs. For a shorter index: [docs.browser-use.com/llms.txt](https://docs.browser-use.com/llms.txt).
+<CardGroup cols={2}>
+  <Card title="Explore the Agent SDK" icon="robot" href="/cloud/agent/quickstart">
+    Sessions, workspaces, models, and observability.
+  </Card>
+  <Card title="Give these docs to an LLM" icon="sparkles" href="/cloud/llms.txt">
+    A compact, API V4-first context file for coding agents.
+  </Card>
+</CardGroup>

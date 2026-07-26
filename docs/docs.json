@@ -75,15 +75,16 @@
                   {
                     "group": "Agent",
                     "icon": "robot",
+                    "root": "cloud/agent/quickstart",
                     "pages": [
                       "cloud/agent/quickstart",
                       "cloud/agent/models",
                       "cloud/agent/structured-output",
-                      "cloud/agent/follow-up-tasks",
-                      "cloud/agent/streaming",
+                      "cloud/agent/sessions",
                       "cloud/agent/workspaces",
                       "cloud/agent/cache-script",
-                      "cloud/agent/human-in-the-loop"
+                      "cloud/agent/human-in-the-loop",
+                      "cloud/agent/observability"
                     ]
                   },
                   {
@@ -122,20 +123,14 @@
                         ]
                       },
                       "cloud/tutorials/integrations/openclaw",
-                      "cloud/tutorials/integrations/hermes-agent",
-                      "cloud/guides/mcp-server",
-                      "cloud/guides/webhooks",
-                      "cloud/guides/x402",
-                      "cloud/tutorials/integrations/n8n"
+                      "cloud/tutorials/integrations/hermes-agent"
                     ]
                   },
                   {
                     "group": "Tutorials",
                     "icon": "graduation-cap",
                     "pages": [
-                      "cloud/tutorials/chat-ui",
-                      "cloud/agent-signup",
-                      "cloud/tutorials/grow-therapy-compare"
+                      "cloud/agent-signup"
                     ]
                   },
                   "cloud/faq",
@@ -182,6 +177,17 @@
                 "group": "Get Started",
                 "pages": [
                   "cloud/api-reference"
+                ]
+              },
+              {
+                "group": "V3 guides and tutorials",
+                "pages": [
+                  "cloud/guides/mcp-server",
+                  "cloud/guides/webhooks",
+                  "cloud/guides/x402",
+                  "cloud/tutorials/integrations/n8n",
+                  "cloud/tutorials/chat-ui",
+                  "cloud/tutorials/grow-therapy-compare"
                 ]
               },
               {
@@ -470,7 +476,7 @@
     },
     {
       "source": "/cloud/tips/data/streaming",
-      "destination": "/cloud/agent/streaming"
+      "destination": "/cloud/agent/observability"
     },
     {
       "source": "/cloud/tips/data/structured-output",
@@ -982,7 +988,15 @@
     },
     {
       "source": "/tips/data/streaming",
-      "destination": "/cloud/agent/streaming"
+      "destination": "/cloud/agent/observability"
+    },
+    {
+      "source": "/cloud/agent/follow-up-tasks",
+      "destination": "/cloud/agent/sessions"
+    },
+    {
+      "source": "/cloud/agent/streaming",
+      "destination": "/cloud/agent/observability"
     },
     {
       "source": "/tips/integrations/playwright",

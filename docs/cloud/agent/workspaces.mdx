@@ -1,116 +1,76 @@
 ---
 title: Workspaces & files
-description: "Give a V4 run input files and retrieve files the agent creates."
+description: "Persist files across V4 runs and conversations."
 icon: folder
 ---
 
-Every V4 run has a workspace. You can let the API create one automatically, create one yourself, or reuse an existing workspace across otherwise independent sessions.
+A **workspace** is a persistent filesystem. A run can read attached inputs,
+create files, and share those files with later sessions.
 
-## Upload and attach input files
+<Frame>
+  <img
+    src="/cloud/images/v4-workspaces.png"
+    alt="Two independent sessions reading and writing the same workspace"
+  />
+</Frame>
 
-Uploading stores the file in the workspace and returns an upload ID. Pass that ID in `attached_file_ids` / `attachedFileIds` to make the file available to a specific run.
+## Upload and attach a file
 
 <CodeGroup>
 ```python Python
-from browser_use_sdk.v4 import AsyncBrowserUse
+workspace = client.workspaces.create(name="research")
+uploaded = client.workspaces.upload(workspace.id, "people.csv")
 
-client = AsyncBrowserUse()
-workspace = await client.workspaces.create(name="company-research")
-uploaded = await client.workspaces.upload(workspace.id, "people.csv")
-
-created = await client.runs.create(
-    "Read the attached people.csv and tell me who works at Google",
+run = client.runs.create(
+    "Find everyone in the CSV who works at Google",
     workspace_id=workspace.id,
     attached_file_ids=[uploaded[0].id],
 )
-run = await client.runs.wait_for_completion(created.id)
-print(run.result)
 ```
 ```typescript TypeScript
-import { BrowserUse } from "browser-use-sdk/v4";
+const workspace = await client.workspaces.create({
+  name: "research",
+});
+const uploaded = await client.workspaces.upload(
+  workspace.id,
+  "people.csv",
+);
 
-const client = new BrowserUse();
-const workspace = await client.workspaces.create({ name: "company-research" });
-const uploaded = await client.workspaces.upload(workspace.id, "people.csv");
-
-const created = await client.runs.create({
-  task: "Read the attached people.csv and tell me who works at Google",
+const run = await client.runs.create({
+  task: "Find everyone in the CSV who works at Google",
   workspaceId: workspace.id,
   attachedFileIds: [uploaded[0].id],
 });
-const run = await client.runs.waitForCompletion(created.id);
-console.log(run.result);
 ```
 </CodeGroup>
 
-You can upload up to 10 files in one helper call. A run can attach up to 20 upload IDs.
+Attachments are turn-scoped. Reusing a workspace does not automatically attach
+every upload to later runs.
+
+## Retrieve created files
+
+Ask the agent to save its output, then list the workspace:
 
 <CodeGroup>
 ```python Python
-uploaded = await client.workspaces.upload(
+files = client.workspaces.files(
     workspace.id,
-    "data.csv",
-    "config.json",
-    "image.png",
-)
-```
-```typescript TypeScript
-const uploaded = await client.workspaces.upload(
-  workspace.id,
-  "data.csv",
-  "config.json",
-  "image.png",
-);
-```
-</CodeGroup>
-
-<Note>
-  Attachments are turn-scoped. Reusing a workspace does not automatically attach every uploaded file to every later run.
-</Note>
-
-## Retrieve files the agent creates
-
-Ask the agent to save its output in the workspace, then list files with temporary download URLs:
-
-<CodeGroup>
-```python Python
-created = await client.runs.create(
-    "Save the top three Hacker News posts as outputs/posts.json",
-    workspace_id=workspace.id,
-)
-await client.runs.wait_for_completion(created.id)
-
-files = await client.workspaces.files(
-    workspace.id,
-    prefix="outputs/",
     include_urls=True,
 )
 for file in files.files:
     print(file.path, file.url)
 ```
 ```typescript TypeScript
-const created = await client.runs.create({
-  task: "Save the top three Hacker News posts as outputs/posts.json",
-  workspaceId: workspace.id,
-});
-await client.runs.waitForCompletion(created.id);
-
-const files = await client.workspaces.files(workspace.id, {
-  prefix: "outputs/",
-  includeUrls: true,
-});
+const files = await client.workspaces.files(
+  workspace.id,
+  { includeUrls: true },
+);
 for (const file of files.files) {
   console.log(file.path, file.url);
 }
 ```
 </CodeGroup>
 
-Download URLs expire after 60 seconds, so request them immediately before downloading. Use `cursor` / `next_cursor` (`nextCursor` in TypeScript) to paginate large workspaces.
-
-## Reuse a workspace
-
-- Pass neither ID to `runs.create()` to create a new session and workspace.
-- Pass `session_id` / `sessionId` to continue the same conversation and workspace.
-- Pass only `workspace_id` / `workspaceId` to start a fresh conversation with existing files.
-
-See [Upload workspace files](/cloud/api-v4/workspaces/upload-workspace-files) and [List workspace files](/cloud/api-v4/workspaces/list-workspace-files) for limits and response fields.
+Download URLs expire after 60 seconds. See [Upload workspace
+files](/cloud/api-v4/workspaces/upload-workspace-files) and [List workspace
+files](/cloud/api-v4/workspaces/list-workspace-files) for limits and pagination.

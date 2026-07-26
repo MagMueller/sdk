@@ -5,6 +5,7 @@ export { BrowserUseError } from "./core/errors.js";
 
 export { Runs } from "./v4/resources/runs.js";
 export type {
+  RunBrowserSettings,
   RunCreateRequest,
   RunListParams,
   RunEventsParams,
@@ -32,7 +33,6 @@ export type RunEvent = S["RunEvent"];
 export type RunEventsResponse = S["RunEventsResponse"];
 export type RunAttachment = S["RunAttachment"];
 export type RunAttachmentsResponse = S["RunAttachmentsResponse"];
-export type RunBrowserSettings = S["RunBrowserSettings"];
 export type RunJudgeSettings = S["RunJudgeSettings"];
 
 // Session models

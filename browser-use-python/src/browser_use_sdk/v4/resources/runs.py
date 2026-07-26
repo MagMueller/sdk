@@ -42,7 +42,11 @@ def _build_create_body(
         body["workspaceId"] = str(workspace_id)
     if browser_settings is not None:
         if isinstance(browser_settings, RunBrowserSettings):
-            body["browserSettings"] = browser_settings.model_dump(by_alias=True, exclude_none=True, mode="json")
+            body["browserSettings"] = browser_settings.model_dump(
+                by_alias=True,
+                exclude_unset=True,
+                mode="json",
+            )
         else:
             body["browserSettings"] = browser_settings
     if attached_file_ids is not None:

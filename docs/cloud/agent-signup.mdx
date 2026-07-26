@@ -67,16 +67,16 @@ Response:
 
 Use the returned key for Browser Use Cloud API requests.
 
-For example, create a browser session:
+For example, create an API V4 run:
 
 ```bash
-curl -X POST https://api.browser-use.com/api/v3/browsers \
+curl https://api.browser-use.com/api/v4/runs \
   -H "X-Browser-Use-API-Key: bu_..." \
   -H "Content-Type: application/json" \
-  -d '{}'
+  -d '{"task":"Find the top Hacker News story"}'
 ```
 
-See the [Create Browser Session API reference](/cloud/api-v3/browsers/create-browser-session).
+See the [API V4 quick start](/cloud/agent/quickstart).
 
 ## Claim the account
 
