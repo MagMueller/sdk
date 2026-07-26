@@ -9,7 +9,6 @@ from typing import Any
 import httpx
 import pytest
 
-from browser_use_sdk.v4 import RunBrowserSettings
 from browser_use_sdk.v4.resources.runs import AsyncRuns, Runs
 from browser_use_sdk.v4.resources.sessions import Sessions
 from browser_use_sdk.v4.resources.workspaces import AsyncWorkspaces, Workspaces
@@ -196,32 +195,6 @@ def test_runs_create_sends_camel_case_body() -> None:
     assert str(created.id) == RUN_ID
 
 
-def test_runs_create_preserves_explicit_null_proxy() -> None:
-    http = FakeSyncHttp(
-        [
-            {
-                "id": RUN_ID,
-                "status": "queued",
-                "model": "minimax-m3",
-                "sessionId": SESSION_ID,
-                "workspaceId": WORKSPACE_ID,
-                "eventsUrl": f"https://api.browser-use.com/api/v4/runs/{RUN_ID}/events",
-            }
-        ]
-    )
-    runs = Runs(http)  # type: ignore[arg-type]
-
-    runs.create(
-        "Test staging",
-        browser_settings=RunBrowserSettings(proxyCountryCode=None),
-    )
-
-    assert http.calls[0][2] == {
-        "task": "Test staging",
-        "browserSettings": {"proxyCountryCode": None},
-    }
-
-
 def test_runs_list_cursor_pagination() -> None:
     http = FakeSyncHttp(
         [
@@ -289,15 +262,6 @@ def test_sessions_send_message() -> None:
     assert (method, path) == ("POST", f"/sessions/{SESSION_ID}/queue")
     assert body == {"text": "also check the careers page", "interrupt": True}
     assert msg.status.value == "pending"
-
-
-def test_sessions_purge() -> None:
-    http = FakeSyncHttp([{}])
-    sessions = Sessions(http)  # type: ignore[arg-type]
-
-    sessions.purge(SESSION_ID)
-
-    assert http.calls[0][:2] == ("POST", f"/sessions/{SESSION_ID}/purge")
 
 
 def test_sessions_queue_list() -> None:

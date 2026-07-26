@@ -1,20 +1,7 @@
 import type { HttpClient } from "../../core/http.js";
 import type { components } from "../../generated/v4/types.js";
 
-type GeneratedRunCreateRequest = components["schemas"]["RunCreateRequest"];
-type GeneratedRunBrowserSettings = components["schemas"]["RunBrowserSettings"];
-export type RunBrowserSettings = Omit<GeneratedRunBrowserSettings, "proxyCountryCode"> & {
-  /** Defaults to US when omitted. Pass null to disable the managed proxy. */
-  proxyCountryCode?: GeneratedRunBrowserSettings["proxyCountryCode"];
-};
-export type RunCreateRequest = Omit<
-  GeneratedRunCreateRequest,
-  "model" | "browserSettings"
-> & {
-  /** Defaults to minimax-m3 when omitted. */
-  model?: GeneratedRunCreateRequest["model"];
-  browserSettings?: RunBrowserSettings | null;
-};
+type RunCreateRequest = components["schemas"]["RunCreateRequest"];
 type RunCreateResponse = components["schemas"]["RunCreateResponse"];
 type RunSummary = components["schemas"]["RunSummary"];
 type RunStatusResponse = components["schemas"]["RunStatusResponse"];
