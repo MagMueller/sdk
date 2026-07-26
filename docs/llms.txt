@@ -1,6 +1,11 @@
 # Browser Use Cloud
 
-> Browser Use Cloud is a managed API for AI browser automation. Send a natural-language task and get a completed run back. SDKs for Python and TypeScript. Auth via `X-Browser-Use-API-Key` (keys start with `bu_`).
+> Browser Use Cloud has two products on the same managed browser
+> infrastructure. **Agent** accepts a natural-language goal and completes the
+> web task. **Browser** gives Playwright, Puppeteer, and other remote CDP
+> clients direct control of a cloud browser. Both include stealth, residential
+> proxies, profiles, and live observability. Auth uses
+> `X-Browser-Use-API-Key` (keys start with `bu_`).
 
 - Dashboard: https://cloud.browser-use.com
 - Create API key: https://cloud.browser-use.com/settings?tab=api-keys&new=1
@@ -37,7 +42,7 @@ export BROWSER_USE_API_KEY=bu_your_key_here
 
 
 ## Get Started
-- [Quick start](https://docs.browser-use.com/cloud/quickstart): Run a high-accuracy browser task with Python, TypeScript, or curl.
+- [Quick start](https://docs.browser-use.com/cloud/quickstart): Run an agent or control a cloud browser directly.
 - [Prompt for Vibecoders](https://docs.browser-use.com/cloud/vibecoding): Complete Cloud SDK reference for AI coding agents.
 
 ## Agent

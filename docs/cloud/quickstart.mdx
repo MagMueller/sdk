@@ -1,18 +1,37 @@
 ---
 title: Quick start
-description: "Run a high-accuracy browser task with Python, TypeScript, or curl."
+description: "Run an agent or control a cloud browser directly."
 icon: rocket
 ---
 
-Get a key at [cloud.browser-use.com/settings](https://cloud.browser-use.com/settings?tab=api-keys&new=1), then:
+Browser Use Cloud gives you two ways to automate the web:
+
+<CardGroup cols={2}>
+  <Card title="Agent" icon="robot" href="/cloud/agent/quickstart">
+    Give it a goal and get the result. API V4 is built for hard,
+    high-accuracy work; API V2 trades accuracy for very low cost.
+  </Card>
+  <Card title="Browser" icon="globe" href="/cloud/browser/playwright-puppeteer-selenium">
+    Control a managed browser directly with Playwright, Puppeteer, or another
+    remote CDP client.
+  </Card>
+</CardGroup>
+
+<Info>
+  Both products run on the same browser infrastructure with stealth,
+  residential proxies, profiles, recordings, and live observability.
+</Info>
+
+Get an [API key](https://cloud.browser-use.com/settings?tab=api-keys&new=1) and
+export it:
 
 ```bash
 export BROWSER_USE_API_KEY=your_key
 ```
 
-## 1. Install
+## Install the Agent SDK
 
-Skip this step if you use curl.
+Skip this step if you use curl or only need direct Browser control.
 
 <CodeGroup>
 ```bash Python
@@ -23,7 +42,9 @@ npm install browser-use-sdk
 ```
 </CodeGroup>
 
-## 2. Run a task
+## Run an agent
+
+Give API V4 a goal and get the result:
 
 <CodeGroup>
 ```python Python
@@ -56,11 +77,75 @@ curl https://api.browser-use.com/api/v4/runs \
 ```
 </CodeGroup>
 
-<CardGroup cols={2}>
-  <Card title="Explore the Agent SDK" icon="robot" href="/cloud/agent/quickstart">
-    Sessions, workspaces, models, and observability.
-  </Card>
-  <Card title="Give these docs to an LLM" icon="sparkles" href="/cloud/llms.txt">
-    A compact, API V4-first context file for coding agents.
-  </Card>
-</CardGroup>
+## Control a browser
+
+Create a standalone browser with API V4. Connect your CDP client to the
+returned `cdpUrl`, then stop the browser with its `id`:
+
+<CodeGroup>
+```python Python
+import os
+import requests
+
+headers = {"X-Browser-Use-API-Key": os.environ["BROWSER_USE_API_KEY"]}
+browser = requests.post(
+    "https://api.browser-use.com/api/v4/browsers",
+    headers=headers,
+    json={"proxyCountryCode": "us"},
+).json()
+
+print(browser["cdpUrl"])
+
+# After your CDP client is finished:
+requests.patch(
+    f"https://api.browser-use.com/api/v4/browsers/{browser['id']}",
+    headers=headers,
+    json={"action": "stop"},
+).raise_for_status()
+```
+```typescript TypeScript
+const headers = {
+  "X-Browser-Use-API-Key": process.env.BROWSER_USE_API_KEY!,
+  "Content-Type": "application/json",
+};
+const browser = await fetch("https://api.browser-use.com/api/v4/browsers", {
+  method: "POST",
+  headers,
+  body: JSON.stringify({ proxyCountryCode: "us" }),
+}).then((response) => response.json()) as { id: string; cdpUrl: string };
+
+console.log(browser.cdpUrl);
+
+// After your CDP client is finished:
+await fetch(`https://api.browser-use.com/api/v4/browsers/${browser.id}`, {
+  method: "PATCH",
+  headers,
+  body: JSON.stringify({ action: "stop" }),
+});
+```
+```bash curl
+browser=$(curl -sS https://api.browser-use.com/api/v4/browsers \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"proxyCountryCode":"us"}')
+
+echo "$browser" | jq -r .cdpUrl
+
+# After your CDP client is finished:
+curl -X PATCH \
+  "https://api.browser-use.com/api/v4/browsers/$(echo "$browser" | jq -r .id)" \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"stop"}'
+```
+</CodeGroup>
+
+<Warning>
+  Closing or disconnecting your CDP client does not stop the managed browser.
+  Keep its `id` and call `PATCH /api/v4/browsers/{id}` with
+  `{"action":"stop"}`.
+</Warning>
+
+<Card title="Copy for an LLM" icon="sparkles" href="/cloud/llms.txt">
+  Give your coding agent the compact API V4 context.
+</Card>

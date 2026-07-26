@@ -239,7 +239,12 @@ CLOUD_FULL="$SCRIPT_DIR/llms-full.txt"
 cat > "$CLOUD_INDEX" << 'HEADER'
 # Browser Use Cloud
 
-> Browser Use Cloud is a managed API for AI browser automation. Send a natural-language task and get a completed run back. SDKs for Python and TypeScript. Auth via `X-Browser-Use-API-Key` (keys start with `bu_`).
+> Browser Use Cloud has two products on the same managed browser
+> infrastructure. **Agent** accepts a natural-language goal and completes the
+> web task. **Browser** gives Playwright, Puppeteer, and other remote CDP
+> clients direct control of a cloud browser. Both include stealth, residential
+> proxies, profiles, and live observability. Auth uses
+> `X-Browser-Use-API-Key` (keys start with `bu_`).
 
 - Dashboard: https://cloud.browser-use.com
 - Create API key: https://cloud.browser-use.com/settings?tab=api-keys&new=1

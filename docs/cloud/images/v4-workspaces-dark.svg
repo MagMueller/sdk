@@ -1,46 +1,60 @@
-<svg width="1200" height="320" viewBox="0 0 1200 320" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+<svg width="1200" height="540" viewBox="0 0 1200 540" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
   <title id="title">One workspace shared across sessions</title>
   <desc id="desc">Two independent sessions read and write files in the same persistent workspace.</desc>
+  <style>
+    .heading{fill:#FAFAFA;font:650 28px Geist,ui-sans-serif,system-ui,sans-serif}
+    .label{fill:#FAFAFA;font:620 23px Geist,ui-sans-serif,system-ui,sans-serif}
+    .body{fill:#A1A1AA;font:17px Geist,ui-sans-serif,system-ui,sans-serif}
+    .mono{fill:#D4D4D8;font:16px "Geist Mono",ui-monospace,monospace}
+    rect:not(.canvas),circle{filter:url(#rough)}path{stroke-linecap:round;stroke-linejoin:round}
+  </style>
   <defs>
-    <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M1 1L7 4L1 7" fill="none" stroke="#FE750E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <filter id="rough" x="-3%" y="-3%" width="106%" height="106%">
+      <feTurbulence type="fractalNoise" baseFrequency=".012 .025" numOctaves="2" seed="31" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <marker id="orange" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1 1L9 5L1 9" fill="none" stroke="#FE750E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
-    <marker id="arrow-gray" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-      <path d="M1 1L7 4L1 7" fill="none" stroke="#71717A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <marker id="gray" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M1 1L9 5L1 9" fill="none" stroke="#71717A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
-  <rect width="1200" height="320" rx="14" fill="#09090B"/>
+  <rect class="canvas" width="1200" height="540" rx="16" fill="#09090B"/>
 
-  <rect x="76" y="54" width="300" height="90" rx="12" fill="#18181B" stroke="#FE750E" stroke-width="1.5"/>
-  <circle cx="108" cy="99" r="6" fill="#FE750E"/>
-  <text x="130" y="94" fill="#FAFAFA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="600">Session A</text>
-  <text x="130" y="119" fill="#A1A1AA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="14">research conversation</text>
+  <rect x="48" y="74" width="330" height="158" rx="14" fill="#18181B" stroke="#FE750E" stroke-width="2"/>
+  <circle cx="90" cy="130" r="8" fill="#FE750E"/>
+  <text x="118" y="137" class="label">Session A</text>
+  <text x="90" y="184" class="body">research conversation</text>
+  <text x="90" y="210" class="body">reads + writes files</text>
 
-  <rect x="76" y="176" width="300" height="90" rx="12" fill="#18181B" stroke="#3F3F46" stroke-width="1.5"/>
-  <circle cx="108" cy="221" r="6" fill="#71717A"/>
-  <text x="130" y="216" fill="#FAFAFA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="600">Session B</text>
-  <text x="130" y="241" fill="#A1A1AA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="14">fresh conversation</text>
+  <rect x="48" y="308" width="330" height="158" rx="14" fill="#18181B" stroke="#3F3F46" stroke-width="1.5"/>
+  <circle cx="90" cy="364" r="8" fill="#71717A"/>
+  <text x="118" y="371" class="label">Session B</text>
+  <text x="90" y="418" class="body">fresh conversation</text>
+  <text x="90" y="444" class="body">reuses the same files</text>
 
-  <path d="M376 99C460 99 470 142 548 142" stroke="#FE750E" stroke-width="2" fill="none" marker-end="url(#arrow-orange)"/>
-  <path d="M376 221C460 221 470 178 548 178" stroke="#71717A" stroke-width="1.5" fill="none" marker-end="url(#arrow-gray)"/>
+  <path d="M378 153C470 153 478 222 548 222" stroke="#FE750E" stroke-width="2.5" fill="none" marker-end="url(#orange)"/>
+  <path d="M378 387C470 387 478 318 548 318" stroke="#71717A" stroke-width="2" fill="none" marker-end="url(#gray)"/>
 
-  <rect x="562" y="38" width="562" height="244" rx="14" fill="#111113" stroke="#3F3F46" stroke-width="1.5"/>
-  <text x="592" y="78" fill="#FAFAFA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="19" font-weight="600">Workspace</text>
-  <rect x="964" y="57" width="130" height="30" rx="7" fill="#27272A"/>
-  <text x="1029" y="77" text-anchor="middle" fill="#A1A1AA" font-family="Geist Mono, ui-monospace, monospace" font-size="13">workspace_id</text>
+  <rect x="566" y="42" width="586" height="456" rx="16" fill="#111113" stroke="#3F3F46" stroke-width="1.5"/>
+  <text x="602" y="92" class="heading">Workspace</text>
+  <text x="602" y="124" class="body">persistent files shared across sessions</text>
+  <rect x="936" y="66" width="180" height="38" rx="8" fill="#27272A"/>
+  <text x="1026" y="91" text-anchor="middle" class="body">workspace_id</text>
 
-  <rect x="592" y="108" width="502" height="42" rx="8" fill="#18181B" stroke="#3F3F46"/>
-  <path d="M610 120H621L625 124H638V138H610V120Z" fill="#FE750E"/>
-  <text x="654" y="135" fill="#E4E4E7" font-family="Geist Mono, ui-monospace, monospace" font-size="14">people.csv</text>
-  <text x="1067" y="135" text-anchor="end" fill="#A1A1AA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="13">input</text>
+  <rect x="602" y="166" width="514" height="74" rx="11" fill="#18181B" stroke="#FE750E" stroke-width="1.5"/>
+  <path d="M628 187H645L651 193H674V219H628V187Z" fill="#FE750E"/>
+  <text x="700" y="210" class="mono">people.csv</text>
+  <text x="1082" y="210" text-anchor="end" class="body">input</text>
 
-  <rect x="592" y="160" width="502" height="42" rx="8" fill="#18181B" stroke="#3F3F46"/>
-  <path d="M610 172H621L625 176H638V190H610V172Z" fill="#71717A"/>
-  <text x="654" y="187" fill="#E4E4E7" font-family="Geist Mono, ui-monospace, monospace" font-size="14">script.py</text>
-  <text x="1067" y="187" text-anchor="end" fill="#A1A1AA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="13">reusable</text>
+  <rect x="602" y="258" width="514" height="74" rx="11" fill="#18181B" stroke="#3F3F46"/>
+  <path d="M628 279H645L651 285H674V311H628V279Z" fill="#71717A"/>
+  <text x="700" y="302" class="mono">script.py</text>
+  <text x="1082" y="302" text-anchor="end" class="body">reusable</text>
 
-  <rect x="592" y="212" width="502" height="42" rx="8" fill="#18181B" stroke="#3F3F46"/>
-  <path d="M610 224H621L625 228H638V242H610V224Z" fill="#71717A"/>
-  <text x="654" y="239" fill="#E4E4E7" font-family="Geist Mono, ui-monospace, monospace" font-size="14">output.json</text>
-  <text x="1067" y="239" text-anchor="end" fill="#A1A1AA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="13">generated</text>
+  <rect x="602" y="350" width="514" height="74" rx="11" fill="#18181B" stroke="#3F3F46"/>
+  <path d="M628 371H645L651 377H674V403H628V371Z" fill="#71717A"/>
+  <text x="700" y="394" class="mono">output.json</text>
+  <text x="1082" y="394" text-anchor="end" class="body">generated</text>
 </svg>
