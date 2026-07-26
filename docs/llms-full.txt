@@ -6,7 +6,7 @@ Source: https://docs.browser-use.com/cloud/quickstart
 
 
 Give an agent a task and get the result.
-Launch a managed browser and control it with Playwright or Puppeteer.
+Launch a managed browser and get its CDP URL.
 
 Get an [API key](https://cloud.browser-use.com/settings?tab=api-keys&new=1) and
 export it:
@@ -522,6 +522,83 @@ while (true) {
 Events cover run lifecycle, model calls, browser readiness, tool activity,
 artifacts, and completion. See [Get run events](https://docs.browser-use.com/cloud/api-v4/runs/get-run-events)
 for the complete response shape.
+
+# Browser quickstart
+Source: https://docs.browser-use.com/cloud/browser/quickstart
+
+
+Browser Use gives you a managed Chromium browser with stealth, residential
+proxies, live preview, and recording.
+
+Get an [API key](https://cloud.browser-use.com/settings?tab=api-keys&new=1) and
+export it:
+
+```bash
+export BROWSER_USE_API_KEY=your_key
+```
+
+## Install the SDK
+
+Skip this step if you use curl.
+
+```bash Python
+pip install browser-use-sdk
+```
+```bash TypeScript
+npm install browser-use-sdk
+```
+
+## Get a CDP URL
+
+```python Python
+from browser_use_sdk.v3 import BrowserUse
+
+client = BrowserUse()
+browser = client.browsers.create(proxy_country_code="us")
+print(browser.cdp_url)
+
+# When finished:
+client.browsers.stop(browser.id)
+```
+```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v3";
+
+const client = new BrowserUse();
+const browser = await client.browsers.create({ proxyCountryCode: "us" });
+console.log(browser.cdpUrl);
+
+// When finished:
+await client.browsers.stop(browser.id);
+```
+```bash curl
+browser=$(curl -sS https://api.browser-use.com/api/v4/browsers \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"proxyCountryCode":"us"}')
+
+export BROWSER_SESSION_ID=$(echo "$browser" | jq -r .id)
+export BROWSER_USE_CDP_URL=$(echo "$browser" | jq -r .cdpUrl)
+echo "$BROWSER_USE_CDP_URL"
+
+# When finished:
+curl -X PATCH \
+  "https://api.browser-use.com/api/v4/browsers/$BROWSER_SESSION_ID" \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"stop"}'
+```
+
+  `browser.close()`, disconnecting CDP, or `client.close()` does not stop the
+  managed browser. Use `client.browsers.stop(browser.id)` or call
+  `PATCH /api/v4/browsers/{id}` with `{"action":"stop"}`.
+
+  <Card
+title="Connect over CDP"
+icon="code"
+href="/cloud/browser/playwright-puppeteer-selenium"
+  >
+Use the CDP URL with Playwright or Puppeteer.
+Configure proxies, screen size, recording, and timeout.
 
 # Stealth
 Source: https://docs.browser-use.com/cloud/browser/stealth

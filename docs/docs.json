@@ -91,6 +91,7 @@
                     "group": "Browser",
                     "icon": "globe",
                     "pages": [
+                      "cloud/browser/quickstart",
                       "cloud/browser/stealth",
                       "cloud/browser/proxies",
                       "cloud/browser/live-preview",
