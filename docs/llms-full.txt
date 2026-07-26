@@ -202,12 +202,18 @@ proxyless/BYOP) are charged separately. See [full pricing](https://browser-use.c
   directly for that model.
 
 ```python Python
+from browser_use_sdk.v4 import BrowserUse
+
+client = BrowserUse()
 run = client.runs.create(
     "Compare three project-management tools",
     model="grok-4.5",
 )
 ```
 ```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v4";
+
+const client = new BrowserUse();
 const run = await client.runs.create({
   task: "Compare three project-management tools",
   model: "grok-4.5",
@@ -235,7 +241,10 @@ V4 returns `run.result` as a string. Ask for JSON only, then validate it
 client-side:
 
 ```python Python
+from browser_use_sdk.v4 import BrowserUse
 from pydantic import BaseModel
+
+client = BrowserUse()
 
 class Story(BaseModel):
     title: str
@@ -248,7 +257,10 @@ run = client.runs.wait_for_completion(run.id)
 story = Story.model_validate_json(run.result or "{}")
 ```
 ```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v4";
 import { z } from "zod";
+
+const client = new BrowserUse();
 
 const Story = z.object({
   title: z.string(),
@@ -343,6 +355,9 @@ different sessions. Use it for inputs, scripts, and generated files.
 ## Upload and attach a file
 
 ```python Python
+from browser_use_sdk.v4 import BrowserUse
+
+client = BrowserUse()
 workspace = client.workspaces.create(name="research")
 uploaded = client.workspaces.upload(workspace.id, "people.csv")
 
@@ -353,6 +368,9 @@ run = client.runs.create(
 )
 ```
 ```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v4";
+
+const client = new BrowserUse();
 const workspace = await client.workspaces.create({
   name: "research",
 });
@@ -450,6 +468,14 @@ Use a human checkpoint for approvals, authentication, payments, or review.
 After a run stops, get its `live_view_url` from the `browser.ready` event:
 
 ```python Python
+from browser_use_sdk.v4 import BrowserUse
+
+client = BrowserUse()
+run = client.runs.create(
+    "Open the login page and stop for human review"
+)
+run = client.runs.wait_for_completion(run.id)
+
 events = client.runs.events(run.id, limit=100)
 ready = next(
     event for event in events.events
@@ -464,6 +490,15 @@ next_run = client.runs.create(
 )
 ```
 ```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v4";
+
+const client = new BrowserUse();
+const run = await client.runs.create({
+  task: "Open the login page and stop for human review",
+  model: "grok-4.5",
+});
+await client.runs.waitForCompletion(run.id);
+
 const events = await client.runs.events(run.id, {
   limit: 100,
 });
@@ -497,7 +532,7 @@ while True:
     page = client.runs.events(run.id, after=after)
     for event in page.events:
         print(event.type, event.data)
-    after = page.next_after or after
+    after = page.next_after if page.next_after is not None else after
 
     status = client.runs.status(run.id).status.value
     if status in {"completed", "failed", "cancelled"}:
@@ -1043,8 +1078,9 @@ This avoids another 2FA challenge while the site's cookies remain valid.
 
 ## Let a human take over
 
-Ask the first run to stop at the 2FA screen, open its `live_view_url`, and have
-the user enter the code. Then continue with the same session:
+Ask the first run to stop at the 2FA screen, get its `live_view_url` from the
+[`browser.ready` event](https://docs.browser-use.com/cloud/agent/human-in-the-loop), and have the user enter
+the code. Then continue with the same session:
 
 ```python Python
 first = client.runs.create(
@@ -1584,9 +1620,12 @@ See [Models](https://docs.browser-use.com/cloud/agent/models) for the complete V
 The V4 run's `browser.ready` event contains `live_view_url`. Embed it in an iframe or open it in a browser.
 
 ```python
-created = await client.runs.create("Go to example.com")
-await client.runs.wait_for_completion(created.id)
-events = await client.runs.events(created.id, limit=100)
+from browser_use_sdk.v4 import BrowserUse
+
+client = BrowserUse()
+created = client.runs.create("Go to example.com")
+client.runs.wait_for_completion(created.id)
+events = client.runs.events(created.id, limit=100)
 ready = next(event for event in events.events if event.type == "browser.ready")
 print(ready.data["live_view_url"])
 ```

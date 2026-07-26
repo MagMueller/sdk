@@ -24,6 +24,9 @@ different sessions. Use it for inputs, scripts, and generated files.
 
 <CodeGroup>
 ```python Python
+from browser_use_sdk.v4 import BrowserUse
+
+client = BrowserUse()
 workspace = client.workspaces.create(name="research")
 uploaded = client.workspaces.upload(workspace.id, "people.csv")
 
@@ -34,6 +37,9 @@ run = client.runs.create(
 )
 ```
 ```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v4";
+
+const client = new BrowserUse();
 const workspace = await client.workspaces.create({
   name: "research",
 });

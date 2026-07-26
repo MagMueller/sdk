@@ -18,9 +18,12 @@ See [Models](/cloud/agent/models) for the complete V4 picker and pricing.
 The V4 run's `browser.ready` event contains `live_view_url`. Embed it in an iframe or open it in a browser.
 
 ```python
-created = await client.runs.create("Go to example.com")
-await client.runs.wait_for_completion(created.id)
-events = await client.runs.events(created.id, limit=100)
+from browser_use_sdk.v4 import BrowserUse
+
+client = BrowserUse()
+created = client.runs.create("Go to example.com")
+client.runs.wait_for_completion(created.id)
+events = client.runs.events(created.id, limit=100)
 ready = next(event for event in events.events if event.type == "browser.ready")
 print(ready.data["live_view_url"])
 ```

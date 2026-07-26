@@ -9,7 +9,10 @@ client-side:
 
 <CodeGroup>
 ```python Python
+from browser_use_sdk.v4 import BrowserUse
 from pydantic import BaseModel
+
+client = BrowserUse()
 
 class Story(BaseModel):
     title: str
@@ -22,7 +25,10 @@ run = client.runs.wait_for_completion(run.id)
 story = Story.model_validate_json(run.result or "{}")
 ```
 ```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v4";
 import { z } from "zod";
+
+const client = new BrowserUse();
 
 const Story = z.object({
   title: z.string(),

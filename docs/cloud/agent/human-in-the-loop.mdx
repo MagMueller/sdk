@@ -9,6 +9,14 @@ After a run stops, get its `live_view_url` from the `browser.ready` event:
 
 <CodeGroup>
 ```python Python
+from browser_use_sdk.v4 import BrowserUse
+
+client = BrowserUse()
+run = client.runs.create(
+    "Open the login page and stop for human review"
+)
+run = client.runs.wait_for_completion(run.id)
+
 events = client.runs.events(run.id, limit=100)
 ready = next(
     event for event in events.events
@@ -23,6 +31,15 @@ next_run = client.runs.create(
 )
 ```
 ```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v4";
+
+const client = new BrowserUse();
+const run = await client.runs.create({
+  task: "Open the login page and stop for human review",
+  model: "grok-4.5",
+});
+await client.runs.waitForCompletion(run.id);
+
 const events = await client.runs.events(run.id, {
   limit: 100,
 });

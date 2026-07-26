@@ -34,8 +34,9 @@ This avoids another 2FA challenge while the site's cookies remain valid.
 
 ## Let a human take over
 
-Ask the first run to stop at the 2FA screen, open its `live_view_url`, and have
-the user enter the code. Then continue with the same session:
+Ask the first run to stop at the 2FA screen, get its `live_view_url` from the
+[`browser.ready` event](/cloud/agent/human-in-the-loop), and have the user enter
+the code. Then continue with the same session:
 
 <CodeGroup>
 ```python Python
