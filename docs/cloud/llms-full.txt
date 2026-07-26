@@ -646,41 +646,87 @@ default to recording off, and Zero Data Retention projects never record.
 Source: https://docs.browser-use.com/cloud/browser/playwright-puppeteer-selenium
 
 
-Every session runs in a [hardened Chromium fork](https://docs.browser-use.com/cloud/browser/stealth) with stealth, anti-fingerprinting, and [residential proxies](https://docs.browser-use.com/cloud/browser/proxies) enabled by default — no configuration needed.
+Every browser runs in a [hardened Chromium fork](https://docs.browser-use.com/cloud/browser/stealth) with
+stealth, anti-fingerprinting, and [residential
+proxies](https://docs.browser-use.com/cloud/browser/proxies) enabled by default.
 
   This page is for direct browser control. To give an AI agent a goal instead,
   [create an API V4 run](https://docs.browser-use.com/cloud/agent/quickstart).
 
-## WebSocket URL
+## Create, connect, and stop
 
-Connect with a single URL. All configuration is passed as query parameters.
+Create a standalone browser with API V4, connect to its `cdpUrl`, then stop it
+with the browser session ID.
 
 ### Playwright
 
 ```python Python
+import os
+import requests
 from playwright.sync_api import sync_playwright
 
-WSS_URL = "wss://connect.browser-use.com?apiKey=YOUR_API_KEY&proxyCountryCode=us"
+api_key = os.environ["BROWSER_USE_API_KEY"]
+headers = {"X-Browser-Use-API-Key": api_key}
+session = requests.post(
+    "https://api.browser-use.com/api/v4/browsers",
+    headers=headers,
+    json={"proxyCountryCode": "us"},
+).json()
 
-with sync_playwright() as p:
-    browser = p.chromium.connect_over_cdp(WSS_URL)
-    page = browser.contexts[0].pages[0]
-    page.goto("https://example.com")
-    print(page.title())
-    browser.close()
-# Browser is automatically stopped when the WebSocket disconnects
+try:
+    with sync_playwright() as p:
+        browser = p.chromium.connect_over_cdp(session["cdpUrl"])
+        page = browser.contexts[0].pages[0]
+        page.goto("https://example.com")
+        print(page.title())
+finally:
+    requests.patch(
+        f"https://api.browser-use.com/api/v4/browsers/{session['id']}",
+        headers=headers,
+        json={"action": "stop"},
+    ).raise_for_status()
 ```
 ```typescript TypeScript
 import { chromium } from "playwright";
 
-const WSS_URL = "wss://connect.browser-use.com?apiKey=YOUR_API_KEY&proxyCountryCode=us";
+const headers = {
+  "X-Browser-Use-API-Key": process.env.BROWSER_USE_API_KEY!,
+  "Content-Type": "application/json",
+};
+const session = await fetch("https://api.browser-use.com/api/v4/browsers", {
+  method: "POST",
+  headers,
+  body: JSON.stringify({ proxyCountryCode: "us" }),
+}).then((response) => response.json()) as { id: string; cdpUrl: string };
 
-const browser = await chromium.connectOverCDP(WSS_URL);
-const page = browser.contexts()[0].pages()[0];
-await page.goto("https://example.com");
-console.log(await page.title());
-await browser.close();
-// Browser is automatically stopped when the WebSocket disconnects
+try {
+  const browser = await chromium.connectOverCDP(session.cdpUrl);
+  const page = browser.contexts()[0].pages()[0];
+  await page.goto("https://example.com");
+  console.log(await page.title());
+} finally {
+  await fetch(`https://api.browser-use.com/api/v4/browsers/${session.id}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ action: "stop" }),
+  });
+}
+```
+```bash curl
+session=$(curl -sS https://api.browser-use.com/api/v4/browsers \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"proxyCountryCode":"us"}')
+
+export BROWSER_SESSION_ID=$(echo "$session" | jq -r .id)
+export BROWSER_USE_CDP_URL=$(echo "$session" | jq -r .cdpUrl)
+
+# Connect your CDP client to $BROWSER_USE_CDP_URL, then stop the browser:
+curl -X PATCH \
+  "https://api.browser-use.com/api/v4/browsers/$BROWSER_SESSION_ID" \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"stop"}'
 ```
 
 ### Puppeteer
@@ -688,13 +734,15 @@ await browser.close();
 ```typescript
 import puppeteer from "puppeteer-core";
 
-const WSS_URL = "wss://connect.browser-use.com?apiKey=YOUR_API_KEY&proxyCountryCode=us";
-
-const browser = await puppeteer.connect({ browserWSEndpoint: WSS_URL });
+// Create `session` with API V4 as shown above.
+const browser = await puppeteer.connect({
+  browserWSEndpoint: session.cdpUrl,
+});
 const [page] = await browser.pages();
 await page.goto("https://example.com");
 console.log(await page.title());
-await browser.close();
+
+// Stop the managed browser with PATCH /api/v4/browsers/{session.id}.
 ```
 
 ### Selenium
@@ -702,19 +750,14 @@ await browser.close();
 Selenium's `debugger_address` only supports local `host:port` connections.
 Use Playwright or Puppeteer for remote CDP over WebSocket.
 
-## Query parameters
+  `client.close()`, `browser.close()`, and disconnecting CDP are not the API V4
+  stop operation. Keep the returned browser session ID and call `PATCH
+  /api/v4/browsers/{id}` with `{"action":"stop"}`. This stops billing and
+  refunds unused browser time.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `apiKey` | `string` | **Required.** Your Browser Use API key. |
-| `proxyCountryCode` | `string` | Proxy country code (e.g. `us`, `de`, `jp`). 195+ countries. |
-| `profileId` | `string` | Load a saved browser profile (cookies, localStorage). |
-| `timeout` | `int` | Session timeout in minutes. Default: 15. Max: 240 (4 hours). |
-| `browserScreenWidth` | `int` | Browser width in pixels. |
-| `browserScreenHeight` | `int` | Browser height in pixels. |
-
-  Close the CDP connection when done. Browsers left running continue to incur
-  charges until their timeout expires.
+See [Create browser session](https://docs.browser-use.com/cloud/api-v4/browsers/create-browser-session) and
+[Update browser session](https://docs.browser-use.com/cloud/api-v4/browsers/update-browser-session) for
+every browser setting and response field.
 
 # Profiles
 Source: https://docs.browser-use.com/cloud/guides/authentication

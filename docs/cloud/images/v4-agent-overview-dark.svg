@@ -1,30 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+<svg width="1200" height="320" viewBox="0 0 1200 320" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
   <title id="title">Task, session, run, and workspace relationship</title>
-  <desc id="desc">A task starts a run inside a session. The run reads and writes persistent workspace files.</desc>
+  <desc id="desc">A task starts a run inside a session. The run reads and writes files in a persistent workspace.</desc>
   <defs>
-    <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="2" seed="7" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8"/></filter>
-    <pattern id="orangeHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#fed7aa" stroke-width="4"/></pattern>
-    <pattern id="purpleHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#ddd6fe" stroke-width="4"/></pattern>
-    <pattern id="blueHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#93c5fd" stroke-width="4"/></pattern>
-    <pattern id="greenHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#a7f3d0" stroke-width="4"/></pattern>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M1 1L7 4L1 7" fill="none" stroke="#FE750E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
   </defs>
-  <rect width="1200" height="420" fill="#09090B"/>
-  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#rough)">
-    <ellipse cx="145" cy="210" rx="105" ry="72" fill="#24140B" stroke="#FE750E" stroke-width="4"/>
-    <path d="M252 210 C292 204 322 215 365 210" stroke="#FE750E" stroke-width="4"/>
-    <path d="M346 197 L367 210 L347 224" stroke="#FE750E" stroke-width="4"/>
-    <rect x="380" y="70" width="410" height="280" rx="34" fill="#1D1714" stroke="#FE750E" stroke-width="4"/>
-    <rect x="465" y="165" width="240" height="105" rx="24" fill="#18181B" stroke="#A1A1AA" stroke-width="4"/>
-    <path d="M790 210 C830 216 858 202 895 210" stroke="#FE750E" stroke-width="4"/>
-    <path d="M876 197 L897 210 L877 224" stroke="#FE750E" stroke-width="4"/>
-    <path d="M910 113 L1147 113 L1147 315 L910 315 Z" fill="#1D1714" stroke="#FE750E" stroke-width="4"/>
-    <path d="M910 113 L987 113 L1008 88 L1090 88 L1112 113" fill="#1D1714" stroke="#FE750E" stroke-width="4"/>
-  </g>
-  <g font-family="Virgil, Comic Sans MS, cursive" text-anchor="middle">
-    <text x="145" y="220" font-size="30" fill="#F4F4F5">TASK</text>
-    <text x="585" y="116" font-size="28" fill="#FE750E">SESSION</text>
-    <text x="585" y="230" font-size="30" fill="#F4F4F5">RUN</text>
-    <text x="1028" y="205" font-size="27" fill="#FE750E">WORKSPACE</text>
-    <text x="1028" y="244" font-size="22" fill="#F4F4F5">files</text>
-  </g>
+  <rect width="1200" height="320" rx="14" fill="#09090B"/>
+
+  <rect x="60" y="128" width="220" height="64" rx="12" fill="#18181B" stroke="#3F3F46" stroke-width="1.5"/>
+  <circle cx="92" cy="160" r="6" fill="#FE750E"/>
+  <text x="112" y="168" fill="#FAFAFA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="21" font-weight="600">Task</text>
+
+  <path d="M280 160H356" stroke="#FE750E" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="370" y="46" width="430" height="228" rx="14" fill="#111113" stroke="#3F3F46" stroke-width="1.5"/>
+  <text x="398" y="84" fill="#FAFAFA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="19" font-weight="600">Session</text>
+  <rect x="650" y="62" width="120" height="30" rx="7" fill="#27272A"/>
+  <text x="710" y="82" fill="#A1A1AA" text-anchor="middle" font-family="Geist Mono, ui-monospace, monospace" font-size="13">session_id</text>
+
+  <rect x="402" y="116" width="366" height="126" rx="12" fill="#18181B" stroke="#FE750E" stroke-width="1.5"/>
+  <rect x="422" y="136" width="40" height="40" rx="10" fill="#30190B"/>
+  <path d="M436 147L449 156L436 165V147Z" fill="#FE750E"/>
+  <text x="482" y="158" fill="#FAFAFA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="21" font-weight="600">Run</text>
+  <text x="482" y="188" fill="#A1A1AA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="15">conversation + live browser</text>
+
+  <path d="M800 160H886" stroke="#FE750E" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <rect x="900" y="66" width="240" height="188" rx="14" fill="#111113" stroke="#3F3F46" stroke-width="1.5"/>
+  <text x="928" y="104" fill="#FAFAFA" font-family="Geist, ui-sans-serif, system-ui, sans-serif" font-size="19" font-weight="600">Workspace</text>
+  <rect x="928" y="126" width="184" height="36" rx="8" fill="#18181B" stroke="#3F3F46"/>
+  <path d="M945 137H956L960 141H973V151H945V137Z" fill="#FE750E"/>
+  <text x="986" y="150" fill="#D4D4D8" font-family="Geist Mono, ui-monospace, monospace" font-size="13">files</text>
+  <rect x="928" y="174" width="184" height="36" rx="8" fill="#18181B" stroke="#3F3F46"/>
+  <path d="M945 185H956L960 189H973V199H945V185Z" fill="#71717A"/>
+  <text x="986" y="198" fill="#D4D4D8" font-family="Geist Mono, ui-monospace, monospace" font-size="13">scripts</text>
 </svg>
