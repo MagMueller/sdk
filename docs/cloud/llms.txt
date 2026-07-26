@@ -42,7 +42,7 @@ export BROWSER_USE_API_KEY=bu_your_key_here
 
 
 ## Get Started
-- [Quick start](https://docs.browser-use.com/cloud/quickstart): Run an agent or control a cloud browser directly.
+- [Quick start](https://docs.browser-use.com/cloud/quickstart): Run a hosted agent or launch a cloud browser.
 - [Prompt for Vibecoders](https://docs.browser-use.com/cloud/vibecoding): Complete Cloud SDK reference for AI coding agents.
 
 ## Agent

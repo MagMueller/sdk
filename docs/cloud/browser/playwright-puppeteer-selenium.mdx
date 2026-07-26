@@ -13,67 +13,9 @@ proxies](/cloud/browser/proxies) enabled by default.
   [create an API V4 run](/cloud/agent/quickstart).
 </Note>
 
-## Create, connect, and stop
+## 1. Create a browser
 
-Create a standalone browser with API V4, connect to its `cdpUrl`, then stop it
-with the browser session ID.
-
-### Playwright
-
-<CodeGroup>
-```python Python
-import os
-import requests
-from playwright.sync_api import sync_playwright
-
-api_key = os.environ["BROWSER_USE_API_KEY"]
-headers = {"X-Browser-Use-API-Key": api_key}
-session = requests.post(
-    "https://api.browser-use.com/api/v4/browsers",
-    headers=headers,
-    json={"proxyCountryCode": "us"},
-).json()
-
-try:
-    with sync_playwright() as p:
-        browser = p.chromium.connect_over_cdp(session["cdpUrl"])
-        page = browser.contexts[0].pages[0]
-        page.goto("https://example.com")
-        print(page.title())
-finally:
-    requests.patch(
-        f"https://api.browser-use.com/api/v4/browsers/{session['id']}",
-        headers=headers,
-        json={"action": "stop"},
-    ).raise_for_status()
-```
-```typescript TypeScript
-import { chromium } from "playwright";
-
-const headers = {
-  "X-Browser-Use-API-Key": process.env.BROWSER_USE_API_KEY!,
-  "Content-Type": "application/json",
-};
-const session = await fetch("https://api.browser-use.com/api/v4/browsers", {
-  method: "POST",
-  headers,
-  body: JSON.stringify({ proxyCountryCode: "us" }),
-}).then((response) => response.json()) as { id: string; cdpUrl: string };
-
-try {
-  const browser = await chromium.connectOverCDP(session.cdpUrl);
-  const page = browser.contexts()[0].pages()[0];
-  await page.goto("https://example.com");
-  console.log(await page.title());
-} finally {
-  await fetch(`https://api.browser-use.com/api/v4/browsers/${session.id}`, {
-    method: "PATCH",
-    headers,
-    body: JSON.stringify({ action: "stop" }),
-  });
-}
-```
-```bash curl
+```bash
 session=$(curl -sS https://api.browser-use.com/api/v4/browsers \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
@@ -81,13 +23,32 @@ session=$(curl -sS https://api.browser-use.com/api/v4/browsers \
 
 export BROWSER_SESSION_ID=$(echo "$session" | jq -r .id)
 export BROWSER_USE_CDP_URL=$(echo "$session" | jq -r .cdpUrl)
+```
 
-# Connect your CDP client to $BROWSER_USE_CDP_URL, then stop the browser:
-curl -X PATCH \
-  "https://api.browser-use.com/api/v4/browsers/$BROWSER_SESSION_ID" \
-  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"action":"stop"}'
+## 2. Connect over CDP
+
+### Playwright
+
+<CodeGroup>
+```python Python
+import os
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    browser = p.chromium.connect_over_cdp(os.environ["BROWSER_USE_CDP_URL"])
+    page = browser.contexts[0].pages[0]
+    page.goto("https://example.com")
+    print(page.title())
+```
+```typescript TypeScript
+import { chromium } from "playwright";
+
+const browser = await chromium.connectOverCDP(
+  process.env.BROWSER_USE_CDP_URL!,
+);
+const page = browser.contexts()[0].pages()[0];
+await page.goto("https://example.com");
+console.log(await page.title());
 ```
 </CodeGroup>
 
@@ -96,15 +57,12 @@ curl -X PATCH \
 ```typescript
 import puppeteer from "puppeteer-core";
 
-// Create `session` with API V4 as shown above.
 const browser = await puppeteer.connect({
-  browserWSEndpoint: session.cdpUrl,
+  browserWSEndpoint: process.env.BROWSER_USE_CDP_URL!,
 });
 const [page] = await browser.pages();
 await page.goto("https://example.com");
 console.log(await page.title());
-
-// Stop the managed browser with PATCH /api/v4/browsers/{session.id}.
 ```
 
 ### Selenium
@@ -112,11 +70,19 @@ console.log(await page.title());
 Selenium's `debugger_address` only supports local `host:port` connections.
 Use Playwright or Puppeteer for remote CDP over WebSocket.
 
+## 3. Stop the browser
+
+```bash
+curl -X PATCH \
+  "https://api.browser-use.com/api/v4/browsers/$BROWSER_SESSION_ID" \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"stop"}'
+```
+
 <Warning>
-  `client.close()`, `browser.close()`, and disconnecting CDP are not the API V4
-  stop operation. Keep the returned browser session ID and call `PATCH
-  /api/v4/browsers/{id}` with `{"action":"stop"}`. This stops billing and
-  refunds unused browser time.
+  `browser.close()` and disconnecting CDP do not stop the managed browser.
+  Call `PATCH /api/v4/browsers/{id}` with `{"action":"stop"}`.
 </Warning>
 
 See [Create browser session](/cloud/api-v4/browsers/create-browser-session) and
