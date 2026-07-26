@@ -7,6 +7,12 @@ icon: globe
 A US residential proxy is enabled by default. Set `browser_settings` /
 `browserSettings` when you create a V4 run to choose another country:
 
+<Note>
+  The current TypeScript SDK type requires `proxyCountryCode` whenever
+  `browserSettings` is present. Use `"us"` to keep the default, or `null` to
+  disable the managed proxy.
+</Note>
+
 <CodeGroup>
 ```python Python
 from browser_use_sdk.v4 import BrowserUse
@@ -23,6 +29,7 @@ import { BrowserUse } from "browser-use-sdk/v4";
 const client = new BrowserUse();
 const run = await client.runs.create({
   task: "Get the iPhone 16 price on amazon.de",
+  model: "grok-4.5",
   browserSettings: { proxyCountryCode: "de" },
 });
 ```
@@ -49,6 +56,7 @@ run = client.runs.create(
 ```typescript TypeScript
 const run = await client.runs.create({
   task: "Test my staging site",
+  model: "grok-4.5",
   browserSettings: { proxyCountryCode: null },
 });
 ```
@@ -68,6 +76,7 @@ run = client.runs.create(
             "port": 8080,
             "username": "user",
             "password": "pass",
+            "ignoreCertErrors": False,
         }
     },
 )
@@ -75,12 +84,15 @@ run = client.runs.create(
 ```typescript TypeScript
 const run = await client.runs.create({
   task: "Check the account dashboard",
+  model: "grok-4.5",
   browserSettings: {
+    proxyCountryCode: "us",
     customProxy: {
       host: "proxy.example.com",
       port: 8080,
       username: "user",
       password: "pass",
+      ignoreCertErrors: false,
     },
   },
 });

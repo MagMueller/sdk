@@ -26,7 +26,11 @@ import { BrowserUse } from "browser-use-sdk/v4";
 const client = new BrowserUse();
 const run = await client.runs.create({
   task: "Open my account dashboard and summarize it",
-  browserSettings: { profileId: "YOUR_PROFILE_ID" },
+  model: "grok-4.5",
+  browserSettings: {
+    profileId: "YOUR_PROFILE_ID",
+    proxyCountryCode: "us",
+  },
 });
 const result = await client.runs.waitForCompletion(run.id);
 console.log(result.result);

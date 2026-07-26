@@ -34,6 +34,7 @@ console.log(ready?.data.live_view_url);
 // After the human finishes:
 const nextRun = await client.runs.create({
   task: "Continue from the current page",
+  model: "grok-4.5",
   sessionId: run.sessionId,
 });
 ```

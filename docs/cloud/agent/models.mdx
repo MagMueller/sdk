@@ -24,24 +24,30 @@ proxyless/BYOP) are charged separately. See [full pricing](https://browser-use.c
   most.
 </Tip>
 
+<Note>
+  New model strings can reach the API before the TypeScript SDK's generated
+  union. If TypeScript rejects a model listed above, call `POST /api/v4/runs`
+  directly for that model.
+</Note>
+
 <CodeGroup>
 ```python Python
 run = client.runs.create(
     "Compare three project-management tools",
-    model="claude-opus-5",
+    model="grok-4.5",
 )
 ```
 ```typescript TypeScript
 const run = await client.runs.create({
   task: "Compare three project-management tools",
-  model: "claude-opus-5",
+  model: "grok-4.5",
 });
 ```
 ```bash curl
 curl https://api.browser-use.com/api/v4/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"task":"Compare three PM tools","model":"claude-opus-5"}'
+  -d '{"task":"Compare three PM tools","model":"grok-4.5"}'
 ```
 </CodeGroup>
 

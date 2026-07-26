@@ -28,7 +28,10 @@ npm install browser-use-sdk
 from browser_use_sdk.v4 import BrowserUse
 
 client = BrowserUse()
-run = client.runs.create("Find the top Hacker News story")
+run = client.runs.create(
+    "Find the top Hacker News story",
+    model="grok-4.5",
+)
 run = client.runs.wait_for_completion(run.id)
 print(run.result)
 ```
@@ -38,6 +41,7 @@ import { BrowserUse } from "browser-use-sdk/v4";
 const client = new BrowserUse();
 const run = await client.runs.create({
   task: "Find the top Hacker News story",
+  model: "grok-4.5",
 });
 const result = await client.runs.waitForCompletion(run.id);
 console.log(result.result);
@@ -46,7 +50,7 @@ console.log(result.result);
 curl https://api.browser-use.com/api/v4/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"task":"Find the top Hacker News story"}'
+  -d '{"task":"Find the top Hacker News story","model":"grok-4.5"}'
 ```
 
 Sessions, workspaces, models, and observability.
@@ -76,7 +80,10 @@ export BROWSER_USE_API_KEY=your_key
 from browser_use_sdk.v4 import BrowserUse
 
 client = BrowserUse()
-run = client.runs.create("Find the top Hacker News story")
+run = client.runs.create(
+    "Find the top Hacker News story",
+    model="grok-4.5",
+)
 run = client.runs.wait_for_completion(run.id)
 print(run.result)
 ```
@@ -86,6 +93,7 @@ import { BrowserUse } from "browser-use-sdk/v4";
 const client = new BrowserUse();
 const run = await client.runs.create({
   task: "Find the top Hacker News story",
+  model: "grok-4.5",
 });
 const result = await client.runs.waitForCompletion(run.id);
 console.log(result.result);
@@ -94,7 +102,7 @@ console.log(result.result);
 curl https://api.browser-use.com/api/v4/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"task":"Find the top Hacker News story"}'
+  -d '{"task":"Find the top Hacker News story","model":"grok-4.5"}'
 ```
 
 Install the SDK with `pip install browser-use-sdk` or
@@ -141,23 +149,27 @@ proxyless/BYOP) are charged separately. See [full pricing](https://browser-use.c
   the default and cheapest option; use **Claude Opus 5** when accuracy matters
   most.
 
+  New model strings can reach the API before the TypeScript SDK's generated
+  union. If TypeScript rejects a model listed above, call `POST /api/v4/runs`
+  directly for that model.
+
 ```python Python
 run = client.runs.create(
     "Compare three project-management tools",
-    model="claude-opus-5",
+    model="grok-4.5",
 )
 ```
 ```typescript TypeScript
 const run = await client.runs.create({
   task: "Compare three project-management tools",
-  model: "claude-opus-5",
+  model: "grok-4.5",
 });
 ```
 ```bash curl
 curl https://api.browser-use.com/api/v4/runs \
   -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"task":"Compare three PM tools","model":"claude-opus-5"}'
+  -d '{"task":"Compare three PM tools","model":"grok-4.5"}'
 ```
 
 ## Bring your own key
@@ -197,6 +209,7 @@ const Story = z.object({
 
 const run = await client.runs.create({
   task: 'Find the top HN story. Return only {"title":"...","points":0}.',
+  model: "grok-4.5",
 });
 const result = await client.runs.waitForCompletion(run.id);
 const story = Story.parse(JSON.parse(result.result ?? "{}"));
@@ -242,11 +255,13 @@ print(result.result)
 ```typescript TypeScript
 const first = await client.runs.create({
   task: "Open Hacker News",
+  model: "grok-4.5",
 });
 await client.runs.waitForCompletion(first.id);
 
 const followUp = await client.runs.create({
   task: "Now summarize the top story",
+  model: "grok-4.5",
   sessionId: first.sessionId,
 });
 const result = await client.runs.waitForCompletion(followUp.id);
@@ -300,6 +315,7 @@ const uploaded = await client.workspaces.upload(
 
 const run = await client.runs.create({
   task: "Find everyone in the CSV who works at Google",
+  model: "grok-4.5",
   workspaceId: workspace.id,
   attachedFileIds: [uploaded[0].id],
 });
@@ -411,6 +427,7 @@ console.log(ready?.data.live_view_url);
 // After the human finishes:
 const nextRun = await client.runs.create({
   task: "Continue from the current page",
+  model: "grok-4.5",
   sessionId: run.sessionId,
 });
 ```
@@ -483,6 +500,10 @@ Source: https://docs.browser-use.com/cloud/browser/proxies
 A US residential proxy is enabled by default. Set `browser_settings` /
 `browserSettings` when you create a V4 run to choose another country:
 
+  The current TypeScript SDK type requires `proxyCountryCode` whenever
+  `browserSettings` is present. Use `"us"` to keep the default, or `null` to
+  disable the managed proxy.
+
 ```python Python
 from browser_use_sdk.v4 import BrowserUse
 
@@ -498,6 +519,7 @@ import { BrowserUse } from "browser-use-sdk/v4";
 const client = new BrowserUse();
 const run = await client.runs.create({
   task: "Get the iPhone 16 price on amazon.de",
+  model: "grok-4.5",
   browserSettings: { proxyCountryCode: "de" },
 });
 ```
@@ -522,6 +544,7 @@ run = client.runs.create(
 ```typescript TypeScript
 const run = await client.runs.create({
   task: "Test my staging site",
+  model: "grok-4.5",
   browserSettings: { proxyCountryCode: null },
 });
 ```
@@ -539,6 +562,7 @@ run = client.runs.create(
             "port": 8080,
             "username": "user",
             "password": "pass",
+            "ignoreCertErrors": False,
         }
     },
 )
@@ -546,12 +570,15 @@ run = client.runs.create(
 ```typescript TypeScript
 const run = await client.runs.create({
   task: "Check the account dashboard",
+  model: "grok-4.5",
   browserSettings: {
+    proxyCountryCode: "us",
     customProxy: {
       host: "proxy.example.com",
       port: 8080,
       username: "user",
       password: "pass",
+      ignoreCertErrors: false,
     },
   },
 });
@@ -587,6 +614,7 @@ import { BrowserUse } from "browser-use-sdk/v4";
 const client = new BrowserUse();
 const run = await client.runs.create({
   task: "Find the top Hacker News story",
+  model: "grok-4.5",
 });
 await client.runs.waitForCompletion(run.id);
 
@@ -629,7 +657,8 @@ run = client.runs.create(
 ```typescript TypeScript
 const run = await client.runs.create({
   task: "Test the checkout flow",
-  browserSettings: { record: true },
+  model: "grok-4.5",
+  browserSettings: { proxyCountryCode: "us", record: true },
 });
 ```
 ```bash curl
@@ -784,7 +813,11 @@ import { BrowserUse } from "browser-use-sdk/v4";
 const client = new BrowserUse();
 const run = await client.runs.create({
   task: "Open my account dashboard and summarize it",
-  browserSettings: { profileId: "YOUR_PROFILE_ID" },
+  model: "grok-4.5",
+  browserSettings: {
+    profileId: "YOUR_PROFILE_ID",
+    proxyCountryCode: "us",
+  },
 });
 const result = await client.runs.waitForCompletion(run.id);
 console.log(result.result);
@@ -830,7 +863,11 @@ import { BrowserUse } from "browser-use-sdk/v4";
 const client = new BrowserUse();
 const run = await client.runs.create({
   task: "Check my LinkedIn messages",
-  browserSettings: { profileId: "YOUR_PROFILE_ID" },
+  model: "grok-4.5",
+  browserSettings: {
+    profileId: "YOUR_PROFILE_ID",
+    proxyCountryCode: "us",
+  },
 });
 ```
 
@@ -857,7 +894,11 @@ run = client.runs.create(
 ```typescript TypeScript
 const run = await client.runs.create({
   task: "Download my latest invoice",
-  browserSettings: { profileId: "YOUR_PROFILE_ID" },
+  model: "grok-4.5",
+  browserSettings: {
+    profileId: "YOUR_PROFILE_ID",
+    proxyCountryCode: "us",
+  },
 });
 ```
 
@@ -882,11 +923,13 @@ next_run = client.runs.create(
 ```typescript TypeScript
 const first = await client.runs.create({
   task: "Open the login page and stop at the 2FA prompt",
+  model: "grok-4.5",
 });
 await client.runs.waitForCompletion(first.id);
 
 const nextRun = await client.runs.create({
   task: "Continue after login and download the invoice",
+  model: "grok-4.5",
   sessionId: first.sessionId,
 });
 ```

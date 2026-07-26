@@ -38,11 +38,13 @@ print(result.result)
 ```typescript TypeScript
 const first = await client.runs.create({
   task: "Open Hacker News",
+  model: "grok-4.5",
 });
 await client.runs.waitForCompletion(first.id);
 
 const followUp = await client.runs.create({
   task: "Now summarize the top story",
+  model: "grok-4.5",
   sessionId: first.sessionId,
 });
 const result = await client.runs.waitForCompletion(followUp.id);
