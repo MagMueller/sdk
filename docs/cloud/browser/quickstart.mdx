@@ -1,0 +1,103 @@
+---
+title: Browser quickstart
+sidebarTitle: Quick start
+description: "Launch a cloud browser and connect to it from your code."
+icon: rocket
+---
+
+Every browser includes stealth, proxies, live preview, and recording. Its
+**CDP URL** is a WebSocket endpoint for remotely controlling Chrome.
+
+<img
+  src="/cloud/images/browser-cdp-light.svg"
+  alt="Your code using a CDP URL to connect to and control a cloud browser that accesses the web"
+  noZoom
+  className="block dark:hidden"
+/>
+<img
+  src="/cloud/images/browser-cdp-dark.svg"
+  alt="Your code using a CDP URL to connect to and control a cloud browser that accesses the web"
+  noZoom
+  className="hidden dark:block"
+/>
+
+Get an [API key](https://cloud.browser-use.com/settings?tab=api-keys&new=1) and
+export it:
+
+```bash
+export BROWSER_USE_API_KEY=your_key
+```
+
+## Install the SDK
+
+Skip this step if you use curl.
+
+<CodeGroup>
+```bash Python
+pip install browser-use-sdk
+```
+```bash TypeScript
+npm install browser-use-sdk
+```
+</CodeGroup>
+
+## Launch a browser
+
+<CodeGroup>
+```python Python
+from browser_use_sdk.v3 import BrowserUse
+
+client = BrowserUse()
+browser = client.browsers.create(proxy_country_code="us")
+print(browser.cdp_url)
+
+# When finished:
+client.browsers.stop(browser.id)
+```
+```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v3";
+
+const client = new BrowserUse();
+const browser = await client.browsers.create({ proxyCountryCode: "us" });
+console.log(browser.cdpUrl);
+
+// When finished:
+await client.browsers.stop(browser.id);
+```
+```bash curl
+browser=$(curl -sS https://api.browser-use.com/api/v4/browsers \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"proxyCountryCode":"us"}')
+
+export BROWSER_SESSION_ID=$(echo "$browser" | jq -r .id)
+export BROWSER_USE_CDP_URL=$(echo "$browser" | jq -r .cdpUrl)
+echo "$BROWSER_USE_CDP_URL"
+
+# When finished:
+curl -X PATCH \
+  "https://api.browser-use.com/api/v4/browsers/$BROWSER_SESSION_ID" \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"stop"}'
+```
+</CodeGroup>
+
+<Warning>
+  `browser.close()`, disconnecting CDP, or `client.close()` does not stop the
+  managed browser. Use `client.browsers.stop(browser.id)` or call
+  `PATCH /api/v4/browsers/{id}` with `{"action":"stop"}`.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card
+    title="Connect over CDP"
+    icon="code"
+    href="/cloud/browser/playwright-puppeteer-selenium"
+  >
+    Use the CDP URL with Playwright or Puppeteer.
+  </Card>
+  <Card title="Browser settings" icon="sliders" href="/cloud/api-v4/browsers/create-browser-session">
+    Configure proxies, screen size, recording, and timeout.
+  </Card>
+</CardGroup>

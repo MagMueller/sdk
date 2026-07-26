@@ -1,0 +1,46 @@
+---
+title: Scripts
+description: "Save tested browser scripts in a workspace and reuse them on later runs."
+icon: file-code
+---
+
+Scripts turn a successful browser run into a reusable
+[workspace](/cloud/agent/workspaces) asset. The agent writes and tests the
+helper once. Later runs execute it first and repair it only when the site
+changes.
+
+<img
+  src="/cloud/images/v4-scripts-light.svg"
+  alt="A first agent run saves and tests script.py and a README in a workspace; later runs reuse the script and repair it only when necessary"
+  noZoom
+  className="block dark:hidden"
+/>
+<img
+  src="/cloud/images/v4-scripts-dark.svg"
+  alt="A first agent run saves and tests script.py and a README in a workspace; later runs reuse the script and repair it only when necessary"
+  noZoom
+  className="hidden dark:block"
+/>
+
+Create one workspace for the workflow, then use these prompts with the same
+`workspace_id` / `workspaceId`. The [run code](/cloud/agent/quickstart) does not
+change.
+
+## First run
+
+```text
+Get the top five Hacker News stories as JSON.
+
+Then reproduce exactly what you did as helper functions or a script. Test it,
+save it in this workspace, and add a README with instructions for using it again.
+```
+
+## Later runs
+
+```text
+Use the existing workspace script to get the top ten Hacker News stories.
+Follow its README. Only fix and retest the script if it no longer works.
+```
+
+This is faster and cheaper for repeated workflows, but it still starts an agent
+and uses tokens. The script is reusable and self-healing—not zero-LLM execution.

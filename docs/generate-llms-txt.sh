@@ -46,6 +46,10 @@ with open('$SCRIPT_DIR/docs.json') as f:
 
 BASE_URL = '$BASE_URL'
 SCRIPT_DIR = '$SCRIPT_DIR'
+CLOUD_V3_ONLY = {
+    'cloud/tutorials/chat-ui',
+    'cloud/tutorials/grow-therapy-compare',
+}
 
 def get_frontmatter(slug):
     import os
@@ -68,6 +72,8 @@ def get_frontmatter(slug):
     return title, desc
 
 def format_entry(slug):
+    if '$product'.lower() == 'cloud' and slug in CLOUD_V3_ONLY:
+        return None
     title, desc = get_frontmatter(slug)
     if not title:
         return None
@@ -117,6 +123,8 @@ for product_nav in d['navigation']['products']:
             for tab in product_nav['tabs']:
                 if isinstance(tab, dict):
                     tab_name = tab.get('tab', '')
+                    if '$product'.lower() == 'cloud' and tab_name == 'API v3':
+                        continue
                     # Emit tab header for non-primary tabs to separate API sections
                     if tab_name and tab_name != product_nav['tabs'][0].get('tab', ''):
                         lines.append(f'')
@@ -161,14 +169,22 @@ def extract_pages(obj):
             pages.extend(extract_pages(item))
     return pages
 
+CLOUD_V3_ONLY = {
+    'cloud/tutorials/chat-ui',
+    'cloud/tutorials/grow-therapy-compare',
+}
+
 for product_nav in d['navigation']['products']:
     if product_nav['product'].lower() == '$product'.lower():
         if 'tabs' in product_nav:
             for tab in product_nav['tabs']:
                 if isinstance(tab, dict):
+                    if '$product'.lower() == 'cloud' and tab.get('tab') == 'API v3':
+                        continue
                     for g in tab.get('groups', []):
                         for p in extract_pages(g):
-                            print(p)
+                            if '$product'.lower() != 'cloud' or p not in CLOUD_V3_ONLY:
+                                print(p)
         if 'groups' in product_nav:
             for g in product_nav['groups']:
                 for p in extract_pages(g):
@@ -210,7 +226,6 @@ if block is not None:
     out.append(textwrap.dedent("\n".join(block)))
 sys.stdout.write("\n".join(out))
 ' >> "$out"
-    echo "" >> "$out"
   done
 
   echo "Generated $out ($(wc -l < "$out") lines)"
@@ -222,18 +237,38 @@ CLOUD_FULL="$SCRIPT_DIR/llms-full.txt"
 
 # Header
 cat > "$CLOUD_INDEX" << 'HEADER'
-# Browser Use Cloud SDK
+# Browser Use Cloud
 
-> Browser Use Cloud is a managed API for AI browser automation. Send a natural-language task, get structured results back. SDKs for Python and TypeScript. Always use API v3 — v2 is legacy and uses different method names. Auth via `X-Browser-Use-API-Key` header (keys start with `bu_`).
+> Browser Use Cloud has two products on the same managed browser
+> infrastructure. **Agent** accepts a natural-language goal and completes the
+> web task. **Browser** gives Playwright, Puppeteer, and other remote CDP
+> clients direct control of a cloud browser. Both include stealth, residential
+> proxies, profiles, and live observability. Auth uses
+> `X-Browser-Use-API-Key` (keys start with `bu_`).
 
 - Dashboard: https://cloud.browser-use.com
 - Create API key: https://cloud.browser-use.com/settings?tab=api-keys&new=1
 - Docs: https://docs.browser-use.com
-- OpenAPI spec (v3): https://docs.browser-use.com/cloud/openapi/v3.json
-- Chat UI example: https://docs.browser-use.com/cloud/tutorials/chat-ui — Full end-to-end example with live browser, streaming, auth. Best starting point to build a prototype.
+- OpenAPI spec (v4): https://docs.browser-use.com/cloud/openapi/v4.json
 - Open-source repo: https://github.com/browser-use/browser-use — The open-source Python library. Note: the open-source API is different from the Cloud SDK. If you want the easiest path to production with managed infrastructure, use the Cloud SDK below.
 
-**Always use v3.** v2 is legacy with different method names and should not be used for new projects.
+**Choose API V4 for hard, high-accuracy tasks.** It is the recommended Agent API for new integrations and works especially well for long, complex workflows.
+
+**Choose API V2 for simple tasks when extremely low cost or predictable speed matters more than accuracy.** V2 accuracy is substantially lower than V4.
+
+Browser Use ranks #1 on the [Odysseys benchmark](https://odysseysbench.com/leaderboard). Use the benchmark when accuracy is the deciding factor.
+
+**Stopping standalone browsers:** Do not use `client.close()`,
+`browser.close()`, or a dropped CDP connection as the API V4 stop operation.
+Keep the browser session ID returned by `POST /api/v4/browsers`, then call
+`PATCH /api/v4/browsers/{id}` with `{"action":"stop"}`. This stops billing and
+refunds unused browser time.
+
+**Current TypeScript SDK typing:** Pass `model` explicitly (use `grok-4.5` for
+the best price/accuracy balance). Whenever `browserSettings` is present, also
+pass `proxyCountryCode`: use `"us"` to keep the default or `null` to disable
+the managed proxy. New model strings can reach REST before the generated
+TypeScript union; use `POST /api/v4/runs` directly if a listed model is rejected.
 
 Before writing code, check if `browser-use-sdk` is already installed. If so, upgrade to the latest version. If not, install it:
 - Python: `pip install --upgrade browser-use-sdk`
@@ -249,7 +284,6 @@ HEADER
 # Append grouped nav entries
 generate_index "cloud" "Cloud" "/tmp/cloud_index_body.txt"
 cat /tmp/cloud_index_body.txt >> "$CLOUD_INDEX"
-echo "" >> "$CLOUD_INDEX"
 echo "Generated $CLOUD_INDEX ($(wc -l < "$CLOUD_INDEX") lines)"
 
 # Full content
@@ -273,7 +307,6 @@ HEADER
 
 generate_index "open-source" "Open Source" "/tmp/os_index_body.txt"
 cat /tmp/os_index_body.txt >> "$OS_INDEX"
-echo "" >> "$OS_INDEX"
 echo "Generated $OS_INDEX ($(wc -l < "$OS_INDEX") lines)"
 
 generate_full "open-source" "Open Source" "$OS_FULL"
