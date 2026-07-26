@@ -1,12 +1,17 @@
 ---
 title: Browser quickstart
 sidebarTitle: Quick start
-description: "Launch a managed browser and get its CDP URL."
+description: "Launch a cloud browser and connect to it from your code."
 icon: rocket
 ---
 
-Browser Use gives you a managed Chromium browser with stealth, residential
-proxies, live preview, and recording.
+Browser Use is managed browser infrastructure. We run a production-ready
+Chromium browser for you with stealth, residential proxies, live preview, and
+recording built in.
+
+When you launch a browser, you get a **CDP URL**: the connection address that
+Playwright, Puppeteer, or another browser automation client uses to control the
+browser remotely.
 
 Get an [API key](https://cloud.browser-use.com/settings?tab=api-keys&new=1) and
 export it:
@@ -28,7 +33,7 @@ npm install browser-use-sdk
 ```
 </CodeGroup>
 
-## Get a CDP URL
+## Launch a browser
 
 <CodeGroup>
 ```python Python

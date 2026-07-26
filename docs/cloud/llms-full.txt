@@ -6,7 +6,7 @@ Source: https://docs.browser-use.com/cloud/quickstart
 
 
 Give an agent a task and get the result.
-Launch a managed browser and get its CDP URL.
+Launch a cloud browser and connect to it from your code.
 
 Get an [API key](https://cloud.browser-use.com/settings?tab=api-keys&new=1) and
 export it:
@@ -527,8 +527,13 @@ for the complete response shape.
 Source: https://docs.browser-use.com/cloud/browser/quickstart
 
 
-Browser Use gives you a managed Chromium browser with stealth, residential
-proxies, live preview, and recording.
+Browser Use is managed browser infrastructure. We run a production-ready
+Chromium browser for you with stealth, residential proxies, live preview, and
+recording built in.
+
+When you launch a browser, you get a **CDP URL**: the connection address that
+Playwright, Puppeteer, or another browser automation client uses to control the
+browser remotely.
 
 Get an [API key](https://cloud.browser-use.com/settings?tab=api-keys&new=1) and
 export it:
@@ -548,7 +553,7 @@ pip install browser-use-sdk
 npm install browser-use-sdk
 ```
 
-## Get a CDP URL
+## Launch a browser
 
 ```python Python
 from browser_use_sdk.v3 import BrowserUse
