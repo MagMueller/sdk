@@ -527,13 +527,8 @@ for the complete response shape.
 Source: https://docs.browser-use.com/cloud/browser/quickstart
 
 
-Browser Use is managed browser infrastructure. We run a production-ready
-Chromium browser for you with stealth, residential proxies, live preview, and
-recording built in.
-
-When you launch a browser, you get a **CDP URL**: the connection address that
-Playwright, Puppeteer, or another browser automation client uses to control the
-browser remotely.
+Every browser includes stealth, proxies, live preview, and recording. Its
+**CDP URL** is the address your code uses to connect.
 
 <img
   src="/cloud/images/browser-cdp-light.svg"
