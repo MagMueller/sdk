@@ -4,15 +4,21 @@ description: "Persist files across V4 runs and conversations."
 icon: folder
 ---
 
-A **workspace** is a persistent filesystem. A run can read attached inputs,
-create files, and share those files with later sessions.
+A **workspace** is a persistent filesystem shared by runs—even runs in
+different sessions. Use it for inputs, scripts, and generated files.
 
-<Frame>
-  <img
-    src="/cloud/images/v4-workspaces.png"
-    alt="Two independent sessions reading and writing the same workspace"
-  />
-</Frame>
+<img
+  src="/cloud/images/v4-workspaces-light.svg"
+  alt="Two independent sessions reading and writing people.csv, script.py, and output.json in one persistent workspace"
+  noZoom
+  className="block dark:hidden"
+/>
+<img
+  src="/cloud/images/v4-workspaces-dark.svg"
+  alt="Two independent sessions reading and writing people.csv, script.py, and output.json in one persistent workspace"
+  noZoom
+  className="hidden dark:block"
+/>
 
 ## Upload and attach a file
 
@@ -44,8 +50,7 @@ const run = await client.runs.create({
 ```
 </CodeGroup>
 
-Attachments are turn-scoped. Reusing a workspace does not automatically attach
-every upload to later runs.
+Attachments are run-scoped. Reusing a workspace does not reattach every upload.
 
 ## Retrieve created files
 
@@ -71,6 +76,6 @@ for (const file of files.files) {
 ```
 </CodeGroup>
 
-Download URLs expire after 60 seconds. See [Upload workspace
-files](/cloud/api-v4/workspaces/upload-workspace-files) and [List workspace
-files](/cloud/api-v4/workspaces/list-workspace-files) for limits and pagination.
+Download URLs expire after 60 seconds. See the [workspace API
+reference](/cloud/api-v4/workspaces/list-workspace-files) for pagination and
+limits.

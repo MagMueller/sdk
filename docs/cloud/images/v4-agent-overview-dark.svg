@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">Task, session, run, and workspace relationship</title>
+  <desc id="desc">A task starts a run inside a session. The run reads and writes persistent workspace files.</desc>
+  <defs>
+    <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="2" seed="7" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8"/></filter>
+    <pattern id="orangeHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#fed7aa" stroke-width="4"/></pattern>
+    <pattern id="purpleHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#ddd6fe" stroke-width="4"/></pattern>
+    <pattern id="blueHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#93c5fd" stroke-width="4"/></pattern>
+    <pattern id="greenHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#a7f3d0" stroke-width="4"/></pattern>
+  </defs>
+  <rect width="1200" height="420" fill="#09090B"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#rough)">
+    <ellipse cx="145" cy="210" rx="105" ry="72" fill="#24140B" stroke="#FE750E" stroke-width="4"/>
+    <path d="M252 210 C292 204 322 215 365 210" stroke="#FE750E" stroke-width="4"/>
+    <path d="M346 197 L367 210 L347 224" stroke="#FE750E" stroke-width="4"/>
+    <rect x="380" y="70" width="410" height="280" rx="34" fill="#1D1714" stroke="#FE750E" stroke-width="4"/>
+    <rect x="465" y="165" width="240" height="105" rx="24" fill="#18181B" stroke="#A1A1AA" stroke-width="4"/>
+    <path d="M790 210 C830 216 858 202 895 210" stroke="#FE750E" stroke-width="4"/>
+    <path d="M876 197 L897 210 L877 224" stroke="#FE750E" stroke-width="4"/>
+    <path d="M910 113 L1147 113 L1147 315 L910 315 Z" fill="#1D1714" stroke="#FE750E" stroke-width="4"/>
+    <path d="M910 113 L987 113 L1008 88 L1090 88 L1112 113" fill="#1D1714" stroke="#FE750E" stroke-width="4"/>
+  </g>
+  <g font-family="Virgil, Comic Sans MS, cursive" text-anchor="middle">
+    <text x="145" y="220" font-size="30" fill="#F4F4F5">TASK</text>
+    <text x="585" y="116" font-size="28" fill="#FE750E">SESSION</text>
+    <text x="585" y="230" font-size="30" fill="#F4F4F5">RUN</text>
+    <text x="1028" y="205" font-size="27" fill="#FE750E">WORKSPACE</text>
+    <text x="1028" y="244" font-size="22" fill="#F4F4F5">files</text>
+  </g>
+</svg>

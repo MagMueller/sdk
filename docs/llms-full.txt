@@ -100,20 +100,24 @@ curl https://api.browser-use.com/api/v4/runs \
 Install the SDK with `pip install browser-use-sdk` or
 `npm install browser-use-sdk`. Curl needs no installation.
 
-Every new run implicitly creates a **session** and a **workspace**:
+Every new run implicitly creates a [session](https://docs.browser-use.com/cloud/agent/sessions) for its
+conversation and live browser, plus a [workspace](https://docs.browser-use.com/cloud/agent/workspaces) for
+persistent files.
 
-<Frame>
-  <img
-src="/cloud/images/v4-agent-overview.png"
-alt="A run belongs to a conversation session and uses a persistent workspace"
-  />
-</Frame>
+<img
+  src="/cloud/images/v4-agent-overview-light.svg"
+  alt="A task starts a run inside a session and the run reads and writes persistent workspace files"
+  noZoom
+  className="block dark:hidden"
+/>
+<img
+  src="/cloud/images/v4-agent-overview-dark.svg"
+  alt="A task starts a run inside a session and the run reads and writes persistent workspace files"
+  noZoom
+  className="hidden dark:block"
+/>
 
-Continue the same conversation and browser.
-Keep files across runs and sessions.
-Poll ordered events while a run is active.
-
-  Give this compact context file to your coding agent.
+Give the compact context file to your coding agent.
 
 # Models
 Source: https://docs.browser-use.com/cloud/agent/models
@@ -133,8 +137,9 @@ Token prices are USD per 1 million tokens. Browser sessions
 (\$0.02/hour) and network traffic (\$5/GB managed proxy or \$0.20/GB
 proxyless/BYOP) are charged separately. See [full pricing](https://browser-use.com/pricing).
 
-  **MiniMax M3** is the default and cheapest option. Use **Claude Opus 5**
-  when accuracy matters most.
+  **Grok 4.5** gives the best balance of price and accuracy. **MiniMax M3** is
+  the default and cheapest option; use **Claude Opus 5** when accuracy matters
+  most.
 
 ```python Python
 run = client.runs.create(
@@ -205,14 +210,21 @@ Source: https://docs.browser-use.com/cloud/agent/sessions
 
 
 A **session** holds the agent's conversation and can reuse its live browser.
-Every run creates one implicitly unless you pass an existing session ID.
+One session ID can contain multiple runs. Every run creates a session implicitly
+unless you pass an existing session ID.
 
-<Frame>
-  <img
-src="/cloud/images/v4-sessions.png"
-alt="A session containing a first run and a follow-up run"
-  />
-</Frame>
+<img
+  src="/cloud/images/v4-sessions-light.svg"
+  alt="One session ID containing three sequential runs, where each run continues the same conversation, workspace, and live browser"
+  noZoom
+  className="block dark:hidden"
+/>
+<img
+  src="/cloud/images/v4-sessions-dark.svg"
+  alt="One session ID containing three sequential runs, where each run continues the same conversation, workspace, and live browser"
+  noZoom
+  className="hidden dark:block"
+/>
 
 Pass `session_id` / `sessionId` to continue:
 
@@ -241,24 +253,29 @@ const result = await client.runs.waitForCompletion(followUp.id);
 console.log(result.result);
 ```
 
-- Omit the session ID for a new conversation.
-- Reuse it for a follow-up with the same context and workspace.
-- Pass only a [workspace ID](https://docs.browser-use.com/cloud/agent/workspaces) for a fresh conversation
-  that shares files.
+Omit the session ID for a new conversation. Pass only a [workspace
+ID](https://docs.browser-use.com/cloud/agent/workspaces) when you want a fresh conversation that keeps the
+same files.
 
 # Workspaces & files
 Source: https://docs.browser-use.com/cloud/agent/workspaces
 
 
-A **workspace** is a persistent filesystem. A run can read attached inputs,
-create files, and share those files with later sessions.
+A **workspace** is a persistent filesystem shared by runs—even runs in
+different sessions. Use it for inputs, scripts, and generated files.
 
-<Frame>
-  <img
-src="/cloud/images/v4-workspaces.png"
-alt="Two independent sessions reading and writing the same workspace"
-  />
-</Frame>
+<img
+  src="/cloud/images/v4-workspaces-light.svg"
+  alt="Two independent sessions reading and writing people.csv, script.py, and output.json in one persistent workspace"
+  noZoom
+  className="block dark:hidden"
+/>
+<img
+  src="/cloud/images/v4-workspaces-dark.svg"
+  alt="Two independent sessions reading and writing people.csv, script.py, and output.json in one persistent workspace"
+  noZoom
+  className="hidden dark:block"
+/>
 
 ## Upload and attach a file
 
@@ -288,8 +305,7 @@ const run = await client.runs.create({
 });
 ```
 
-Attachments are turn-scoped. Reusing a workspace does not automatically attach
-every upload to later runs.
+Attachments are run-scoped. Reusing a workspace does not reattach every upload.
 
 ## Retrieve created files
 
@@ -313,22 +329,40 @@ for (const file of files.files) {
 }
 ```
 
-Download URLs expire after 60 seconds. See [Upload workspace
-files](https://docs.browser-use.com/cloud/api-v4/workspaces/upload-workspace-files) and [List workspace
-files](https://docs.browser-use.com/cloud/api-v4/workspaces/list-workspace-files) for limits and pagination.
+Download URLs expire after 60 seconds. See the [workspace API
+reference](https://docs.browser-use.com/cloud/api-v4/workspaces/list-workspace-files) for pagination and
+limits.
 
-# Deterministic rerun
-Source: https://docs.browser-use.com/cloud/agent/cache-script
+# Scripts
+Source: https://docs.browser-use.com/cloud/agent/scripts
 
 
-Create one [workspace](https://docs.browser-use.com/cloud/agent/workspaces) for the workflow, then use
-these prompts with the same `workspace_id` / `workspaceId`. The [run
-code](https://docs.browser-use.com/cloud/agent/quickstart) stays exactly the same.
+Scripts turn a successful browser run into a reusable
+[workspace](https://docs.browser-use.com/cloud/agent/workspaces) asset. The agent writes and tests the
+helper once. Later runs execute it first and repair it only when the site
+changes.
+
+<img
+  src="/cloud/images/v4-scripts-light.svg"
+  alt="A first agent run saves and tests script.py and a README in a workspace; later runs reuse the script and repair it only when necessary"
+  noZoom
+  className="block dark:hidden"
+/>
+<img
+  src="/cloud/images/v4-scripts-dark.svg"
+  alt="A first agent run saves and tests script.py and a README in a workspace; later runs reuse the script and repair it only when necessary"
+  noZoom
+  className="hidden dark:block"
+/>
+
+Create one workspace for the workflow, then use these prompts with the same
+`workspace_id` / `workspaceId`. The [run code](https://docs.browser-use.com/cloud/agent/quickstart) does not
+change.
 
 ## First run
 
 ```text
-Complete this task: get the top five Hacker News stories as JSON.
+Get the top five Hacker News stories as JSON.
 
 Then reproduce exactly what you did as helper functions or a script. Test it,
 save it in this workspace, and add a README with instructions for using it again.
@@ -341,8 +375,8 @@ Use the existing workspace script to get the top ten Hacker News stories.
 Follow its README. Only fix and retest the script if it no longer works.
 ```
 
-This still starts an agent and uses tokens. The saved script gives the agent a
-faster, more predictable path; it is not automatic zero-LLM execution.
+This is faster and cheaper for repeated workflows, but it still starts an agent
+and uses tokens. The script is reusable and self-healing—not zero-LLM execution.
 
 # Human in the loop
 Source: https://docs.browser-use.com/cloud/agent/human-in-the-loop

@@ -82,7 +82,7 @@
                       "cloud/agent/structured-output",
                       "cloud/agent/sessions",
                       "cloud/agent/workspaces",
-                      "cloud/agent/cache-script",
+                      "cloud/agent/scripts",
                       "cloud/agent/human-in-the-loop",
                       "cloud/agent/observability"
                     ]
@@ -997,6 +997,10 @@
     {
       "source": "/cloud/agent/streaming",
       "destination": "/cloud/agent/observability"
+    },
+    {
+      "source": "/cloud/agent/cache-script",
+      "destination": "/cloud/agent/scripts"
     },
     {
       "source": "/tips/integrations/playwright",

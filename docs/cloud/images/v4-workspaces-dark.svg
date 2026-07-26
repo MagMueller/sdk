@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="480" viewBox="0 0 1200 480" role="img" aria-labelledby="title desc">
+  <title id="title">Sessions sharing a persistent workspace</title>
+  <desc id="desc">Two independent sessions read and write files in one workspace.</desc>
+  <defs>
+    <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="2" seed="17" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8"/></filter>
+    <pattern id="purpleHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#ddd6fe" stroke-width="4"/></pattern>
+    <pattern id="blueHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#dbeafe" stroke-width="4"/></pattern>
+    <pattern id="greenHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#a7f3d0" stroke-width="4"/></pattern>
+  </defs>
+  <rect width="1200" height="480" fill="#09090B"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#rough)">
+    <rect x="55" y="80" width="250" height="112" rx="24" fill="#1D1714" stroke="#FE750E" stroke-width="4"/>
+    <rect x="55" y="288" width="250" height="112" rx="24" fill="#18181B" stroke="#A1A1AA" stroke-width="4" stroke-dasharray="12 9"/>
+    <path d="M317 136 C378 142 398 185 455 219" stroke="#FE750E" stroke-width="4"/>
+    <path d="M436 203 L457 220 L431 222" stroke="#FE750E" stroke-width="4"/>
+    <path d="M317 344 C378 338 398 295 455 261" stroke="#A1A1AA" stroke-width="4" stroke-dasharray="12 9"/>
+    <path d="M431 258 L457 260 L436 277" stroke="#A1A1AA" stroke-width="4"/>
+    <path d="M470 82 L1125 82 L1125 412 L470 412 Z" fill="#1D1714" stroke="#FE750E" stroke-width="4"/>
+    <path d="M470 82 L605 82 L630 54 L780 54 L806 82" fill="#1D1714" stroke="#FE750E" stroke-width="4"/>
+    <path d="M565 175 L700 175 L700 321 L565 321 Z M565 175 L675 175 L700 200" fill="#18181B" stroke="#A1A1AA" stroke-width="3"/>
+    <path d="M730 175 L865 175 L865 321 L730 321 Z M730 175 L840 175 L865 200" fill="#18181B" stroke="#A1A1AA" stroke-width="3"/>
+    <path d="M895 175 L1030 175 L1030 321 L895 321 Z M895 175 L1005 175 L1030 200" fill="#18181B" stroke="#A1A1AA" stroke-width="3"/>
+  </g>
+  <g font-family="Virgil, Comic Sans MS, cursive" text-anchor="middle">
+    <text x="180" y="145" font-size="27" fill="#F4F4F5">SESSION A</text>
+    <text x="180" y="353" font-size="27" fill="#F4F4F5">SESSION B</text>
+    <text x="798" y="128" font-size="29" fill="#FE750E">WORKSPACE</text>
+    <text x="633" y="258" font-size="20" fill="#F4F4F5">people.csv</text>
+    <text x="798" y="258" font-size="20" fill="#F4F4F5">script.py</text>
+    <text x="963" y="258" font-size="20" fill="#F4F4F5">output.json</text>
+  </g>
+</svg>

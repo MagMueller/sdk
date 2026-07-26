@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+  <title id="title">One session with multiple runs</title>
+  <desc id="desc">One session ID contains three sequential runs.</desc>
+  <defs>
+    <filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="2" seed="11" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8"/></filter>
+    <pattern id="purpleHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#ddd6fe" stroke-width="4"/></pattern>
+    <pattern id="blueHatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><line x1="0" y1="0" x2="0" y2="12" stroke="#93c5fd" stroke-width="4"/></pattern>
+  </defs>
+  <rect width="1200" height="400" fill="#ffffff"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#rough)">
+    <rect x="45" y="42" width="1110" height="316" rx="38" fill="#FFF8F4" stroke="#FE750E" stroke-width="4"/>
+    <rect x="105" y="165" width="245" height="112" rx="24" fill="#FAFAFA" stroke="#52525B" stroke-width="4"/>
+    <path d="M362 221 C405 214 431 228 468 221" stroke="#52525B" stroke-width="4"/>
+    <path d="M449 208 L470 221 L450 235" stroke="#52525B" stroke-width="4"/>
+    <rect x="480" y="165" width="245" height="112" rx="24" fill="#FAFAFA" stroke="#52525B" stroke-width="4"/>
+    <path d="M737 221 C780 228 806 214 843 221" stroke="#52525B" stroke-width="4"/>
+    <path d="M824 208 L845 221 L825 235" stroke="#52525B" stroke-width="4"/>
+    <rect x="855" y="165" width="245" height="112" rx="24" fill="#FAFAFA" stroke="#52525B" stroke-width="4"/>
+  </g>
+  <g font-family="Virgil, Comic Sans MS, cursive" text-anchor="middle">
+    <text x="600" y="105" font-size="30" fill="#FE750E">SESSION ID</text>
+    <text x="228" y="231" font-size="29" fill="#18181B">RUN 1</text>
+    <text x="603" y="231" font-size="29" fill="#18181B">RUN 2</text>
+    <text x="978" y="231" font-size="29" fill="#18181B">RUN 3</text>
+  </g>
+</svg>
