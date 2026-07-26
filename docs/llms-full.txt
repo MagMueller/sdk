@@ -528,7 +528,7 @@ Source: https://docs.browser-use.com/cloud/browser/quickstart
 
 
 Every browser includes stealth, proxies, live preview, and recording. Its
-**CDP URL** is the address your code uses to connect.
+**CDP URL** is a WebSocket endpoint for remotely controlling Chrome.
 
 <img
   src="/cloud/images/browser-cdp-light.svg"
