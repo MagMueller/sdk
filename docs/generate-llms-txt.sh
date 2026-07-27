@@ -249,6 +249,8 @@ cat > "$CLOUD_INDEX" << 'HEADER'
 - Dashboard: https://cloud.browser-use.com
 - Create API key: https://cloud.browser-use.com/settings?tab=api-keys&new=1
 - Docs: https://docs.browser-use.com
+- Product map: https://browser-use.com/llms.txt — Choose between Hosted Agents, Browser Infrastructure, and the Open Source Library.
+- Pricing: https://browser-use.com/pricing.md — Current plans, credits, browser and proxy rates, model token prices, and billing behavior.
 - OpenAPI spec (v4): https://docs.browser-use.com/cloud/openapi/v4.json
 - Open-source repo: https://github.com/browser-use/browser-use — The open-source Python library. Note: the open-source API is different from the Cloud SDK. If you want the easiest path to production with managed infrastructure, use the Cloud SDK below.
 
@@ -300,6 +302,7 @@ cat > "$OS_INDEX" << 'HEADER'
 
 - GitHub: https://github.com/browser-use/browser-use
 - Docs: https://docs.browser-use.com/open-source/introduction
+- Product map: https://browser-use.com/llms.txt — Compare the Open Source Library with Hosted Agents and Browser Infrastructure.
 
 Install: `pip install browser-use`
 
