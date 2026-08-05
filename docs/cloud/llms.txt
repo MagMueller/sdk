@@ -51,6 +51,7 @@ export BROWSER_USE_API_KEY=bu_your_key_here
 ## Agent
 - [Run a task](https://docs.browser-use.com/cloud/agent/quickstart): Give a high-accuracy browser agent a goal and get the result.
 - [Models](https://docs.browser-use.com/cloud/agent/models): Choose a V4 model and understand its token pricing.
+- [Thinking levels](https://docs.browser-use.com/cloud/agent/thinking-levels): Configure model reasoning depth across API V2, V3, and V4.
 - [Structured output](https://docs.browser-use.com/cloud/agent/structured-output): Ask for JSON and validate the V4 result in your application.
 - [Sessions](https://docs.browser-use.com/cloud/agent/sessions): Continue one conversation across multiple V4 runs.
 - [Workspaces & files](https://docs.browser-use.com/cloud/agent/workspaces): Persist files across V4 runs and conversations.
