@@ -5,9 +5,9 @@
 Source: https://docs.browser-use.com/cloud/quickstart
 
 
-[Hosted Agents](https://docs.browser-use.com/cloud/agent/quickstart)
+  [Hosted Agents](https://docs.browser-use.com/cloud/agent/quickstart)
 Give an agent a task and get the result.
-[Browsers](https://docs.browser-use.com/cloud/browser/quickstart)
+  [Browsers](https://docs.browser-use.com/cloud/browser/quickstart)
 Launch a cloud browser and connect to it from your code.
 
 Get an [API key](https://cloud.browser-use.com/settings?tab=api-keys&new=1) and
@@ -257,7 +257,7 @@ persistent files.
   className="hidden dark:block"
 />
 
-[Copy API V4 docs](https://docs.browser-use.com/cloud/llms.txt)
+  [Copy API V4 docs](https://docs.browser-use.com/cloud/llms.txt)
 Give the compact context file to your coding agent.
 
 # Models
@@ -306,9 +306,11 @@ rollout and configured provider key.
 See [Thinking levels](https://docs.browser-use.com/cloud/agent/thinking-levels) for the reasoning controls
 accepted by each model. Not every model accepts `modelParams`.
 
-  New model strings can reach the API before the TypeScript SDK's generated
-  union. If TypeScript rejects a model listed on this page, call
-  `POST /api/v4/runs` directly for that model.
+  The current generated SDK request types predate this contract. The
+  TypeScript model union does not yet include GPT-5.6 Luna or every model on
+  this page, and neither generated V4 request model exposes `modelParams`.
+  Use `POST /api/v4/runs` directly for those fields until the follow-up SDK
+  regeneration is released.
 
 ```python Python
 from browser_use_sdk.v4 import BrowserUse
@@ -325,7 +327,8 @@ import { BrowserUse } from "browser-use-sdk/v4";
 const client = new BrowserUse();
 const run = await client.runs.create({
   task: "Compare three project-management tools",
-  model: "gpt-5.6-luna",
+  // Use REST for GPT-5.6 Luna until the generated union is updated.
+  model: "grok-4.5",
 });
 ```
 ```bash curl
@@ -538,11 +541,11 @@ SDK clients do not expose this field yet, so use the REST examples above until
 the follow-up SDK regeneration is released. V4 SDK clients can send
 `modelParams` once their generated V4 type includes the current contract.
 
-[V4 create run](https://docs.browser-use.com/cloud/api-v4/runs/create-run)
+  [V4 create run](https://docs.browser-use.com/cloud/api-v4/runs/create-run)
 Generated V4 `modelParams` schema.
-[V3 create session](https://docs.browser-use.com/cloud/api-v3/sessions/create-session)
+  [V3 create session](https://docs.browser-use.com/cloud/api-v3/sessions/create-session)
 Generated V3 `thinkingLevel` schema.
-[V2 create task](https://docs.browser-use.com/cloud/api-v2/tasks/create-task)
+  [V2 create task](https://docs.browser-use.com/cloud/api-v2/tasks/create-task)
 Generated V2 `thinkingLevel` schema.
 
 # Structured output
@@ -952,13 +955,9 @@ curl -X PATCH \
   managed browser. Use `client.browsers.stop(browser.id)` or call
   `PATCH /api/v4/browsers/{id}` with `{"action":"stop"}`.
 
-  <Card
-title="Connect over CDP"
-icon="code"
-href="/cloud/browser/playwright-puppeteer-selenium"
-  >
+  [Connect over CDP](https://docs.browser-use.com/cloud/browser/playwright-puppeteer-selenium)
 Use the CDP URL with Playwright or Puppeteer.
-[Browser settings](https://docs.browser-use.com/cloud/api-v4/browsers/create-browser-session)
+  [Browser settings](https://docs.browser-use.com/cloud/api-v4/browsers/create-browser-session)
 Configure proxies, screen size, recording, and timeout.
 
 # Stealth

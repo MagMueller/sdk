@@ -49,9 +49,11 @@ See [Thinking levels](/cloud/agent/thinking-levels) for the reasoning controls
 accepted by each model. Not every model accepts `modelParams`.
 
 <Note>
-  New model strings can reach the API before the TypeScript SDK's generated
-  union. If TypeScript rejects a model listed on this page, call
-  `POST /api/v4/runs` directly for that model.
+  The current generated SDK request types predate this contract. The
+  TypeScript model union does not yet include GPT-5.6 Luna or every model on
+  this page, and neither generated V4 request model exposes `modelParams`.
+  Use `POST /api/v4/runs` directly for those fields until the follow-up SDK
+  regeneration is released.
 </Note>
 
 <CodeGroup>
@@ -70,7 +72,8 @@ import { BrowserUse } from "browser-use-sdk/v4";
 const client = new BrowserUse();
 const run = await client.runs.create({
   task: "Compare three project-management tools",
-  model: "gpt-5.6-luna",
+  // Use REST for GPT-5.6 Luna until the generated union is updated.
+  model: "grok-4.5",
 });
 ```
 ```bash curl

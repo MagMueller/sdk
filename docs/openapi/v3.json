@@ -5362,7 +5362,7 @@
                                 "type": "null"
                             }
                         ],
-                        "description": "Optional model reasoning depth. Omit this field to preserve the model provider default. Supported values depend on the selected model: most supported Claude models and GPT-5.1+ models support disabled/low/medium/high; Gemini Flash models support all four (disabled maps to Gemini's minimal level); Claude Fable 5, earlier GPT-5 models, Gemini 2.5 Pro, o3/o4, and Grok support low/medium/high; Gemini 3.1 Pro supports low/high; GLM supports disabled/high. Unsupported model/level combinations are rejected."
+                        "description": "Optional model reasoning depth. Omit this field to preserve the provider default. V3 accepts disabled/low/medium/high for bu-mini, bu-max, bu-ultra, gemini-3-flash, gemini-3.5-flash, claude-sonnet-4.6, claude-opus-4.6, claude-opus-4.7, claude-sonnet-5, claude-opus-4.8, claude-haiku-4.5, gpt-5.2, gpt-5.4-mini, gpt-5.5, gpt-5.6-sol, gpt-5.6-terra, and gpt-5.6-luna; low/medium/high for gpt-5-mini; low/high for gemini-3-pro and gemini-3.1-pro; and disabled/high for glm-5.2. MiniMax M3 rejects an explicit level."
                     },
                     "sessionId": {
                         "anyOf": [
