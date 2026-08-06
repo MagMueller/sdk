@@ -266,11 +266,12 @@ Keep the browser session ID returned by `POST /api/v4/browsers`, then call
 `PATCH /api/v4/browsers/{id}` with `{"action":"stop"}`. This stops billing and
 refunds unused browser time.
 
-**Current TypeScript SDK typing:** Pass `model` explicitly (use `grok-4.5` for
-the best price/accuracy balance). Whenever `browserSettings` is present, also
-pass `proxyCountryCode`: use `"us"` to keep the default or `null` to disable
-the managed proxy. New model strings can reach REST before the generated
-TypeScript union; use `POST /api/v4/runs` directly if a listed model is rejected.
+**Current TypeScript SDK typing:** Pass `model` explicitly. Prefer
+`gpt-5.6-luna`, the recommended V4 default; if the generated union does not yet
+include it, use `grok-4.5` or call `POST /api/v4/runs` directly. Whenever
+`browserSettings` is present, also pass `proxyCountryCode`: use `"us"` to keep
+the default or `null` to disable the managed proxy. New model strings can reach
+REST before the generated TypeScript union.
 
 Before writing code, check if `browser-use-sdk` is already installed. If so, upgrade to the latest version. If not, install it:
 - Python: `pip install --upgrade browser-use-sdk`
