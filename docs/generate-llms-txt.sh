@@ -202,6 +202,7 @@ for product_nav in d['navigation']['products']:
     echo "" >> "$out"
     awk 'BEGIN{n=0} /^---$/{n++; if(n==2){found=1; next}} found{print}' "$file" \
       | sed "s|](/cloud/|](${BASE_URL}/cloud/|g" \
+      | sed -E "s|^[[:space:]]*<Card title=\"([^\"]+)\"[^>]*href=\"(/[^\"]+)\"[^>]*>|[\\1](${BASE_URL}\\2)|" \
       | sed -E '/<\/?(CodeGroup|Note|Tip|Warning|Info|Card|Tabs|Tab|Steps|Step|Accordion|AccordionGroup)[^>]*>/d' \
       | python3 -c '
 # Dedent component-nested content without corrupting code indentation:
@@ -267,7 +268,7 @@ Keep the browser session ID returned by `POST /api/v4/browsers`, then call
 refunds unused browser time.
 
 **Current TypeScript SDK typing:** Pass `model` explicitly. Prefer
-`gpt-5.6-luna`, the recommended V4 default; if the generated union does not yet
+`gpt-5.6-luna`, the recommended V4 model; if the generated union does not yet
 include it, use `grok-4.5` or call `POST /api/v4/runs` directly. Whenever
 `browserSettings` is present, also pass `proxyCountryCode`: use `"us"` to keep
 the default or `null` to disable the managed proxy. New model strings can reach

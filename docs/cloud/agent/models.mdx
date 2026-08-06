@@ -8,9 +8,6 @@ Omit `model` to use **GPT-5.6 Luna**, or pass a model ID when creating a run.
 These are the recommended Browser Use-hosted models with published token
 pricing:
 
-See [Thinking levels](/cloud/agent/thinking-levels) for the supported
-`thinkingLevel` values for every V2, V3, and V4 model.
-
 | Model | API string | Input | Cache read | Output | BYOK |
 | ----- | ---------- | ----: | ---------: | -----: | ---- |
 | GPT-5.6 Luna (recommended) | `gpt-5.6-luna` | \$0.24 | \$0.024 | \$1.44 | OpenAI |
@@ -22,6 +19,9 @@ See [Thinking levels](/cloud/agent/thinking-levels) for the supported
 Token prices are USD per 1 million tokens. Browser sessions
 (\$0.02/hour) and network traffic (\$5/GB managed proxy or \$0.20/GB
 proxyless/BYOP) are charged separately. See [full pricing](https://browser-use.com/pricing).
+
+See [Thinking levels](/cloud/agent/thinking-levels) for V4 `modelParams` and
+the normalized `thinkingLevel` values available in V2 and V3.
 
 <Tip>
   We recommend **GPT-5.6 Luna** for most tasks. It combines near-Opus benchmark
@@ -45,8 +45,8 @@ rollout and configured provider key.
 | Moonshot AI | `kimi-k3` | — |
 | MiniMax | `minimax-m3` | — |
 
-See [Thinking levels](/cloud/agent/thinking-levels) for the reasoning values
-accepted by each model. Not every model supports configurable thinking.
+See [Thinking levels](/cloud/agent/thinking-levels) for the reasoning controls
+accepted by each model. Not every model accepts `modelParams`.
 
 <Note>
   New model strings can reach the API before the TypeScript SDK's generated
