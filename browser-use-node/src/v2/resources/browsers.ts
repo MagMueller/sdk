@@ -13,6 +13,7 @@ export interface BrowserListParams {
   pageSize?: number;
   pageNumber?: number;
   filterBy?: string;
+  agentSessionId?: string | null;
 }
 
 export interface BrowserDownloadsParams {

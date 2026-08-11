@@ -57,6 +57,10 @@ class Sessions:
             self._http.request("GET", f"/sessions/{session_id}")
         )
 
+    def purge(self, session_id: str | UUID) -> None:
+        """Immediately purge all data for a session on a ZDR-enabled project."""
+        self._http.request("POST", f"/sessions/{session_id}/purge")
+
     def send_message(
         self,
         session_id: str | UUID,
@@ -83,6 +87,12 @@ class Sessions:
         """List the session's pending queued messages."""
         return QueueListResponse.model_validate(
             self._http.request("GET", f"/sessions/{session_id}/queue")
+        )
+
+    def get_message(self, session_id: str | UUID, message_id: int) -> QueuedMessage:
+        """Get one queued message, including terminal handoff states."""
+        return QueuedMessage.model_validate(
+            self._http.request("GET", f"/sessions/{session_id}/queue/{message_id}")
         )
 
     def remove_message(self, session_id: str | UUID, message_id: int) -> QueuedMessage:
@@ -120,6 +130,10 @@ class AsyncSessions:
             await self._http.request("GET", f"/sessions/{session_id}")
         )
 
+    async def purge(self, session_id: str | UUID) -> None:
+        """Immediately purge all data for a session on a ZDR-enabled project."""
+        await self._http.request("POST", f"/sessions/{session_id}/purge")
+
     async def send_message(
         self,
         session_id: str | UUID,
@@ -146,6 +160,16 @@ class AsyncSessions:
         """List the session's pending queued messages."""
         return QueueListResponse.model_validate(
             await self._http.request("GET", f"/sessions/{session_id}/queue")
+        )
+
+    async def get_message(
+        self, session_id: str | UUID, message_id: int
+    ) -> QueuedMessage:
+        """Get one queued message, including terminal handoff states."""
+        return QueuedMessage.model_validate(
+            await self._http.request(
+                "GET", f"/sessions/{session_id}/queue/{message_id}"
+            )
         )
 
     async def remove_message(self, session_id: str | UUID, message_id: int) -> QueuedMessage:

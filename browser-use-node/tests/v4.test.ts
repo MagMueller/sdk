@@ -140,6 +140,7 @@ describe("v4 sessions queue", () => {
     id: 7,
     sessionId: SESSION_ID,
     runId: null,
+    mode: "queue",
     status: "pending",
     text: "also check the careers page",
     createdAt: "2026-01-01T00:00:00Z",
@@ -173,6 +174,25 @@ describe("v4 sessions queue", () => {
 
     expect(http.get).toHaveBeenCalledWith(`/sessions/${SESSION_ID}/queue`);
     expect(resp.queue).toHaveLength(1);
+  });
+
+  it("gets one queued message", async () => {
+    const http = { get: vi.fn(async () => queuedMessage) };
+    const sessions = new Sessions(http as any);
+
+    const msg = await sessions.getMessage(SESSION_ID, 7);
+
+    expect(http.get).toHaveBeenCalledWith(`/sessions/${SESSION_ID}/queue/7`);
+    expect(msg.id).toBe(7);
+  });
+
+  it("purges a ZDR session", async () => {
+    const http = { post: vi.fn(async () => undefined) };
+    const sessions = new Sessions(http as any);
+
+    await sessions.purge(SESSION_ID);
+
+    expect(http.post).toHaveBeenCalledWith(`/sessions/${SESSION_ID}/purge`);
   });
 
   it("removes a queued message", async () => {
@@ -227,6 +247,31 @@ describe("v4 workspaces", () => {
     expect(http.post).toHaveBeenCalledWith("/workspaces", {});
   });
 
+  it("updates, sizes, deletes, and removes workspace files", async () => {
+    const http = {
+      patch: vi.fn(async () => ({ ...workspaceInfo, name: null })),
+      get: vi.fn(async () => ({ usedBytes: 10, maxBytes: 100 })),
+      delete: vi.fn(async () => undefined),
+    };
+    const workspaces = new Workspaces(http as any);
+
+    const updated = await workspaces.update(WORKSPACE_ID, { name: null });
+    const size = await workspaces.size(WORKSPACE_ID);
+    await workspaces.deleteFile(WORKSPACE_ID, "uploads/data.csv");
+    await workspaces.delete(WORKSPACE_ID);
+
+    expect(http.patch).toHaveBeenCalledWith(`/workspaces/${WORKSPACE_ID}`, { name: null });
+    expect(http.get).toHaveBeenCalledWith(`/workspaces/${WORKSPACE_ID}/size`);
+    expect(http.delete).toHaveBeenNthCalledWith(
+      1,
+      `/workspaces/${WORKSPACE_ID}/files`,
+      { path: "uploads/data.csv" },
+    );
+    expect(http.delete).toHaveBeenNthCalledWith(2, `/workspaces/${WORKSPACE_ID}`);
+    expect(updated.name).toBeNull();
+    expect(size.usedBytes).toBe(10);
+  });
+
   it("passes cursor pagination params on files()", async () => {
     const http = {
       get: vi.fn(async () => ({ files: [], nextCursor: null, hasMore: false })),
@@ -268,10 +313,14 @@ describe("v4 workspaces", () => {
     };
     const workspaces = new Workspaces(http as any);
 
-    const resp = await workspaces.uploadFiles(WORKSPACE_ID, { files });
+    const resp = await workspaces.uploadFiles(WORKSPACE_ID, {
+      files,
+      allowOverrides: false,
+    });
 
     expect(http.post).toHaveBeenCalledWith(`/workspaces/${WORKSPACE_ID}/files/upload`, {
       files,
+      allowOverrides: false,
     });
     expect(resp.files[0].uploadUrl).toBe("https://s3.example/put/data.csv");
   });

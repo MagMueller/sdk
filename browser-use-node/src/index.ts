@@ -90,5 +90,6 @@ export type SessionUpdateAction = S["SessionUpdateAction"];
 export type SkillCategory = S["SkillCategory"];
 export type SkillsGenerationStatus = S["SkillsGenerationStatus"];
 export type SupportedLLMs = S["SupportedLLMs"];
+export type ThinkingLevel = S["ThinkingLevel"];
 export type TaskStatus = S["TaskStatus"];
 export type TaskUpdateAction = S["TaskUpdateAction"];

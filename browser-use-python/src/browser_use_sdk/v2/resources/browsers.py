@@ -23,6 +23,7 @@ def _build_create_body(
     browser_screen_height: int | None = None,
     allow_resizing: bool | None = None,
     custom_proxy: CustomProxy | None = None,
+    enable_recording: bool | None = None,
     **extra: Any,
 ) -> dict[str, Any]:
     body: dict[str, Any] = {}
@@ -40,6 +41,8 @@ def _build_create_body(
         body["allowResizing"] = allow_resizing
     if custom_proxy is not None:
         body["customProxy"] = custom_proxy.model_dump(by_alias=True, exclude_none=True)
+    if enable_recording is not None:
+        body["enableRecording"] = enable_recording
     body.update(extra)
     return body
 
@@ -58,6 +61,7 @@ class Browsers:
         browser_screen_height: int | None = None,
         allow_resizing: bool | None = None,
         custom_proxy: CustomProxy | None = None,
+        enable_recording: bool | None = None,
         **extra: Any,
     ) -> BrowserSessionItemView:
         """Create a new standalone browser session."""
@@ -69,6 +73,7 @@ class Browsers:
             browser_screen_height=browser_screen_height,
             allow_resizing=allow_resizing,
             custom_proxy=custom_proxy,
+            enable_recording=enable_recording,
             **extra,
         )
         return BrowserSessionItemView.model_validate(
@@ -81,6 +86,7 @@ class Browsers:
         page_size: int | None = None,
         page_number: int | None = None,
         filter_by: str | None = None,
+        agent_session_id: str | None = None,
     ) -> BrowserSessionListResponse:
         """List browser sessions with optional filtering."""
         return BrowserSessionListResponse.model_validate(
@@ -91,6 +97,7 @@ class Browsers:
                     "pageSize": page_size,
                     "pageNumber": page_number,
                     "filterBy": filter_by,
+                    "agentSessionId": agent_session_id,
                 },
             )
         )
@@ -148,6 +155,7 @@ class AsyncBrowsers:
         browser_screen_height: int | None = None,
         allow_resizing: bool | None = None,
         custom_proxy: CustomProxy | None = None,
+        enable_recording: bool | None = None,
         **extra: Any,
     ) -> BrowserSessionItemView:
         """Create a new standalone browser session."""
@@ -159,6 +167,7 @@ class AsyncBrowsers:
             browser_screen_height=browser_screen_height,
             allow_resizing=allow_resizing,
             custom_proxy=custom_proxy,
+            enable_recording=enable_recording,
             **extra,
         )
         return BrowserSessionItemView.model_validate(
@@ -171,6 +180,7 @@ class AsyncBrowsers:
         page_size: int | None = None,
         page_number: int | None = None,
         filter_by: str | None = None,
+        agent_session_id: str | None = None,
     ) -> BrowserSessionListResponse:
         """List browser sessions with optional filtering."""
         return BrowserSessionListResponse.model_validate(
@@ -181,6 +191,7 @@ class AsyncBrowsers:
                     "pageSize": page_size,
                     "pageNumber": page_number,
                     "filterBy": filter_by,
+                    "agentSessionId": agent_session_id,
                 },
             )
         )

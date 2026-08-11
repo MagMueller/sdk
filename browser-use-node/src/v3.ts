@@ -42,7 +42,7 @@ export type WorkspaceView = S["WorkspaceView"];
 export type WorkspaceListResponse = S["WorkspaceListResponse"];
 
 // Input / request models
-export type RunTaskRequest = S["app__endpoints__api__v3__sessions__views__RunTaskRequest"];
+export type RunTaskRequest = S["RunTaskRequest"];
 export type StopSessionRequest = S["StopSessionRequest"];
 export type FileUploadRequest = S["FileUploadRequest"];
 export type FileUploadItem = S["FileUploadItem"];
@@ -57,6 +57,7 @@ export type BrowserSessionView = S["BrowserSessionView"];
 export type BrowserSessionListResponse = S["BrowserSessionListResponse"];
 export type CreateBrowserSessionRequest = S["CreateBrowserSessionRequest"];
 export type UpdateBrowserSessionRequest = S["UpdateBrowserSessionRequest"];
+export type CustomProxy = S["CustomProxy"];
 export type BrowserSessionStatus = S["BrowserSessionStatus"];
 export type BrowserSessionUpdateAction = S["BrowserSessionUpdateAction"];
 
@@ -73,5 +74,6 @@ export type PlanInfo = S["PlanInfo"];
 // Enums / string unions
 export type BuAgentSessionStatus = S["BuAgentSessionStatus"];
 export type BuModel = S["BuModel"];
+export type ThinkingLevel = S["ThinkingLevel"];
 export type ProxyCountryCode = S["ProxyCountryCode"];
 export type StopStrategy = S["StopStrategy"];

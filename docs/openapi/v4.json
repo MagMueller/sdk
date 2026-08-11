@@ -45,6 +45,9 @@
               }
             }
           },
+          "402": {
+            "description": "The project has no credits available."
+          },
           "403": {
             "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
           },
@@ -422,6 +425,16 @@
               "default": 0,
               "title": "After"
             }
+          },
+          {
+            "name": "include_output",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Include Output"
+            }
           }
         ],
         "responses": {
@@ -706,7 +719,7 @@
           "Sessions"
         ],
         "summary": "List Session Queue",
-        "description": "List the session's still-pending queued messages, oldest first.",
+        "description": "List open messages, the latest handoff row, and all steering cutoffs.\n\nIncludes live dispatch claims so clients can restore an accepted steering\nhandoff after a refresh without briefly losing its waiting state. The latest\nconsumed interrupt bridges the primary-write/read-replica gap before its\nreplacement run appears; clients discard it once that run is visible. Compact\nper-source cutoffs preserve every historical interrupted transcript boundary\nwithout returning every historical steering message and its attachments.",
         "operationId": "list_session_queue_sessions__session_id__queue_get",
         "security": [
           {
@@ -756,6 +769,68 @@
       }
     },
     "/sessions/{session_id}/queue/{message_id}": {
+      "get": {
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Get Session Queue Message",
+        "description": "Read one queued message including terminal handoff states.",
+        "operationId": "get_session_queue_message_sessions__session_id__queue__message_id__get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "message_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Message Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueuedMessage"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Zero Data Retention is enabled on the project (V4 unsupported)."
+          },
+          "404": {
+            "description": "Run, session, workspace, or profile not found."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "Sessions"
@@ -924,6 +999,9 @@
           "400": {
             "description": "Invalid request (bad session/workspace pairing or file path)."
           },
+          "409": {
+            "description": "One or more files would replace existing workspace files."
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -971,6 +1049,158 @@
                 }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Update Workspace",
+        "description": "Rename a workspace. Explicit null clears the name; omission is a no-op.",
+        "operationId": "update_workspace_workspaces__workspace_id__patch",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkspaceUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceInfo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Run, session, workspace, or profile not found."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Delete Workspace",
+        "description": "Archive a workspace. Idempotent for missing, archived, and foreign ids.",
+        "operationId": "delete_workspace_workspaces__workspace_id__delete",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/{workspace_id}/size": {
+      "get": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Get Workspace Size",
+        "description": "Return current storage usage and the plan-specific workspace quota.",
+        "operationId": "get_workspace_size_workspaces__workspace_id__size_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkspaceSizeInfo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Run, session, workspace, or profile not found."
           },
           "422": {
             "description": "Validation Error",
@@ -1094,6 +1324,64 @@
           },
           "400": {
             "description": "Malformed pagination cursor."
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Workspaces"
+        ],
+        "summary": "Delete Workspace File",
+        "description": "Delete one exact path from a workspace and remove matching upload metadata.",
+        "operationId": "delete_workspace_file_workspaces__workspace_id__files_delete",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Workspace Id"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Relative file path to delete",
+              "title": "Path"
+            },
+            "description": "Relative file path to delete"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "Run, session, workspace, or profile not found."
+          },
+          "400": {
+            "description": "Invalid request (bad session/workspace pairing or file path)."
           },
           "422": {
             "description": "Validation Error",
@@ -2157,7 +2445,7 @@
               }
             ],
             "title": "Recording URL",
-            "description": "Presigned URL to download the session recording (available after session ends, if recording was enabled)"
+            "description": "Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response."
           }
         },
         "type": "object",
@@ -2836,6 +3124,13 @@
             },
             "type": "array",
             "title": "Queue"
+          },
+          "steeringCutoffs": {
+            "items": {
+              "$ref": "#/components/schemas/SteeringCutoff"
+            },
+            "type": "array",
+            "title": "Steeringcutoffs"
           }
         },
         "type": "object",
@@ -2904,6 +3199,14 @@
             ],
             "title": "Runid"
           },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "queue",
+              "interrupt"
+            ],
+            "title": "Mode"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -2946,6 +3249,7 @@
           "id",
           "sessionId",
           "runId",
+          "mode",
           "status",
           "text",
           "createdAt"
@@ -3136,7 +3440,7 @@
               }
             ],
             "title": "Modelparams",
-            "description": "Optional provider-native request parameters for the selected model, written with the provider's own field names and values and forwarded unchanged (e.g. {\"reasoning\": {\"effort\": \"high\"}} for OpenAI, {\"thinking\": {\"type\": \"adaptive\"}} for Anthropic, {\"thinkingConfig\": {\"thinkingLevel\": \"high\"}} for Google). Supported paths and values are per-model; an unsupported path, value, or a model that accepts no parameters at all is rejected with 422. Omitting this field applies the selected model's configured default parameters; passing {} opts out of that default and leaves the provider's own defaults in place."
+            "description": "Optional provider-native request parameters for the selected model, written with the provider's own field names and values and forwarded unchanged (e.g. {\"reasoning\": {\"effort\": \"high\"}} for OpenAI, {\"thinking\": {\"type\": \"adaptive\"}} for Anthropic, {\"thinkingConfig\": {\"thinkingLevel\": \"high\"}} for Google). Supported paths and values are per-model; an unsupported path, value, or a model that accepts no parameters at all is rejected with 422. Omitting this field applies the model's default parameters (gpt-5.6-luna defaults to {\"reasoning\": {\"effort\": \"xhigh\"}}); passing {} opts out of that default and leaves the provider's own defaults in place."
           },
           "sessionId": {
             "anyOf": [
@@ -3705,6 +4009,27 @@
         "title": "SessionTimeoutLimitExceededError",
         "description": "Error response when session timeout exceeds the maximum allowed limit"
       },
+      "SteeringCutoff": {
+        "properties": {
+          "sourceRunId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Sourcerunid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sourceRunId",
+          "createdAt"
+        ],
+        "title": "SteeringCutoff",
+        "description": "Earliest accepted steer for one interrupted source run.\n\nThe queue endpoint returns these compact boundaries separately from message\nrows so a remount can keep every interrupted transcript frozen without\nre-sending the full historical steering-message payload."
+      },
       "TooManyConcurrentActiveSessionsError": {
         "properties": {
           "detail": {
@@ -3896,6 +4221,12 @@
             "maxItems": 10,
             "minItems": 1,
             "title": "Files"
+          },
+          "allowOverrides": {
+            "type": "boolean",
+            "title": "Allowoverrides",
+            "description": "When false, return 409 before reserving storage if any uploaded filename would replace an existing workspace file.",
+            "default": true
           }
         },
         "type": "object",
@@ -4006,6 +4337,46 @@
           "updatedAt"
         ],
         "title": "WorkspaceInfo"
+      },
+      "WorkspaceSizeInfo": {
+        "properties": {
+          "usedBytes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Usedbytes",
+            "description": "Current workspace storage usage in bytes."
+          },
+          "maxBytes": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Maxbytes",
+            "description": "Maximum workspace storage allowed in bytes."
+          }
+        },
+        "type": "object",
+        "required": [
+          "usedBytes",
+          "maxBytes"
+        ],
+        "title": "WorkspaceSizeInfo"
+      },
+      "WorkspaceUpdateRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "title": "WorkspaceUpdateRequest"
       }
     },
     "securitySchemes": {

@@ -32,6 +32,8 @@ from ..generated.v4.models import (
     WorkspaceFileUploadResponse,
     WorkspaceFileUploadResponseItem,
     WorkspaceInfo,
+    WorkspaceSizeInfo,
+    WorkspaceUpdateRequest,
 )
 
 __all__ = [
@@ -60,6 +62,8 @@ __all__ = [
     # Workspace models
     "WorkspaceInfo",
     "WorkspaceCreateRequest",
+    "WorkspaceUpdateRequest",
+    "WorkspaceSizeInfo",
     "WorkspaceFileInfo",
     "WorkspaceFileListResponse",
     "WorkspaceFileUploadItem",

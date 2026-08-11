@@ -372,6 +372,15 @@ export interface paths {
         /**
          * List Browser Sessions
          * @description Get paginated list of browser sessions with optional status filtering.
+         *
+         *     List responses intentionally omit per-session presigned recording URLs
+         *     (`recording_url` is always `null` here). Each recording URL requires a
+         *     synchronous boto3 SigV4 signing call (plus an S3 HEAD) that holds the GIL
+         *     and blocks the event loop. With page_size up to the max this CPU-pegs the
+         *     worker and starves the DB pool, cascading into pool exhaustion across the
+         *     fleet. Clients should fetch the recording URL on demand via
+         *     `GET /api/v2/browsers/{id}`, which signs exactly one URL for a single
+         *     session. Mirrors the v3 sessions list fix (ENG-4904, PR #4621).
          */
         get: operations["list_browser_sessions_browsers_get"];
         put?: never;
@@ -881,7 +890,7 @@ export interface components {
             agentSessionId?: string | null;
             /**
              * Recording URL
-             * @description Presigned URL to download the session recording (available after session ends, if recording was enabled)
+             * @description Presigned URL to download the session recording. Only populated on `GET /api/v2/browsers/{id}`; always `null` in list responses.
              */
             recordingUrl?: string | null;
         };
@@ -998,7 +1007,7 @@ export interface components {
             agentSessionId?: string | null;
             /**
              * Recording URL
-             * @description Presigned URL to download the session recording (available after session ends, if recording was enabled)
+             * @description Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response.
              */
             recordingUrl?: string | null;
         };
@@ -1262,6 +1271,11 @@ export interface components {
              * @default false
              */
             thinking: boolean;
+            /**
+             * Thinking Level
+             * @description Optional model reasoning depth. Omit this field to preserve the model provider default. Supported values depend on the selected model: most supported Claude models and GPT-5.1+ models support disabled/low/medium/high; Gemini Flash models support all four (disabled maps to Gemini's minimal level); Claude Fable 5, earlier GPT-5 models, Gemini 2.5 Pro, o3/o4, and Grok support low/medium/high; Gemini 3.1 Pro supports low/high; GLM supports disabled/high. Unsupported model/level combinations are rejected. API V2 cannot configure GLM or fixed-budget Claude thinking; use API V3 or V4 for those combinations.
+             */
+            thinkingLevel?: components["schemas"]["ThinkingLevel"] | null;
             /**
              * Vision
              * @description Whether agent vision capabilities are enabled. Set to 'auto' to let the agent decide based on the model capabilities.
@@ -1761,7 +1775,7 @@ export interface components {
          * ProxyCountryCode
          * @enum {string}
          */
-        ProxyCountryCode: "ad" | "ae" | "af" | "ag" | "ai" | "al" | "am" | "an" | "ao" | "aq" | "ar" | "as" | "at" | "au" | "aw" | "az" | "ba" | "bb" | "bd" | "be" | "bf" | "bg" | "bh" | "bi" | "bj" | "bl" | "bm" | "bn" | "bo" | "bq" | "br" | "bs" | "bt" | "bv" | "bw" | "by" | "bz" | "ca" | "cc" | "cd" | "cf" | "cg" | "ch" | "ck" | "cl" | "cm" | "co" | "cr" | "cs" | "cu" | "cv" | "cw" | "cx" | "cy" | "cz" | "de" | "dj" | "dk" | "dm" | "do" | "dz" | "ec" | "ee" | "eg" | "eh" | "er" | "es" | "et" | "fi" | "fj" | "fk" | "fm" | "fo" | "fr" | "ga" | "gd" | "ge" | "gf" | "gg" | "gh" | "gi" | "gl" | "gm" | "gn" | "gp" | "gq" | "gr" | "gs" | "gt" | "gu" | "gw" | "gy" | "hk" | "hm" | "hn" | "hr" | "ht" | "hu" | "id" | "ie" | "il" | "im" | "in" | "iq" | "ir" | "is" | "it" | "je" | "jm" | "jo" | "jp" | "ke" | "kg" | "kh" | "ki" | "km" | "kn" | "kp" | "kr" | "kw" | "ky" | "kz" | "la" | "lb" | "lc" | "li" | "lk" | "lr" | "ls" | "lt" | "lu" | "lv" | "ly" | "ma" | "mc" | "md" | "me" | "mf" | "mg" | "mh" | "mk" | "ml" | "mm" | "mn" | "mo" | "mp" | "mq" | "mr" | "ms" | "mt" | "mu" | "mv" | "mw" | "mx" | "my" | "mz" | "na" | "nc" | "ne" | "nf" | "ng" | "ni" | "nl" | "no" | "np" | "nr" | "nu" | "nz" | "om" | "pa" | "pe" | "pf" | "pg" | "ph" | "pk" | "pl" | "pm" | "pn" | "pr" | "ps" | "pt" | "pw" | "py" | "qa" | "re" | "ro" | "rs" | "ru" | "rw" | "sa" | "sb" | "sc" | "sd" | "se" | "sg" | "sh" | "si" | "sj" | "sk" | "sl" | "sm" | "sn" | "so" | "sr" | "ss" | "st" | "sv" | "sx" | "sy" | "sz" | "tc" | "td" | "tf" | "tg" | "th" | "tj" | "tk" | "tl" | "tm" | "tn" | "to" | "tr" | "tt" | "tv" | "tw" | "tz" | "ua" | "ug" | "uk" | "us" | "uy" | "uz" | "va" | "vc" | "ve" | "vg" | "vi" | "vn" | "vu" | "wf" | "ws" | "xk" | "ye" | "yt" | "za" | "zm" | "zw";
+        ProxyCountryCode: "ad" | "ae" | "af" | "ag" | "ai" | "al" | "am" | "an" | "ao" | "aq" | "ar" | "as" | "at" | "au" | "aw" | "az" | "ba" | "bb" | "bd" | "be" | "bf" | "bg" | "bh" | "bi" | "bj" | "bl" | "bm" | "bn" | "bo" | "bq" | "br" | "bs" | "bt" | "bv" | "bw" | "by" | "bz" | "ca" | "cc" | "cd" | "cf" | "cg" | "ch" | "ci" | "ck" | "cl" | "cm" | "co" | "cr" | "cs" | "cu" | "cv" | "cw" | "cx" | "cy" | "cz" | "de" | "dj" | "dk" | "dm" | "do" | "dz" | "ec" | "ee" | "eg" | "eh" | "er" | "es" | "et" | "fi" | "fj" | "fk" | "fm" | "fo" | "fr" | "ga" | "gd" | "ge" | "gf" | "gg" | "gh" | "gi" | "gl" | "gm" | "gn" | "gp" | "gq" | "gr" | "gs" | "gt" | "gu" | "gw" | "gy" | "hk" | "hm" | "hn" | "hr" | "ht" | "hu" | "id" | "ie" | "il" | "im" | "in" | "iq" | "ir" | "is" | "it" | "je" | "jm" | "jo" | "jp" | "ke" | "kg" | "kh" | "ki" | "km" | "kn" | "kp" | "kr" | "kw" | "ky" | "kz" | "la" | "lb" | "lc" | "li" | "lk" | "lr" | "ls" | "lt" | "lu" | "lv" | "ly" | "ma" | "mc" | "md" | "me" | "mf" | "mg" | "mh" | "mk" | "ml" | "mm" | "mn" | "mo" | "mp" | "mq" | "mr" | "ms" | "mt" | "mu" | "mv" | "mw" | "mx" | "my" | "mz" | "na" | "nc" | "ne" | "nf" | "ng" | "ni" | "nl" | "no" | "np" | "nr" | "nu" | "nz" | "om" | "pa" | "pe" | "pf" | "pg" | "ph" | "pk" | "pl" | "pm" | "pn" | "pr" | "ps" | "pt" | "pw" | "py" | "qa" | "re" | "ro" | "rs" | "ru" | "rw" | "sa" | "sb" | "sc" | "sd" | "se" | "sg" | "sh" | "si" | "sj" | "sk" | "sl" | "sm" | "sn" | "so" | "sr" | "ss" | "st" | "sv" | "sx" | "sy" | "sz" | "tc" | "td" | "tf" | "tg" | "th" | "tj" | "tk" | "tl" | "tm" | "tn" | "to" | "tr" | "tt" | "tv" | "tw" | "tz" | "ua" | "ug" | "uk" | "us" | "uy" | "uz" | "va" | "vc" | "ve" | "vg" | "vi" | "vn" | "vu" | "wf" | "ws" | "xk" | "ye" | "yt" | "za" | "zm" | "zw";
         /**
          * RefineSkillRequest
          * @description Request to refine an existing skill.
@@ -2363,7 +2377,7 @@ export interface components {
          * SupportedLLMs
          * @enum {string}
          */
-        SupportedLLMs: "browser-use-llm" | "browser-use-2.0" | "gpt-4.1" | "gpt-4.1-mini" | "o4-mini" | "o3" | "gemini-2.5-flash" | "gemini-2.5-pro" | "gemini-3-pro-preview" | "gemini-3-flash-preview" | "gemini-flash-latest" | "gemini-flash-lite-latest" | "claude-sonnet-4-20250514" | "claude-sonnet-4-5-20250929" | "claude-sonnet-4-6" | "claude-opus-4-5-20251101" | "claude-opus-4-7" | "llama-4-maverick-17b-128e-instruct" | "claude-3-7-sonnet-20250219";
+        SupportedLLMs: "browser-use-llm" | "browser-use-2.0" | "gpt-4.1" | "gpt-4.1-mini" | "o4-mini" | "o3" | "gpt-5.5" | "gpt-5.6-sol" | "gpt-5.6-terra" | "gpt-5.6-luna" | "gemini-2.5-flash" | "gemini-2.5-pro" | "gemini-3-pro-preview" | "gemini-3.1-pro-preview" | "gemini-3-flash-preview" | "gemini-3.5-flash" | "gemini-flash-latest" | "gemini-flash-lite-latest" | "claude-sonnet-4-20250514" | "claude-sonnet-4-5-20250929" | "claude-sonnet-5" | "claude-opus-4-5-20251101" | "claude-opus-4-7" | "claude-opus-4-8" | "claude-opus-5" | "glm-5.2" | "minimax-m3" | "llama-4-maverick-17b-128e-instruct" | "claude-3-7-sonnet-20250219";
         /**
          * TaskCreatedResponse
          * @description Response model for creating a task
@@ -2746,6 +2760,12 @@ export interface components {
                 [key: string]: unknown;
             }[] | null;
         };
+        /**
+         * ThinkingLevel
+         * @description Provider-neutral model reasoning depth.
+         * @enum {string}
+         */
+        ThinkingLevel: "disabled" | "low" | "medium" | "high";
         /**
          * TooManyConcurrentActiveSessionsError
          * @description Error response when user has too many concurrent active sessions
@@ -3954,6 +3974,7 @@ export interface operations {
                 pageSize?: number;
                 pageNumber?: number;
                 filterBy?: components["schemas"]["BrowserSessionStatus"] | null;
+                agentSessionId?: string | null;
             };
             header?: never;
             path?: never;

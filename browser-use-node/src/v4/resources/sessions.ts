@@ -25,6 +25,11 @@ export class Sessions {
     return this.http.get<SessionInfo>(`/sessions/${sessionId}`);
   }
 
+  /** Immediately purge all data for a session on a ZDR-enabled project. */
+  purge(sessionId: string): Promise<void> {
+    return this.http.post<void>(`/sessions/${sessionId}/purge`);
+  }
+
   /**
    * Send a message to the session. Runs as the next turn when the session is
    * busy; set `interrupt: true` to cancel the active run so the message runs
@@ -37,6 +42,11 @@ export class Sessions {
   /** List the session's pending queued messages. */
   queue(sessionId: string): Promise<QueueListResponse> {
     return this.http.get<QueueListResponse>(`/sessions/${sessionId}/queue`);
+  }
+
+  /** Get one queued message, including terminal handoff states. */
+  getMessage(sessionId: string, messageId: number): Promise<QueuedMessage> {
+    return this.http.get<QueuedMessage>(`/sessions/${sessionId}/queue/${messageId}`);
   }
 
   /** Remove a pending message from the session's queue. */

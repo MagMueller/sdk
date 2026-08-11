@@ -44,6 +44,7 @@ def _queued_message(status: str = "pending") -> dict[str, Any]:
         "id": 7,
         "sessionId": SESSION_ID,
         "runId": None,
+        "mode": "queue",
         "status": status,
         "text": "also check the careers page",
         "createdAt": "2026-01-01T00:00:00Z",
@@ -178,9 +179,11 @@ def test_runs_create_sends_camel_case_body() -> None:
     created = runs.create(
         "Find pricing",
         model="minimax-m3",
+        model_params={"reasoning": {"effort": "high"}},
         session_id=SESSION_ID,
         browser_settings={"proxyCountryCode": "de"},
         attached_file_ids=["00000000-0000-0000-0000-000000000009"],
+        max_cost_usd="1.50",
     )
 
     method, path, body, _ = http.calls[0]
@@ -188,9 +191,11 @@ def test_runs_create_sends_camel_case_body() -> None:
     assert body == {
         "task": "Find pricing",
         "model": "minimax-m3",
+        "modelParams": {"reasoning": {"effort": "high"}},
         "sessionId": SESSION_ID,
         "browserSettings": {"proxyCountryCode": "de"},
         "attachedFileIds": ["00000000-0000-0000-0000-000000000009"],
+        "maxCostUsd": "1.50",
     }
     assert str(created.id) == RUN_ID
 
@@ -274,6 +279,18 @@ def test_sessions_queue_list() -> None:
     assert len(resp.queue) == 1
 
 
+def test_sessions_get_message_and_purge() -> None:
+    http = FakeSyncHttp([_queued_message(), {}])
+    sessions = Sessions(http)  # type: ignore[arg-type]
+
+    msg = sessions.get_message(SESSION_ID, 7)
+    sessions.purge(SESSION_ID)
+
+    assert msg.id == 7
+    assert http.calls[0][:2] == ("GET", f"/sessions/{SESSION_ID}/queue/7")
+    assert http.calls[1][:2] == ("POST", f"/sessions/{SESSION_ID}/purge")
+
+
 def test_sessions_remove_message() -> None:
     http = FakeSyncHttp([_queued_message("cancelled")])
     sessions = Sessions(http)  # type: ignore[arg-type]
@@ -354,6 +371,24 @@ def test_workspaces_files_cursor_pagination() -> None:
     }
 
 
+def test_workspaces_update_size_delete_and_delete_file() -> None:
+    http = FakeSyncHttp(
+        [{**_workspace_info(), "name": None}, {"usedBytes": 10, "maxBytes": 100}, {}, {}]
+    )
+    workspaces = Workspaces(http)  # type: ignore[arg-type]
+
+    updated = workspaces.update(WORKSPACE_ID, name=None)
+    size = workspaces.size(WORKSPACE_ID)
+    workspaces.delete_file(WORKSPACE_ID, path="uploads/data.csv")
+    workspaces.delete(WORKSPACE_ID)
+
+    assert updated.name is None
+    assert size.used_bytes == 10
+    assert http.calls[0][2] == {"name": None}
+    assert http.calls[2][3] == {"path": "uploads/data.csv"}
+    assert http.calls[3][:2] == ("DELETE", f"/workspaces/{WORKSPACE_ID}")
+
+
 def test_workspaces_upload_files_presign() -> None:
     http = FakeSyncHttp([{"files": [_upload_item()]}])
     workspaces = Workspaces(http)  # type: ignore[arg-type]
@@ -367,7 +402,10 @@ def test_workspaces_upload_files_presign() -> None:
 
     method, path, body, _ = http.calls[0]
     assert (method, path) == ("POST", f"/workspaces/{WORKSPACE_ID}/files/upload")
-    assert body == {"files": [{"name": "data.csv", "contentType": "text/csv", "size": 3}]}
+    assert body == {
+        "files": [{"name": "data.csv", "contentType": "text/csv", "size": 3}],
+        "allowOverrides": True,
+    }
     assert str(resp.files[0].id) == UPLOAD_ID
 
 
