@@ -195,11 +195,12 @@ Model "gemini-3.1-pro" does not support modelParams.thinkingConfig.thinkingLevel
 
 ## Compatibility and API references
 
-The normalized V2/V3 field is optional and nullable. Existing sessions keep
-using provider defaults until a level is supplied. The checked-in generated
-SDK clients do not expose this field yet, so use the REST examples above until
-the follow-up SDK regeneration is released. V4 SDK clients can send
-`modelParams` once their generated V4 type includes the current contract.
+The normalized V2/V3 field is optional and nullable. New sessions use provider
+defaults until a level is supplied. Existing V3 sessions retain their current
+setting when the field is omitted; send `null` to clear it. The checked-in
+generated SDK clients do not expose this field yet, so use the REST examples
+above until the follow-up SDK regeneration is released. V4 SDK clients can
+send `modelParams` once their generated V4 type includes the current contract.
 
 <CardGroup cols={3}>
   <Card title="V4 create run" icon="code" href="/cloud/api-v4/runs/create-run">
