@@ -9,6 +9,7 @@ from ...generated.v3.models import (
     BrowserSessionItemView,
     BrowserSessionListResponse,
     BrowserSessionView,
+    CustomProxy,
 )
 
 if TYPE_CHECKING:
@@ -28,6 +29,7 @@ class Browsers:
         browser_screen_width: int | None = None,
         browser_screen_height: int | None = None,
         allow_resizing: bool | None = None,
+        custom_proxy: CustomProxy | None = None,
         enable_recording: bool | None = None,
         **extra: Any,
     ) -> BrowserSessionItemView:
@@ -45,6 +47,10 @@ class Browsers:
             body["browserScreenHeight"] = browser_screen_height
         if allow_resizing is not None:
             body["allowResizing"] = allow_resizing
+        if custom_proxy is not None:
+            body["customProxy"] = custom_proxy.model_dump(
+                by_alias=True, exclude_none=True
+            )
         if enable_recording is not None:
             body["enableRecording"] = enable_recording
         body.update(extra)
@@ -55,15 +61,22 @@ class Browsers:
     def list(
         self,
         *,
-        page: int | None = None,
         page_size: int | None = None,
+        page_number: int | None = None,
+        filter_by: str | None = None,
+        agent_session_id: str | None = None,
     ) -> BrowserSessionListResponse:
         """List browser sessions for the authenticated project."""
         return BrowserSessionListResponse.model_validate(
             self._http.request(
                 "GET",
                 "/browsers",
-                params={"page": page, "page_size": page_size},
+                params={
+                    "pageSize": page_size,
+                    "pageNumber": page_number,
+                    "filterBy": filter_by,
+                    "agentSessionId": agent_session_id,
+                },
             )
         )
 
@@ -120,6 +133,7 @@ class AsyncBrowsers:
         browser_screen_width: int | None = None,
         browser_screen_height: int | None = None,
         allow_resizing: bool | None = None,
+        custom_proxy: CustomProxy | None = None,
         enable_recording: bool | None = None,
         **extra: Any,
     ) -> BrowserSessionItemView:
@@ -137,6 +151,10 @@ class AsyncBrowsers:
             body["browserScreenHeight"] = browser_screen_height
         if allow_resizing is not None:
             body["allowResizing"] = allow_resizing
+        if custom_proxy is not None:
+            body["customProxy"] = custom_proxy.model_dump(
+                by_alias=True, exclude_none=True
+            )
         if enable_recording is not None:
             body["enableRecording"] = enable_recording
         body.update(extra)
@@ -147,15 +165,22 @@ class AsyncBrowsers:
     async def list(
         self,
         *,
-        page: int | None = None,
         page_size: int | None = None,
+        page_number: int | None = None,
+        filter_by: str | None = None,
+        agent_session_id: str | None = None,
     ) -> BrowserSessionListResponse:
         """List browser sessions for the authenticated project."""
         return BrowserSessionListResponse.model_validate(
             await self._http.request(
                 "GET",
                 "/browsers",
-                params={"page": page, "page_size": page_size},
+                params={
+                    "pageSize": page_size,
+                    "pageNumber": page_number,
+                    "filterBy": filter_by,
+                    "agentSessionId": agent_session_id,
+                },
             )
         )
 

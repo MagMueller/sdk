@@ -5,6 +5,8 @@ import type { components } from "../../generated/v4/types.js";
 
 type WorkspaceInfo = components["schemas"]["WorkspaceInfo"];
 type WorkspaceCreateRequest = components["schemas"]["WorkspaceCreateRequest"];
+type WorkspaceUpdateRequest = components["schemas"]["WorkspaceUpdateRequest"];
+type WorkspaceSizeInfo = components["schemas"]["WorkspaceSizeInfo"];
 type WorkspaceFileListResponse = components["schemas"]["WorkspaceFileListResponse"];
 type WorkspaceFileUploadRequest = components["schemas"]["WorkspaceFileUploadRequest"];
 type WorkspaceFileUploadResponse = components["schemas"]["WorkspaceFileUploadResponse"];
@@ -64,6 +66,21 @@ export class Workspaces {
     return this.http.get<WorkspaceInfo>(`/workspaces/${workspaceId}`);
   }
 
+  /** Rename a workspace; pass `name: null` to clear its name. */
+  update(workspaceId: string, body: WorkspaceUpdateRequest): Promise<WorkspaceInfo> {
+    return this.http.patch<WorkspaceInfo>(`/workspaces/${workspaceId}`, body);
+  }
+
+  /** Archive a workspace. */
+  delete(workspaceId: string): Promise<void> {
+    return this.http.delete<void>(`/workspaces/${workspaceId}`);
+  }
+
+  /** Get current storage usage and the workspace quota. */
+  size(workspaceId: string): Promise<WorkspaceSizeInfo> {
+    return this.http.get<WorkspaceSizeInfo>(`/workspaces/${workspaceId}/size`);
+  }
+
   /** List files in a workspace with cursor-based pagination. */
   files(workspaceId: string, params?: WorkspaceFilesParams): Promise<WorkspaceFileListResponse> {
     return this.http.get<WorkspaceFileListResponse>(
@@ -78,6 +95,11 @@ export class Workspaces {
       `/workspaces/${workspaceId}/files/upload`,
       body,
     );
+  }
+
+  /** Delete one exact path from a workspace. */
+  deleteFile(workspaceId: string, path: string): Promise<void> {
+    return this.http.delete<void>(`/workspaces/${workspaceId}/files`, { path });
   }
 
   /**
@@ -108,7 +130,7 @@ export class Workspaces {
         size: (await stat(p)).size,
       })),
     );
-    const resp = await this.uploadFiles(workspaceId, { files: items });
+    const resp = await this.uploadFiles(workspaceId, { files: items, allowOverrides: true });
     if (resp.files.length < items.length) {
       const missing = items
         .slice(resp.files.length)

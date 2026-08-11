@@ -12,6 +12,7 @@ from ..generated.v3.models import (
     BrowserSessionStatus,
     BrowserSessionUpdateAction,
     BrowserSessionView,
+    CustomProxy,
     BuAgentSessionStatus,
     BuModel,
     PlanInfo,
@@ -28,11 +29,12 @@ from ..generated.v3.models import (
     MessageListResponse,
     MessageResponse,
     ProxyCountryCode,
-    AppEndpointsApiV3SessionsViewsRunTaskRequest as RunTaskRequest,
+    RunTaskRequest,
     SessionListResponse,
     SessionResponse,
     StopSessionRequest,
     StopStrategy,
+    ThinkingLevel,
     WorkspaceCreateRequest,
     WorkspaceListResponse,
     WorkspaceUpdateRequest,
@@ -59,6 +61,7 @@ __all__ = [
     "BrowserSessionStatus",
     "BrowserSessionUpdateAction",
     "BrowserSessionView",
+    "CustomProxy",
     # Profile models
     "ProfileCreateRequest",
     "ProfileListResponse",
@@ -85,6 +88,7 @@ __all__ = [
     # Enums
     "BuAgentSessionStatus",
     "BuModel",
+    "ThinkingLevel",
     "ProxyCountryCode",
     "StopStrategy",
 ]

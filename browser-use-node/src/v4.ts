@@ -41,6 +41,8 @@ export type QueueListResponse = S["QueueListResponse"];
 // Workspace models
 export type WorkspaceInfo = S["WorkspaceInfo"];
 export type WorkspaceCreateRequest = S["WorkspaceCreateRequest"];
+export type WorkspaceUpdateRequest = S["WorkspaceUpdateRequest"];
+export type WorkspaceSizeInfo = S["WorkspaceSizeInfo"];
 export type WorkspaceFileInfo = S["WorkspaceFileInfo"];
 export type WorkspaceFileListResponse = S["WorkspaceFileListResponse"];
 export type WorkspaceFileUploadItem = S["WorkspaceFileUploadItem"];

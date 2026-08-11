@@ -14,6 +14,14 @@ export interface paths {
         /**
          * List Sessions
          * @description List sessions for the authenticated project.
+         *
+         *     List responses intentionally omit per-session presigned URLs
+         *     (`screenshot_url`, `recording_urls`). Each presign is a synchronous boto3
+         *     SigV4 signing call that holds the GIL and blocks the event loop. With
+         *     page_size up to 100 this CPU-pegs the worker and starves the DB pool,
+         *     cascading into pool exhaustion across the fleet. Clients should fetch
+         *     these URLs on demand via `GET /api/v3/sessions/{id}`, which signs exactly
+         *     one screenshot URL plus any recording URLs for a single session.
          */
         get: operations["list_sessions_sessions_get"];
         put?: never;
@@ -113,6 +121,15 @@ export interface paths {
         /**
          * List Browser Sessions
          * @description Get paginated list of browser sessions with optional status filtering.
+         *
+         *     List responses intentionally omit per-session presigned recording URLs
+         *     (`recording_url` is always `null` here). Each recording URL requires a
+         *     synchronous boto3 SigV4 signing call (plus an S3 HEAD) that holds the GIL
+         *     and blocks the event loop. With page_size up to the max this CPU-pegs the
+         *     worker and starves the DB pool, cascading into pool exhaustion across the
+         *     fleet. Clients should fetch the recording URL on demand via
+         *     `GET /api/v2/browsers/{id}`, which signs exactly one URL for a single
+         *     session. Mirrors the v3 sessions list fix (ENG-4904, PR #4621).
          */
         get: operations["list_browser_sessions_browsers_get"];
         put?: never;
@@ -390,64 +407,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/boxes/sizes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Box Sizes
-         * @description Public catalog of available box sizes for the deploy picker.
-         *
-         *     Static data — no auth, no DB. Lives server-side (instead of being
-         *     hardcoded in the frontend) so re-tiering or running a promo is a
-         *     one-file edit in `sizing.py` with no frontend redeploy needed.
-         */
-        get: operations["list_box_sizes_boxes_sizes_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/trial-eligibility": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Trial Eligibility
-         * @description Tell the FE whether to render a 'try free for 7 days' CTA.
-         *
-         *     Account-scoped — any user (free-tier or paid) without a prior
-         *     `bux_trial_started_at` stamp is eligible for one free 7-day trial.
-         *
-         *     Returns a tagged answer:
-         *       - eligible=True   → show the trial CTA on the empty-state.
-         *       - eligible=False, reason='already_used' → show "trial used,
-         *         upgrade to deploy".
-         *       - eligible=False, reason='no_owner' → fallback for older projects
-         *         we can't resolve an owner for; FE shows generic "add credits".
-         *
-         *     Cheap call: one profile lookup. The FE polls /me + /sizes already,
-         *     this is one more cheap GET on the deploy page.
-         */
-        get: operations["get_trial_eligibility_boxes_me_trial_eligibility_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes": {
+    "/x402/balance": {
         parameters: {
             query?: never;
             header?: never;
@@ -457,431 +417,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Provision Box
-         * @description Provision a new box for the authenticated project.
-         *
-         *     Idempotent-ish: if a live box already exists, returns 409. After `bux down`,
-         *     the row is reused (preserving profile_id + size — the user's previous
-         *     choice carries over unless they explicitly pass a new `size`).
-         *
-         *     Requires a paying / comped project. Free-tier projects are rejected
-         *     with 402. Min-balance scales by size ($5 / $10 / $20 for small /
-         *     medium / large) so users with ~5 days of runway can deploy. See
-         *     `common/models/bux/sizing.py`.
+         * X402 Balance
+         * @description Read a wallet-derived project's credit balance auth by off-chain wallet signature
          */
-        post: operations["provision_box_boxes_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get My Box
-         * @description Return the current box for the authenticated project. 404 if none.
-         */
-        get: operations["get_my_box_boxes_me_get"];
-        put?: never;
-        post?: never;
-        /**
-         * Destroy My Box
-         * @description Terminate the EC2. Profile persists. Row is kept so `bux up` can reuse it.
-         */
-        delete: operations["destroy_my_box_boxes_me_delete"];
-        options?: never;
-        head?: never;
-        /**
-         * Patch My Box
-         * @description Update box flags. Currently only dsp_enabled (dangerously skip permissions).
-         *
-         *     The flag is persisted in DB and pushed to the box-agent over WS so the
-         *     *next* shell launch picks it up. Existing terminal sessions keep their
-         *     original setting until the user closes and reopens.
-         */
-        patch: operations["patch_my_box_boxes_me_patch"];
-        trace?: never;
-    };
-    "/boxes/me/resize": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Resize My Box
-         * @description Resize the project's box to a larger tier (upgrade-only).
-         *
-         *     The actual stop → modify → start dance runs in a background task; this
-         *     handler returns immediately with status=RESIZING. The FE polls /me to
-         *     watch the box flip back to READY when the new instance is up. Takes
-         *     ~60-90s end-to-end (stop ~30s, start ~30s, growpart instant).
-         *
-         *     Constraints enforced here:
-         *       - new size must be a known tier
-         *       - new size must be strictly larger than current (downsize → 400)
-         *       - box must be in READY state (otherwise → 409)
-         *       - project must clear the eligibility gate at the *new* size's
-         *         min-balance (a small box upgrading to large is now playing by
-         *         large-box rules)
-         */
-        post: operations["resize_my_box_boxes_me_resize_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/restart": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Restart My Box
-         * @description Restart a box without destroying it.
-         *
-         *     The escape hatch from ERROR — before this endpoint, a box with a
-         *     stale heartbeat (CPU spike / OOM / agent crash) could only be
-         *     destroyed by the user, which loses the EBS volume and forces a
-         *     fresh setup. Now the user can:
-         *
-         *       - mode=service (default): SSM `systemctl restart bux-tg`. ~5s.
-         *         Fixes most cases (agent process crash, wedged long-poll).
-         *       - mode=reboot: AWS rebootInstances. ~30-60s. Public IP and EBS
-         *         preserved (only resize/upgrade changes the IP). Fallback for
-         *         kernel-hung / SSM-unreachable boxes.
-         *
-         *     Allowed when status is READY or ERROR. PROVISIONING / RESIZING /
-         *     AWAITING_OAUTH / DESTROYED → 409 (no instance to restart, or a
-         *     long-running operation is already in flight).
-         *
-         *     Returns the box view; status is unchanged here. The next bux_health
-         *     tick + box-agent heartbeat is what authoritatively flips ERROR →
-         *     READY when the agent comes back up. The FE polls /me to watch.
-         */
-        post: operations["restart_my_box_boxes_me_restart_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/shell": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Get Shell
-         * @description Mint a short-lived terminal URL. User opens it in a browser → live shell.
-         *
-         *     `launch` controls what runs when the terminal connects:
-         *       - "bash" (default) → plain login shell.
-         *       - "claude" → auto-run the claude UI; Ctrl+C drops to bash.
-         *
-         *     `w` (optional) selects which tmux window to attach to (e.g. `bux-w2`).
-         *     Defaults to `bux-w1` — the box-agent auto-creates that window on first
-         *     attach so single-window callers see no behavior change.
-         */
-        post: operations["get_shell_boxes_me_shell_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/windows": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Windows List */
-        get: operations["windows_list_boxes_me_windows_get"];
-        put?: never;
-        /** Windows Create */
-        post: operations["windows_create_boxes_me_windows_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/windows/{window_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Windows Delete */
-        delete: operations["windows_delete_boxes_me_windows__window_id__delete"];
-        options?: never;
-        head?: never;
-        /** Windows Rename */
-        patch: operations["windows_rename_boxes_me_windows__window_id__patch"];
-        trace?: never;
-    };
-    "/boxes/me/run": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Run Task
-         * @description Fire a one-shot `claude -p "<prompt>"` on the box. Streams output as SSE.
-         *
-         *     Events:
-         *       - data: {"chunk": "..."}      — stdout chunks
-         *       - event: done, data: {"rc": 0} — final exit code
-         */
-        post: operations["run_task_boxes_me_run_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/update": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Update Box Agent
-         * @description Tell the box-agent to git-pull + restart from the OSS repo.
-         *
-         *     Default `branch` is whatever the box is currently tracking (the agent
-         *     resolves it from `git rev-parse --abbrev-ref HEAD`); pass `branch=main`
-         *     or `branch=stable` to switch tracks.
-         *
-         *     Returns the old + new SHA so the FE can show "updated to a3f9c1d".
-         *     The agent restarts itself at the tail of the update — the next hello
-         *     will report the new version. We wait up to 90s for the update_result
-         *     reply since git fetch + bootstrap.sh can stretch on slow networks.
-         */
-        post: operations["update_box_agent_boxes_me_update_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/tg": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Tg Install
-         * @description Install a Telegram bot on the box. Returns a deeplink the user taps to pair.
-         */
-        post: operations["tg_install_boxes_me_tg_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/tg/auto": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Tg Auto Start
-         * @description Kick off the QR-scan + scripted-CDP Telegram bot creation flow.
-         *
-         *     Idempotent: if a non-terminal QR session already exists for this box,
-         *     returns it instead of spawning another browser. The FE keeps polling
-         *     `GET /me/tg/auto/{id}` until the session reaches a terminal state.
-         *
-         *     No external BU Cloud API key is needed — the orchestrator provisions
-         *     the chromium VM via the cloud's internal browser service, which auths
-         *     via app_config.use_browser_api_key (already set in every env).
-         */
-        post: operations["tg_auto_start_boxes_me_tg_auto_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/tg/auto/{qr_session_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Tg Auto Status
-         * @description Poll a running QR session. Read-only — never advances the state
-         *     machine. Tenant-scoped: 404 if the session isn't owned by this project.
-         */
-        get: operations["tg_auto_status_boxes_me_tg_auto__qr_session_id__get"];
-        put?: never;
-        post?: never;
-        /**
-         * Tg Auto Cancel
-         * @description User-initiated cancel. Marks the session failed/cancelled; the
-         *     driver task observes the terminal state on its next poll and exits its
-         *     finally-block (which stops the chromium VM).
-         */
-        delete: operations["tg_auto_cancel_boxes_me_tg_auto__qr_session_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/claude-login/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Claude Login Start
-         * @description Kick off a guided claude /login flow on the box.
-         *
-         *     Box-agent forks `claude /login` as a pty subprocess, drives the
-         *     OAuth picker, and ships the URL back over WS. The FE polls
-         *     GET /me/claude-login/state and shows the URL as a tappable link
-         *     + a paste box for the OAuth callback code.
-         *
-         *     Calling this again kills any in-flight attempt and starts fresh.
-         *     The user can also bail via POST /me/claude-login/cancel.
-         */
-        post: operations["claude_login_start_boxes_me_claude_login_start_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/claude-login/state": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Claude Login State Get
-         * @description Poll-based view of the active /login flow's state.
-         */
-        get: operations["claude_login_state_get_boxes_me_claude_login_state_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/claude-login/code": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Claude Login Code
-         * @description Pump the OAuth callback code into the box's pty stdin.
-         *
-         *     No real validation here — claude itself surfaces "invalid code"
-         *     on the next pty stdout line, which our claude_login_failed event
-         *     captures.
-         */
-        post: operations["claude_login_code_boxes_me_claude_login_code_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/me/claude-login/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Claude Login Cancel */
-        post: operations["claude_login_cancel_boxes_me_claude_login_cancel_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/boxes/terminal/{token}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Terminal Page
-         * @description HTML page the user opens in their browser → xterm.js terminal.
-         *
-         *     Renders the current window_id into a script tag so the JS knows
-         *     which tab is "active" without an extra round-trip. We don't render
-         *     the full window list here — the JS asks the parent for that on
-         *     mount via the bux-react postMessage protocol, so the list always
-         *     reflects the latest state (a tab created in another browser session
-         *     since the URL was minted shows up immediately).
-         */
-        get: operations["terminal_page_boxes_terminal__token__get"];
-        put?: never;
-        post?: never;
+        post: operations["x402_balance_x402_balance_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -950,151 +489,6 @@ export interface components {
              * @description The ID of the project
              */
             projectId: string;
-        };
-        /** BoxCreateRequest */
-        BoxCreateRequest: {
-            /** Profile Id */
-            profile_id?: string | null;
-            /** Size */
-            size?: ("small" | "medium" | "large") | null;
-        };
-        /** BoxCreateResponse */
-        BoxCreateResponse: {
-            box: components["schemas"]["BoxView"];
-        };
-        /** BoxPatchRequest */
-        BoxPatchRequest: {
-            /** Dsp Enabled */
-            dsp_enabled?: boolean | null;
-        };
-        /**
-         * BoxResizeRequest
-         * @description Resize an existing box to a larger tier.
-         *
-         *     Upgrade-only: the backend rejects requests where `size` isn't strictly
-         *     larger than the box's current size. Downsize → 400 with a hint to
-         *     destroy + redeploy. Same size → 409 (idempotent failure — no work to do).
-         */
-        BoxResizeRequest: {
-            /**
-             * Size
-             * @enum {string}
-             */
-            size: "small" | "medium" | "large";
-        };
-        /**
-         * BoxRestartMode
-         * @description How aggressive a /me/restart should be.
-         *
-         *     `service` — fastest, fixes ~95% of cases (agent process crash, OOM,
-         *       wedged TG long-poll). SSM `systemctl restart bux-tg`. ~5s.
-         *     `reboot`  — fallback for kernel-hung / SSM-unreachable boxes. AWS
-         *       rebootInstances. ~30-60s. IP + EBS preserved.
-         * @enum {string}
-         */
-        BoxRestartMode: "service" | "reboot";
-        /** BoxRestartRequest */
-        BoxRestartRequest: {
-            /** @default service */
-            mode: components["schemas"]["BoxRestartMode"];
-        };
-        /**
-         * BoxSizeListResponse
-         * @description Catalog of available size tiers, returned to the deploy picker.
-         *
-         *     Keeping the list server-side (instead of hardcoding prices in the
-         *     frontend) means the day we re-tier or run a promo, we don't have
-         *     to ship a frontend deploy. Just edit `sizing.py`.
-         */
-        BoxSizeListResponse: {
-            /** Sizes */
-            sizes: components["schemas"]["BoxSizeSpecView"][];
-            /**
-             * Default
-             * @enum {string}
-             */
-            default: "small" | "medium" | "large";
-        };
-        /**
-         * BoxSizeSpecView
-         * @description User-visible spec sheet for one size tier. Returned alongside
-         *     BoxView so the UI can render the tooltip ("2 vCPU · 4 GB · 20 GB")
-         *     without a second round trip + so the picker on /bux can show all
-         *     three rows without us hardcoding prices in the frontend.
-         */
-        BoxSizeSpecView: {
-            /**
-             * Name
-             * @enum {string}
-             */
-            name: "small" | "medium" | "large";
-            /** Vcpu */
-            vcpu: number;
-            /** Ram Gb */
-            ram_gb: number;
-            /** Disk Gb */
-            disk_gb: number;
-            /** Daily Usd */
-            daily_usd: number;
-            /** Min Balance Usd */
-            min_balance_usd: number;
-        };
-        /**
-         * BoxStatus
-         * @enum {string}
-         */
-        BoxStatus: "provisioning" | "awaiting_oauth" | "ready" | "resizing" | "error" | "halted" | "destroyed";
-        /** BoxView */
-        BoxView: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * Project Id
-             * Format: uuid
-             */
-            project_id: string;
-            /** Profile Id */
-            profile_id: string | null;
-            /**
-             * Size
-             * @enum {string}
-             */
-            size: "small" | "medium" | "large";
-            size_spec: components["schemas"]["BoxSizeSpecView"];
-            /** Ec2 Instance Id */
-            ec2_instance_id: string | null;
-            /** Public Ip */
-            public_ip: string | null;
-            status: components["schemas"]["BoxStatus"];
-            /** Status Detail */
-            status_detail: string | null;
-            /** Claude Authed */
-            claude_authed: boolean;
-            /** Tg Installed */
-            tg_installed: boolean;
-            /** Tg Bot Username */
-            tg_bot_username: string | null;
-            /** Dsp Enabled */
-            dsp_enabled: boolean;
-            /** Live Browser Url */
-            live_browser_url: string | null;
-            /** Last Heartbeat At */
-            last_heartbeat_at: string | null;
-            /** Trial Ends At */
-            trial_ends_at?: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
         };
         /**
          * BrowserDownloadFile
@@ -1213,7 +607,7 @@ export interface components {
             agentSessionId?: string | null;
             /**
              * Recording URL
-             * @description Presigned URL to download the session recording (available after session ends, if recording was enabled)
+             * @description Presigned URL to download the session recording. Only populated on `GET /api/v2/browsers/{id}`; always `null` in list responses.
              */
             recordingUrl?: string | null;
         };
@@ -1330,7 +724,7 @@ export interface components {
             agentSessionId?: string | null;
             /**
              * Recording URL
-             * @description Presigned URL to download the session recording (available after session ends, if recording was enabled)
+             * @description Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response.
              */
             recordingUrl?: string | null;
         };
@@ -1352,18 +746,22 @@ export interface components {
          * @description The model to use for the agent. Each model has different capabilities and pricing.
          *
          *     - `bu-mini` / `gemini-3-flash`: Gemini 3 Flash — fast and cost-effective. Best for simple, well-defined tasks like form filling or data extraction.
-         *     - `bu-max` / `claude-sonnet-4.6`: Claude Sonnet 4.6 — balanced performance. Best for multi-step workflows that require reasoning and decision-making.
+         *     - `bu-max` / `claude-sonnet-4.6` (legacy aliases) / `claude-sonnet-5`: Claude Sonnet 5 — balanced performance. Best for multi-step workflows that require reasoning and decision-making.
          *     - `bu-ultra` / `claude-opus-4.6`: Claude Opus 4.6 — capable general-purpose Opus tier.
          *     - `claude-opus-4.7`: Claude Opus 4.7 — most capable. Best for complex tasks that require advanced reasoning, long-horizon planning, or handling ambiguous instructions.
+         *     - `claude-opus-4.8`: Claude Opus 4.8 — most capable Opus-tier model, state-of-the-art on long-horizon agentic work.
          *     - `gpt-5.4-mini`: GPT-5.4 mini — OpenAI's fast and efficient model. Best for tasks that benefit from OpenAI's capabilities.
+         *     - `glm-5.2`: Z.ai GLM 5.2 — capable, low-cost open model. Best for cost-sensitive agentic tasks.
+         *     - `minimax-m3`: MiniMax M3 — fast, very low-cost model. Best for simple, high-volume tasks.
+         *
+         *     Additional provider models (e.g. `gemini-3.5-flash`, `gpt-5.2`, and `gpt-5-mini`)
+         *     are selectable only with `use_own_key=true`, where your own provider key serves
+         *     them. The GPT-5.6 family is native when either Browser Use's direct OpenAI key
+         *     or Amazon Bedrock route is configured. GPT-5.5 becomes native only through the
+         *     Bedrock rollout.
          * @enum {string}
          */
-        BuModel: "bu-mini" | "bu-max" | "bu-ultra" | "gemini-3-flash" | "claude-sonnet-4.6" | "claude-opus-4.6" | "claude-opus-4.7" | "gpt-5.4-mini";
-        /** ClaudeLoginCodeRequest */
-        ClaudeLoginCodeRequest: {
-            /** Code */
-            code: string;
-        };
+        BuModel: "bu-mini" | "bu-max" | "bu-ultra" | "gemini-3-flash" | "claude-opus-4.6" | "claude-opus-4.7" | "claude-sonnet-5" | "claude-opus-4.8" | "gpt-5.4-mini" | "glm-5.2" | "minimax-m3" | "claude-haiku-4.5" | "gpt-5.2" | "gpt-5-mini" | "gpt-5.5" | "gpt-5.6-sol" | "gpt-5.6-terra" | "gpt-5.6-luna" | "gemini-3-pro" | "gemini-3.1-pro" | "gemini-3.5-flash";
         /**
          * CreateBrowserSessionRequest
          * @description Request model for creating a browser session.
@@ -1795,11 +1193,131 @@ export interface components {
          * ProxyCountryCode
          * @enum {string}
          */
-        ProxyCountryCode: "ad" | "ae" | "af" | "ag" | "ai" | "al" | "am" | "an" | "ao" | "aq" | "ar" | "as" | "at" | "au" | "aw" | "az" | "ba" | "bb" | "bd" | "be" | "bf" | "bg" | "bh" | "bi" | "bj" | "bl" | "bm" | "bn" | "bo" | "bq" | "br" | "bs" | "bt" | "bv" | "bw" | "by" | "bz" | "ca" | "cc" | "cd" | "cf" | "cg" | "ch" | "ck" | "cl" | "cm" | "co" | "cr" | "cs" | "cu" | "cv" | "cw" | "cx" | "cy" | "cz" | "de" | "dj" | "dk" | "dm" | "do" | "dz" | "ec" | "ee" | "eg" | "eh" | "er" | "es" | "et" | "fi" | "fj" | "fk" | "fm" | "fo" | "fr" | "ga" | "gd" | "ge" | "gf" | "gg" | "gh" | "gi" | "gl" | "gm" | "gn" | "gp" | "gq" | "gr" | "gs" | "gt" | "gu" | "gw" | "gy" | "hk" | "hm" | "hn" | "hr" | "ht" | "hu" | "id" | "ie" | "il" | "im" | "in" | "iq" | "ir" | "is" | "it" | "je" | "jm" | "jo" | "jp" | "ke" | "kg" | "kh" | "ki" | "km" | "kn" | "kp" | "kr" | "kw" | "ky" | "kz" | "la" | "lb" | "lc" | "li" | "lk" | "lr" | "ls" | "lt" | "lu" | "lv" | "ly" | "ma" | "mc" | "md" | "me" | "mf" | "mg" | "mh" | "mk" | "ml" | "mm" | "mn" | "mo" | "mp" | "mq" | "mr" | "ms" | "mt" | "mu" | "mv" | "mw" | "mx" | "my" | "mz" | "na" | "nc" | "ne" | "nf" | "ng" | "ni" | "nl" | "no" | "np" | "nr" | "nu" | "nz" | "om" | "pa" | "pe" | "pf" | "pg" | "ph" | "pk" | "pl" | "pm" | "pn" | "pr" | "ps" | "pt" | "pw" | "py" | "qa" | "re" | "ro" | "rs" | "ru" | "rw" | "sa" | "sb" | "sc" | "sd" | "se" | "sg" | "sh" | "si" | "sj" | "sk" | "sl" | "sm" | "sn" | "so" | "sr" | "ss" | "st" | "sv" | "sx" | "sy" | "sz" | "tc" | "td" | "tf" | "tg" | "th" | "tj" | "tk" | "tl" | "tm" | "tn" | "to" | "tr" | "tt" | "tv" | "tw" | "tz" | "ua" | "ug" | "uk" | "us" | "uy" | "uz" | "va" | "vc" | "ve" | "vg" | "vi" | "vn" | "vu" | "wf" | "ws" | "xk" | "ye" | "yt" | "za" | "zm" | "zw";
-        /** RunTaskRequest */
+        ProxyCountryCode: "ad" | "ae" | "af" | "ag" | "ai" | "al" | "am" | "an" | "ao" | "aq" | "ar" | "as" | "at" | "au" | "aw" | "az" | "ba" | "bb" | "bd" | "be" | "bf" | "bg" | "bh" | "bi" | "bj" | "bl" | "bm" | "bn" | "bo" | "bq" | "br" | "bs" | "bt" | "bv" | "bw" | "by" | "bz" | "ca" | "cc" | "cd" | "cf" | "cg" | "ch" | "ci" | "ck" | "cl" | "cm" | "co" | "cr" | "cs" | "cu" | "cv" | "cw" | "cx" | "cy" | "cz" | "de" | "dj" | "dk" | "dm" | "do" | "dz" | "ec" | "ee" | "eg" | "eh" | "er" | "es" | "et" | "fi" | "fj" | "fk" | "fm" | "fo" | "fr" | "ga" | "gd" | "ge" | "gf" | "gg" | "gh" | "gi" | "gl" | "gm" | "gn" | "gp" | "gq" | "gr" | "gs" | "gt" | "gu" | "gw" | "gy" | "hk" | "hm" | "hn" | "hr" | "ht" | "hu" | "id" | "ie" | "il" | "im" | "in" | "iq" | "ir" | "is" | "it" | "je" | "jm" | "jo" | "jp" | "ke" | "kg" | "kh" | "ki" | "km" | "kn" | "kp" | "kr" | "kw" | "ky" | "kz" | "la" | "lb" | "lc" | "li" | "lk" | "lr" | "ls" | "lt" | "lu" | "lv" | "ly" | "ma" | "mc" | "md" | "me" | "mf" | "mg" | "mh" | "mk" | "ml" | "mm" | "mn" | "mo" | "mp" | "mq" | "mr" | "ms" | "mt" | "mu" | "mv" | "mw" | "mx" | "my" | "mz" | "na" | "nc" | "ne" | "nf" | "ng" | "ni" | "nl" | "no" | "np" | "nr" | "nu" | "nz" | "om" | "pa" | "pe" | "pf" | "pg" | "ph" | "pk" | "pl" | "pm" | "pn" | "pr" | "ps" | "pt" | "pw" | "py" | "qa" | "re" | "ro" | "rs" | "ru" | "rw" | "sa" | "sb" | "sc" | "sd" | "se" | "sg" | "sh" | "si" | "sj" | "sk" | "sl" | "sm" | "sn" | "so" | "sr" | "ss" | "st" | "sv" | "sx" | "sy" | "sz" | "tc" | "td" | "tf" | "tg" | "th" | "tj" | "tk" | "tl" | "tm" | "tn" | "to" | "tr" | "tt" | "tv" | "tw" | "tz" | "ua" | "ug" | "uk" | "us" | "uy" | "uz" | "va" | "vc" | "ve" | "vg" | "vi" | "vn" | "vu" | "wf" | "ws" | "xk" | "ye" | "yt" | "za" | "zm" | "zw";
+        /**
+         * RunTaskRequest
+         * @description Create a new session, dispatch a task, or both.
+         *
+         *     - **No `sessionId` + no `task`**: creates an idle session (useful for uploading files before running a task).
+         *     - **No `sessionId` + `task`**: creates a new session and immediately runs the task.
+         *     - **`sessionId` + `task`**: dispatches the task to an existing idle session.
+         *     - **`sessionId` + no `task`**: returns 422 — a task is required when targeting an existing session.
+         */
         RunTaskRequest: {
-            /** Prompt */
-            prompt: string;
+            /**
+             * Task
+             * @description The natural-language instruction for the agent to execute (e.g. "Go to amazon.com and find the best-rated wireless mouse under $50"). Required when dispatching to an existing session.
+             */
+            task?: string | null;
+            /**
+             * @description The model to use. "gemini-3-flash" is fast and cheap, "claude-sonnet-5" is balanced, "claude-opus-4.7" is most capable (default), and "claude-opus-4.8" is the newest Opus-tier model. GPT-5.6 models are Browser Use native models when either direct OpenAI or Amazon Bedrock routing is configured; otherwise they require use_own_key=true. GPT-5.5 becomes native when Bedrock routing is enabled; otherwise it requires use_own_key=true. Other additional provider models (e.g. "gemini-3.5-flash" and "gpt-5.2") require use_own_key=true. See BuModel for details.
+             * @default claude-opus-4.7
+             */
+            model: components["schemas"]["BuModel"];
+            /** @description Optional model reasoning depth. Omit this field to preserve the model provider default. Supported values depend on the selected model: most supported Claude models and GPT-5.1+ models support disabled/low/medium/high; Gemini Flash models support all four (disabled maps to Gemini's minimal level); Claude Fable 5, earlier GPT-5 models, Gemini 2.5 Pro, o3/o4, and Grok support low/medium/high; Gemini 3.1 Pro supports low/high; GLM supports disabled/high. Unsupported model/level combinations are rejected. */
+            thinkingLevel?: components["schemas"]["ThinkingLevel"] | null;
+            /**
+             * Sessionid
+             * @description ID of an existing idle session to dispatch the task to. If omitted, a new session is created.
+             */
+            sessionId?: string | null;
+            /**
+             * Keepalive
+             * @description If true, the session stays alive in idle state after the task completes instead of automatically stopping. This lets you dispatch follow-up tasks to the same session, preserving browser state and files.
+             * @default false
+             */
+            keepAlive: boolean;
+            /**
+             * Maxcostusd
+             * @description Maximum total cost in USD allowed for this session. The task will be stopped if this limit is reached. If omitted, a default limit applies (capped by your available balance). When dispatching a follow-up task to an existing session (`sessionId` is set), supplying this value overrides the session's budget for the upcoming dispatch; otherwise the budget is automatically refreshed to current spend + default.
+             */
+            maxCostUsd?: number | string | null;
+            /**
+             * Profileid
+             * @description ID of a browser profile to load into the session. Profiles persist cookies, local storage, and other browser state across sessions. Create profiles via the Profiles API.
+             */
+            profileId?: string | null;
+            /**
+             * Workspaceid
+             * @description ID of a workspace to attach to the session. Workspaces provide persistent file storage that carries across sessions. Create workspaces via the Workspaces API.
+             */
+            workspaceId?: string | null;
+            /**
+             * @description Country code for the browser proxy (e.g. "US", "DE", "JP"). Set to null to disable the proxy. The proxy routes browser traffic through the specified country, useful for accessing geo-restricted content.
+             * @default us
+             */
+            proxyCountryCode: components["schemas"]["ProxyCountryCode"] | null;
+            /**
+             * Browserscreenwidth
+             * @description Custom browser screen width in pixels. Must be set together with browserScreenHeight. When omitted, the browser keeps its own default resolution.
+             */
+            browserScreenWidth?: number | null;
+            /**
+             * Browserscreenheight
+             * @description Custom browser screen height in pixels. Must be set together with browserScreenWidth. When omitted, the browser keeps its own default resolution.
+             */
+            browserScreenHeight?: number | null;
+            /**
+             * Outputschema
+             * @description A JSON Schema that the agent's final output must conform to. When set, the agent will return structured data matching this schema in the `output` field of the response. Example: {"type": "object", "properties": {"price": {"type": "number"}, "title": {"type": "string"}}}.
+             */
+            outputSchema?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Enablescheduledtasks
+             * @description If true, the agent can create scheduled tasks that run on a recurring basis (e.g. "every Monday morning, check my inbox and summarize new emails"). Scheduled tasks are tied to your project and persist beyond the session. Note: all scheduled tasks are visible project-wide, so avoid enabling this in multi-user setups where task isolation is needed.
+             * @default false
+             */
+            enableScheduledTasks: boolean;
+            /**
+             * Sensitivedata
+             * @description Key-value pairs of sensitive data (e.g. passwords, API keys) that the agent can use via secure placeholders. Keys are exposed to the LLM; values are never shown. The agent uses `<secret>key</secret>` placeholders in browser_type_text to securely enter values.
+             */
+            sensitiveData?: {
+                [key: string]: string;
+            } | null;
+            /**
+             * Enablerecording
+             * @description If true, records a video of the browser session. The recording URLs will be available in the `recordingUrls` field of the session response after the task completes.
+             * @default false
+             */
+            enableRecording: boolean;
+            /**
+             * Skills
+             * @description If true, the agent generates and persists reusable skills from completed tasks (saved per-domain in the DB and auto-injected into future runs). Set to false to skip skill generation — useful for privacy-sensitive tasks or to avoid the extra LLM cost.
+             * @default true
+             */
+            skills: boolean;
+            /**
+             * Agentmail
+             * @description If true, provisions a temporary email inbox (via AgentMail) for the session. The email address is available in the `agentmailEmail` field of the session response. Useful for tasks that require email verification or sign-ups.
+             * @default true
+             */
+            agentmail: boolean;
+            /**
+             * Codemode
+             * @description When true, the agent returns structured output with `text` (summary) and `code` (validated Python source) fields instead of free-form text.
+             * @default false
+             */
+            codeMode: boolean;
+            /**
+             * Cachescript
+             * @description Controls deterministic script caching. `null` (default): auto-detected — enabled when the task contains `@{{value}}` brackets and a workspace is attached. `true`: force-enable script caching even without brackets (caches the exact task). `false`: force-disable, even if brackets are present. When active, the first call runs the full agent and saves a reusable script. Subsequent calls with the same task template execute the cached script with $0 LLM cost. Requires workspace_id when enabled. Example: "Get prices from @{{https://example.com}} for @{{electronics}}".
+             */
+            cacheScript?: boolean | null;
+            /**
+             * Useownkey
+             * @description If true, uses your own LLM API key (configured in project settings) instead of Browser Use managed keys. You pay your provider directly for inference; Browser Use charges a reduced orchestration fee (0.2× of provider list prices). If no key is configured for the model's provider, the request is rejected.
+             * @default false
+             */
+            useOwnKey: boolean;
+            /**
+             * Autoheal
+             * @description When cache_script is active, controls whether a lightweight LLM validates the cached script output. If the output looks incorrect (empty, error, wrong structure), the system automatically re-triggers the full agent to generate a new version of the script. Set to false to disable validation and always return the raw script output.
+             * @default true
+             */
+            autoHeal: boolean;
         };
         /** SessionListResponse */
         SessionListResponse: {
@@ -1853,6 +1371,8 @@ export interface components {
             status: components["schemas"]["BuAgentSessionStatus"];
             /** @description The model tier used for this session. */
             model: components["schemas"]["BuModel"];
+            /** @description Configured model reasoning depth for this session, or null when provider defaults are used. */
+            thinkingLevel?: components["schemas"]["ThinkingLevel"] | null;
             /**
              * Title
              * @description Auto-generated short title summarizing the task. Available after the task starts running.
@@ -1893,7 +1413,7 @@ export interface components {
             liveUrl?: string | null;
             /**
              * Recordingurls
-             * @description URLs to download session recordings. Only populated if `enableRecording` was set to true and the task has completed.
+             * @description URLs to download session recordings. Only populated on `GET /api/v3/sessions/{id}`; always `[]` in list responses.
              * @default []
              */
             recordingUrls: string[];
@@ -1909,6 +1429,16 @@ export interface components {
             workspaceId?: string | null;
             /** @description Country code of the proxy used for this session, or null if no proxy. */
             proxyCountryCode?: components["schemas"]["ProxyCountryCode"] | null;
+            /**
+             * Browserscreenwidth
+             * @description Custom browser screen width set for this session, or null for the default.
+             */
+            browserScreenWidth?: number | null;
+            /**
+             * Browserscreenheight
+             * @description Custom browser screen height set for this session, or null for the default.
+             */
+            browserScreenHeight?: number | null;
             /**
              * Maxcostusd
              * @description Maximum cost limit in USD set for this session.
@@ -1958,7 +1488,7 @@ export interface components {
             totalCostUsd: string;
             /**
              * Screenshoturl
-             * @description URL of the latest browser screenshot. This is a presigned URL that expires after 5 minutes. A new URL is generated each time you fetch the session.
+             * @description Presigned URL of the latest screenshot (expires after 5 minutes). Only populated on `GET /api/v3/sessions/{id}`; always `null` in list responses.
              */
             screenshotUrl?: string | null;
             /**
@@ -1995,19 +1525,6 @@ export interface components {
              */
             detail: string;
         };
-        /**
-         * ShellResponse
-         * @description Terminal URL — user opens this in their browser, gets a live shell.
-         */
-        ShellResponse: {
-            /** Url */
-            url: string;
-            /**
-             * Expires In Seconds
-             * @default 900
-             */
-            expires_in_seconds: number;
-        };
         /** StopSessionRequest */
         StopSessionRequest: {
             /**
@@ -2025,65 +1542,12 @@ export interface components {
          * @enum {string}
          */
         StopStrategy: "task" | "session";
-        /** TelegramInstallRequest */
-        TelegramInstallRequest: {
-            /** Bot Token */
-            bot_token: string;
-        };
-        /** TelegramInstallResponse */
-        TelegramInstallResponse: {
-            /** Installed */
-            installed: boolean;
-            /** Bot Username */
-            bot_username: string;
-            /** Deeplink */
-            deeplink: string;
-            /** Setup Token */
-            setup_token: string;
-        };
         /**
-         * TgAutoSessionView
-         * @description Snapshot of a QR onboarding session. Returned by start, status, and
-         *     cancel — same shape so the FE renders a single view component.
+         * ThinkingLevel
+         * @description Provider-neutral model reasoning depth.
+         * @enum {string}
          */
-        TgAutoSessionView: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /**
-             * State
-             * @enum {string}
-             */
-            state: "pending_browser" | "waiting_scan" | "login_detected" | "minting" | "installing" | "installed" | "failed" | "expired";
-            /** Live Url */
-            live_url: string | null;
-            /** Bot Username */
-            bot_username: string | null;
-            /** Error Code */
-            error_code: ("bu_cloud_auth" | "bu_cloud_unavailable" | "bu_cloud_rate_limited" | "bu_cloud_timeout" | "scan_timeout" | "agent_dispatch_failed" | "agent_timeout" | "agent_no_output" | "agent_failed" | "invalid_token" | "bot_username_collision" | "rate_limited_botfather" | "box_not_ready" | "tg_already_installed" | "install_telegram_failed" | "box_offline" | "cancelled" | "concurrent_limit" | "internal") | null;
-            /** Error Message */
-            error_message: string | null;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Updated At
-             * Format: date-time
-             */
-            updated_at: string;
-        };
-        /**
-         * TgAutoStartResponse
-         * @description Returned by POST /me/tg/auto. The session is already running by the
-         *     time this returns — frontend opens the iframe and starts polling.
-         */
-        TgAutoStartResponse: {
-            session: components["schemas"]["TgAutoSessionView"];
-        };
+        ThinkingLevel: "disabled" | "low" | "medium" | "high";
         /**
          * TooManyConcurrentActiveSessionsError
          * @description Error response when user has too many concurrent active sessions
@@ -2094,28 +1558,6 @@ export interface components {
              * @default Too many concurrent active sessions. Please wait for one to finish, kill one, or upgrade your plan.
              */
             detail: string;
-        };
-        /**
-         * TrialEligibilityView
-         * @description GET /me/trial-eligibility — is this user eligible for a free trial?
-         *
-         *     Account-scoped — paid users see this too (one free trial per user,
-         *     regardless of payment tier).
-         *
-         *     `reason` is a stable machine-readable code the FE branches on:
-         *       - 'already_used' — user has already started a trial in their
-         *         lifetime. Render an "upgrade to deploy" CTA.
-         *       - 'no_owner' — couldn't resolve the project's owner profile (rare,
-         *         older projects). FE falls back to generic "add credits" copy.
-         *       - None when eligible=True.
-         */
-        TrialEligibilityView: {
-            /** Eligible */
-            eligible: boolean;
-            /** Reason */
-            reason?: ("already_used" | "no_owner") | null;
-            /** Message */
-            message?: string | null;
         };
         /**
          * UpdateBrowserSessionRequest
@@ -2136,50 +1578,6 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
-        };
-        /** WindowCreateRequest */
-        WindowCreateRequest: {
-            /** Label */
-            label?: string | null;
-        };
-        /** WindowListResponse */
-        WindowListResponse: {
-            /** Windows */
-            windows: components["schemas"]["WindowView"][];
-        };
-        /** WindowRenameRequest */
-        WindowRenameRequest: {
-            /** Label */
-            label: string;
-        };
-        /**
-         * WindowView
-         * @description One tmux window on the box. id is the tmux session name (`bux-w<n>`).
-         *
-         *     `label` is a user-supplied name (max 64 chars) stored as a tmux
-         *     per-session option (@bux-label). `attached` is True if any tmux
-         *     client is currently connected to the window. The FE shows a small
-         *     indicator next to attached windows so users know which one a phone
-         *     is currently mirroring.
-         */
-        WindowView: {
-            /** Id */
-            id: string;
-            /**
-             * Label
-             * @default
-             */
-            label: string;
-            /**
-             * Attached
-             * @default false
-             */
-            attached: boolean;
-            /**
-             * Created At
-             * @default 0
-             */
-            created_at: number;
         };
         /**
          * WorkspaceCreateRequest
@@ -2259,117 +1657,54 @@ export interface components {
             updatedAt: string;
         };
         /**
-         * RunTaskRequest
-         * @description Create a new session, dispatch a task, or both.
-         *
-         *     - **No `sessionId` + no `task`**: creates an idle session (useful for uploading files before running a task).
-         *     - **No `sessionId` + `task`**: creates a new session and immediately runs the task.
-         *     - **`sessionId` + `task`**: dispatches the task to an existing idle session.
-         *     - **`sessionId` + no `task`**: returns 422 — a task is required when targeting an existing session.
+         * X402BalanceRequest
+         * @description Wallet-signature auth payload for a free, read-only balance check
          */
-        app__endpoints__api__v3__sessions__views__RunTaskRequest: {
+        X402BalanceRequest: {
             /**
-             * Task
-             * @description The natural-language instruction for the agent to execute (e.g. "Go to amazon.com and find the best-rated wireless mouse under $50"). Required when dispatching to an existing session.
+             * Address
+             * @description EVM wallet address that signed the message (0x...).
              */
-            task?: string | null;
+            address: string;
             /**
-             * @description The model to use. "gemini-3-flash" is fast and cheap, "claude-sonnet-4.6" is balanced, "claude-opus-4.7" is most capable (default). See BuModel for details.
-             * @default claude-opus-4.7
+             * Issued At
+             * @description ISO-8601 UTC timestamp included in the signed message.
              */
-            model: components["schemas"]["BuModel"];
+            issued_at: string;
             /**
-             * Sessionid
-             * @description ID of an existing idle session to dispatch the task to. If omitted, a new session is created.
+             * Nonce
+             * @description Random single-use nonce included in the signed message.
              */
-            sessionId?: string | null;
+            nonce: string;
             /**
-             * Keepalive
-             * @description If true, the session stays alive in idle state after the task completes instead of automatically stopping. This lets you dispatch follow-up tasks to the same session, preserving browser state and files.
-             * @default false
+             * Signature
+             * @description EIP-191 personal_sign signature of the canonical message.
              */
-            keepAlive: boolean;
+            signature: string;
+        };
+        /** X402BalanceResponse */
+        X402BalanceResponse: {
             /**
-             * Maxcostusd
-             * @description Maximum total cost in USD allowed for this session. The task will be stopped if this limit is reached. If omitted, a default limit applies (capped by your available balance). When dispatching a follow-up task to an existing session (`sessionId` is set), supplying this value overrides the session's budget for the upcoming dispatch; otherwise the budget is automatically refreshed to current spend + default.
+             * Wallet
+             * @description Lowercased wallet address (verified from the signature).
              */
-            maxCostUsd?: number | string | null;
+            wallet: string;
             /**
-             * Profileid
-             * @description ID of a browser profile to load into the session. Profiles persist cookies, local storage, and other browser state across sessions. Create profiles via the Profiles API.
+             * Project Id
+             * Format: uuid
+             * @description Wallet-derived project the balance belongs to.
              */
-            profileId?: string | null;
+            project_id: string;
             /**
-             * Workspaceid
-             * @description ID of a workspace to attach to the session. Workspaces provide persistent file storage that carries across sessions. Create workspaces via the Workspaces API.
+             * Total Credits Usd
+             * @description Total spendable credit balance in USD.
              */
-            workspaceId?: string | null;
+            total_credits_usd: number;
             /**
-             * @description Country code for the browser proxy (e.g. "US", "DE", "JP"). Set to null to disable the proxy. The proxy routes browser traffic through the specified country, useful for accessing geo-restricted content.
-             * @default us
+             * Additional Credits Usd
+             * @description Standalone (x402 top-up / one_off) credit balance in USD.
              */
-            proxyCountryCode: components["schemas"]["ProxyCountryCode"] | null;
-            /**
-             * Outputschema
-             * @description A JSON Schema that the agent's final output must conform to. When set, the agent will return structured data matching this schema in the `output` field of the response. Example: {"type": "object", "properties": {"price": {"type": "number"}, "title": {"type": "string"}}}.
-             */
-            outputSchema?: {
-                [key: string]: unknown;
-            } | null;
-            /**
-             * Enablescheduledtasks
-             * @description If true, the agent can create scheduled tasks that run on a recurring basis (e.g. "every Monday morning, check my inbox and summarize new emails"). Scheduled tasks are tied to your project and persist beyond the session. Note: all scheduled tasks are visible project-wide, so avoid enabling this in multi-user setups where task isolation is needed.
-             * @default false
-             */
-            enableScheduledTasks: boolean;
-            /**
-             * Sensitivedata
-             * @description Key-value pairs of sensitive data (e.g. passwords, API keys) that the agent can use via secure placeholders. Keys are exposed to the LLM; values are never shown. The agent uses `<secret>key</secret>` placeholders in browser_type_text to securely enter values.
-             */
-            sensitiveData?: {
-                [key: string]: string;
-            } | null;
-            /**
-             * Enablerecording
-             * @description If true, records a video of the browser session. The recording URLs will be available in the `recordingUrls` field of the session response after the task completes.
-             * @default false
-             */
-            enableRecording: boolean;
-            /**
-             * Skills
-             * @description If true, enables built-in agent skills like Google Sheets integration and file management. Set to false to restrict the agent to browser-only actions.
-             * @default true
-             */
-            skills: boolean;
-            /**
-             * Agentmail
-             * @description If true, provisions a temporary email inbox (via AgentMail) for the session. The email address is available in the `agentmailEmail` field of the session response. Useful for tasks that require email verification or sign-ups.
-             * @default true
-             */
-            agentmail: boolean;
-            /**
-             * Codemode
-             * @description When true, the agent returns structured output with `text` (summary) and `code` (validated Python source) fields instead of free-form text.
-             * @default false
-             */
-            codeMode: boolean;
-            /**
-             * Cachescript
-             * @description Controls deterministic script caching. `null` (default): auto-detected — enabled when the task contains `@{{value}}` brackets and a workspace is attached. `true`: force-enable script caching even without brackets (caches the exact task). `false`: force-disable, even if brackets are present. When active, the first call runs the full agent and saves a reusable script. Subsequent calls with the same task template execute the cached script with $0 LLM cost. Requires workspace_id when enabled. Example: "Get prices from @{{https://example.com}} for @{{electronics}}".
-             */
-            cacheScript?: boolean | null;
-            /**
-             * Useownkey
-             * @description If true, uses your own LLM API key (configured in project settings) instead of Browser Use managed keys. You pay your provider directly for inference; Browser Use charges a reduced orchestration fee (0.2× of provider list prices). If no key is configured for the model's provider, the request is rejected.
-             * @default false
-             */
-            useOwnKey: boolean;
-            /**
-             * Autoheal
-             * @description When cache_script is active, controls whether a lightweight LLM validates the cached script output. If the output looks incorrect (empty, error, wrong structure), the system automatically re-triggers the full agent to generate a new version of the script. Set to false to disable validation and always return the raw script output.
-             * @default true
-             */
-            autoHeal: boolean;
+            additional_credits_usd: number;
         };
     };
     responses: never;
@@ -2423,7 +1758,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["app__endpoints__api__v3__sessions__views__RunTaskRequest"];
+                "application/json": components["schemas"]["RunTaskRequest"];
             };
         };
         responses: {
@@ -2586,6 +1921,7 @@ export interface operations {
                 pageSize?: number;
                 pageNumber?: number;
                 filterBy?: components["schemas"]["BrowserSessionStatus"] | null;
+                agentSessionId?: string | null;
             };
             header?: never;
             path?: never;
@@ -3325,147 +2661,7 @@ export interface operations {
             };
         };
     };
-    list_box_sizes_boxes_sizes_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BoxSizeListResponse"];
-                };
-            };
-        };
-    };
-    get_trial_eligibility_boxes_me_trial_eligibility_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TrialEligibilityView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    provision_box_boxes_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["BoxCreateRequest"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BoxCreateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_my_box_boxes_me_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BoxView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    destroy_my_box_boxes_me_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BoxView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    patch_my_box_boxes_me_patch: {
+    x402_balance_x402_balance_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -3474,7 +2670,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["BoxPatchRequest"];
+                "application/json": components["schemas"]["X402BalanceRequest"];
             };
         };
         responses: {
@@ -3484,572 +2680,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["BoxView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    resize_my_box_boxes_me_resize_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BoxResizeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BoxView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    restart_my_box_boxes_me_restart_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BoxRestartRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BoxView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_shell_boxes_me_shell_post: {
-        parameters: {
-            query?: {
-                launch?: string;
-                w?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ShellResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    windows_list_boxes_me_windows_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WindowListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    windows_create_boxes_me_windows_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WindowCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WindowView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    windows_delete_boxes_me_windows__window_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                window_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    windows_rename_boxes_me_windows__window_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                window_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WindowRenameRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WindowView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    run_task_boxes_me_run_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RunTaskRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_box_agent_boxes_me_update_post: {
-        parameters: {
-            query?: {
-                branch?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    tg_install_boxes_me_tg_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TelegramInstallRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TelegramInstallResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    tg_auto_start_boxes_me_tg_auto_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TgAutoStartResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    tg_auto_status_boxes_me_tg_auto__qr_session_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                qr_session_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TgAutoSessionView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    tg_auto_cancel_boxes_me_tg_auto__qr_session_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                qr_session_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TgAutoSessionView"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    claude_login_start_boxes_me_claude_login_start_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    claude_login_state_get_boxes_me_claude_login_state_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    claude_login_code_boxes_me_claude_login_code_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClaudeLoginCodeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    claude_login_cancel_boxes_me_claude_login_cancel_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    terminal_page_boxes_terminal__token__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/html": string;
+                    "application/json": components["schemas"]["X402BalanceResponse"];
                 };
             };
             /** @description Validation Error */

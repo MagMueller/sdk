@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 
+from ..._core import _UNSET
 from ..._core.http import AsyncHttpClient, SyncHttpClient
 from ...generated.v4.models import (
     WorkspaceFileListResponse,
@@ -14,6 +15,7 @@ from ...generated.v4.models import (
     WorkspaceFileUploadResponse,
     WorkspaceFileUploadResponseItem,
     WorkspaceInfo,
+    WorkspaceSizeInfo,
 )
 
 if TYPE_CHECKING:
@@ -95,6 +97,32 @@ class Workspaces:
             self._http.request("GET", f"/workspaces/{workspace_id}")
         )
 
+    def update(
+        self,
+        workspace_id: str | UUID,
+        *,
+        name: str | None = _UNSET,  # type: ignore[assignment]
+        **extra: Any,
+    ) -> WorkspaceInfo:
+        """Rename a workspace; pass ``name=None`` to clear its name."""
+        body: dict[str, Any] = {}
+        if name is not _UNSET:
+            body["name"] = name
+        body.update(extra)
+        return WorkspaceInfo.model_validate(
+            self._http.request("PATCH", f"/workspaces/{workspace_id}", json=body)
+        )
+
+    def delete(self, workspace_id: str | UUID) -> None:
+        """Archive a workspace."""
+        self._http.request("DELETE", f"/workspaces/{workspace_id}")
+
+    def size(self, workspace_id: str | UUID) -> WorkspaceSizeInfo:
+        """Get current storage usage and the workspace quota."""
+        return WorkspaceSizeInfo.model_validate(
+            self._http.request("GET", f"/workspaces/{workspace_id}/size")
+        )
+
     def files(
         self,
         workspace_id: str | UUID,
@@ -124,11 +152,14 @@ class Workspaces:
         self,
         workspace_id: str | UUID,
         files: list[WorkspaceFileUploadItem],
+        *,
+        allow_overrides: bool = True,
         **extra: Any,
     ) -> WorkspaceFileUploadResponse:
         """Get presigned PUT URLs for workspace file uploads."""
         body: dict[str, Any] = {
             "files": [f.model_dump(by_alias=True, exclude_none=True) for f in files],
+            "allowOverrides": allow_overrides,
         }
         body.update(extra)
         return WorkspaceFileUploadResponse.model_validate(
@@ -137,6 +168,14 @@ class Workspaces:
                 f"/workspaces/{workspace_id}/files/upload",
                 json=body,
             )
+        )
+
+    def delete_file(self, workspace_id: str | UUID, *, path: str) -> None:
+        """Delete one exact path from a workspace."""
+        self._http.request(
+            "DELETE",
+            f"/workspaces/{workspace_id}/files",
+            params={"path": path},
         )
 
     def upload(
@@ -202,6 +241,34 @@ class AsyncWorkspaces:
             await self._http.request("GET", f"/workspaces/{workspace_id}")
         )
 
+    async def update(
+        self,
+        workspace_id: str | UUID,
+        *,
+        name: str | None = _UNSET,  # type: ignore[assignment]
+        **extra: Any,
+    ) -> WorkspaceInfo:
+        """Rename a workspace; pass ``name=None`` to clear its name."""
+        body: dict[str, Any] = {}
+        if name is not _UNSET:
+            body["name"] = name
+        body.update(extra)
+        return WorkspaceInfo.model_validate(
+            await self._http.request(
+                "PATCH", f"/workspaces/{workspace_id}", json=body
+            )
+        )
+
+    async def delete(self, workspace_id: str | UUID) -> None:
+        """Archive a workspace."""
+        await self._http.request("DELETE", f"/workspaces/{workspace_id}")
+
+    async def size(self, workspace_id: str | UUID) -> WorkspaceSizeInfo:
+        """Get current storage usage and the workspace quota."""
+        return WorkspaceSizeInfo.model_validate(
+            await self._http.request("GET", f"/workspaces/{workspace_id}/size")
+        )
+
     async def files(
         self,
         workspace_id: str | UUID,
@@ -231,11 +298,14 @@ class AsyncWorkspaces:
         self,
         workspace_id: str | UUID,
         files: list[WorkspaceFileUploadItem],
+        *,
+        allow_overrides: bool = True,
         **extra: Any,
     ) -> WorkspaceFileUploadResponse:
         """Get presigned PUT URLs for workspace file uploads."""
         body: dict[str, Any] = {
             "files": [f.model_dump(by_alias=True, exclude_none=True) for f in files],
+            "allowOverrides": allow_overrides,
         }
         body.update(extra)
         return WorkspaceFileUploadResponse.model_validate(
@@ -244,6 +314,14 @@ class AsyncWorkspaces:
                 f"/workspaces/{workspace_id}/files/upload",
                 json=body,
             )
+        )
+
+    async def delete_file(self, workspace_id: str | UUID, *, path: str) -> None:
+        """Delete one exact path from a workspace."""
+        await self._http.request(
+            "DELETE",
+            f"/workspaces/{workspace_id}/files",
+            params={"path": path},
         )
 
     async def upload(

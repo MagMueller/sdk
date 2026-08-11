@@ -144,13 +144,19 @@ _V4_MAP: Dict[Tuple[str, str], Tuple[str, str]] = {
     # sessions + queue
     ("get", "/sessions"): ("sessions", "list"),
     ("get", "/sessions/{session_id}"): ("sessions", "get"),
+    ("post", "/sessions/{session_id}/purge"): ("sessions", "purge"),
     ("post", "/sessions/{session_id}/queue"): ("sessions", "send_message"),
     ("get", "/sessions/{session_id}/queue"): ("sessions", "queue"),
+    ("get", "/sessions/{session_id}/queue/{message_id}"): ("sessions", "get_message"),
     ("delete", "/sessions/{session_id}/queue/{message_id}"): ("sessions", "remove_message"),
     # workspaces
     ("post", "/workspaces"): ("workspaces", "create"),
     ("get", "/workspaces/{workspace_id}"): ("workspaces", "get"),
+    ("patch", "/workspaces/{workspace_id}"): ("workspaces", "update"),
+    ("delete", "/workspaces/{workspace_id}"): ("workspaces", "delete"),
+    ("get", "/workspaces/{workspace_id}/size"): ("workspaces", "size"),
     ("get", "/workspaces/{workspace_id}/files"): ("workspaces", "files"),
+    ("delete", "/workspaces/{workspace_id}/files"): ("workspaces", "delete_file"),
     ("post", "/workspaces/{workspace_id}/files/upload"): ("workspaces", "upload_files"),
 }
 
@@ -242,11 +248,17 @@ class TestV3Coverage:
     def test_all_spec_endpoints_mapped(self) -> None:
         spec_eps = _spec_endpoints(self.spec)
         # /boxes/* and the /oauth/* Slack redirect callback are intentionally
-        # not exposed in the SDK yet.
+        # not exposed. /x402/balance uses a standalone wallet-signature helper.
         spec_eps = {ep for ep in spec_eps if not (ep[1].startswith("/boxes") or ep[1].startswith("/oauth"))}
+        spec_eps.discard(("post", "/x402/balance"))
         mapped = set(_V3_MAP.keys())
         missing = spec_eps - mapped
         assert not missing, f"Unmapped v3 endpoints: {missing}"
+
+    def test_x402_balance_helper_exists(self) -> None:
+        from browser_use_sdk.v3 import get_wallet_balance
+
+        assert callable(get_wallet_balance)
 
     def test_sdk_methods_exist(self) -> None:
         from browser_use_sdk.v3.resources import billing, browsers, profiles, sessions, workspaces

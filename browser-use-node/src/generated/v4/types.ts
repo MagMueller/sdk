@@ -225,7 +225,14 @@ export interface paths {
         };
         /**
          * List Session Queue
-         * @description List the session's still-pending queued messages, oldest first.
+         * @description List open messages, the latest handoff row, and all steering cutoffs.
+         *
+         *     Includes live dispatch claims so clients can restore an accepted steering
+         *     handoff after a refresh without briefly losing its waiting state. The latest
+         *     consumed interrupt bridges the primary-write/read-replica gap before its
+         *     replacement run appears; clients discard it once that run is visible. Compact
+         *     per-source cutoffs preserve every historical interrupted transcript boundary
+         *     without returning every historical steering message and its attachments.
          */
         get: operations["list_session_queue_sessions__session_id__queue_get"];
         put?: never;
@@ -251,7 +258,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Get Session Queue Message
+         * @description Read one queued message including terminal handoff states.
+         */
+        get: operations["get_session_queue_message_sessions__session_id__queue__message_id__get"];
         put?: never;
         post?: never;
         /**
@@ -318,6 +329,34 @@ export interface paths {
         get: operations["get_workspace_workspaces__workspace_id__get"];
         put?: never;
         post?: never;
+        /**
+         * Delete Workspace
+         * @description Archive a workspace. Idempotent for missing, archived, and foreign ids.
+         */
+        delete: operations["delete_workspace_workspaces__workspace_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Workspace
+         * @description Rename a workspace. Explicit null clears the name; omission is a no-op.
+         */
+        patch: operations["update_workspace_workspaces__workspace_id__patch"];
+        trace?: never;
+    };
+    "/workspaces/{workspace_id}/size": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Workspace Size
+         * @description Return current storage usage and the plan-specific workspace quota.
+         */
+        get: operations["get_workspace_size_workspaces__workspace_id__size_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -338,7 +377,11 @@ export interface paths {
         get: operations["list_workspace_files_workspaces__workspace_id__files_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Workspace File
+         * @description Delete one exact path from a workspace and remove matching upload metadata.
+         */
+        delete: operations["delete_workspace_file_workspaces__workspace_id__files_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -742,7 +785,7 @@ export interface components {
             agentSessionId?: string | null;
             /**
              * Recording URL
-             * @description Presigned URL to download the session recording (available after session ends, if recording was enabled)
+             * @description Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response.
              */
             recordingUrl?: string | null;
         };
@@ -983,6 +1026,8 @@ export interface components {
         QueueListResponse: {
             /** Queue */
             queue: components["schemas"]["QueuedMessage"][];
+            /** Steeringcutoffs */
+            steeringCutoffs?: components["schemas"]["SteeringCutoff"][];
         };
         /**
          * QueueMessageRequest
@@ -1019,6 +1064,11 @@ export interface components {
             sessionId: string;
             /** Runid */
             runId: string | null;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "queue" | "interrupt";
             /**
              * Status
              * @enum {string}
@@ -1107,15 +1157,17 @@ export interface components {
             task: string;
             /**
              * Model
-             * @default minimax-m3
+             * @default gpt-5.6-luna
              * @enum {string}
              */
-            // POST-GEN PATCH: "kimi-k3" and "claude-fable-5" omitted on purpose —
-            // live in the API but not public yet. openapi-typescript re-adds them
-            // from the spec on every regen, so re-apply this after `task gen:types`
-            // until the backend advertises a public model subset. (The API still
-            // accepts them; this only hides them from the SDK type.)
-            model: "glm-5.2" | "grok-4.5" | "minimax-m3" | "claude-opus-4.7" | "claude-opus-4.8" | "claude-sonnet-5" | "gpt-5.5" | "gpt-5.6" | "gemini-3.5-flash" | "gemini-3.1-pro" | "gemini-3-flash";
+            model: "glm-5.2" | "grok-4.5" | "kimi-k3" | "minimax-m3" | "claude-opus-4.7" | "claude-opus-4.8" | "claude-opus-5" | "claude-fable-5" | "claude-sonnet-5" | "gpt-5.5" | "gpt-5.6" | "gpt-5.6-sol" | "gpt-5.6-terra" | "gpt-5.6-luna" | "gemini-3.6-flash" | "gemini-3.5-flash" | "gemini-3.1-pro" | "gemini-3-flash";
+            /**
+             * Modelparams
+             * @description Optional provider-native request parameters for the selected model, written with the provider's own field names and values and forwarded unchanged (e.g. {"reasoning": {"effort": "high"}} for OpenAI, {"thinking": {"type": "adaptive"}} for Anthropic, {"thinkingConfig": {"thinkingLevel": "high"}} for Google). Supported paths and values are per-model; an unsupported path, value, or a model that accepts no parameters at all is rejected with 422. Omitting this field applies the model's default parameters (gpt-5.6-luna defaults to {"reasoning": {"effort": "xhigh"}}); passing {} opts out of that default and leaves the provider's own defaults in place.
+             */
+            modelParams?: {
+                [key: string]: unknown;
+            } | null;
             /** Sessionid */
             sessionId?: string | null;
             /** Workspaceid */
@@ -1364,6 +1416,26 @@ export interface components {
             detail: string;
         };
         /**
+         * SteeringCutoff
+         * @description Earliest accepted steer for one interrupted source run.
+         *
+         *     The queue endpoint returns these compact boundaries separately from message
+         *     rows so a remount can keep every interrupted transcript frozen without
+         *     re-sending the full historical steering-message payload.
+         */
+        SteeringCutoff: {
+            /**
+             * Sourcerunid
+             * Format: uuid
+             */
+            sourceRunId: string;
+            /**
+             * Createdat
+             * Format: date-time
+             */
+            createdAt: string;
+        };
+        /**
          * TooManyConcurrentActiveSessionsError
          * @description Error response when user has too many concurrent active sessions
          */
@@ -1462,6 +1534,12 @@ export interface components {
         WorkspaceFileUploadRequest: {
             /** Files */
             files: components["schemas"]["WorkspaceFileUploadItem"][];
+            /**
+             * Allowoverrides
+             * @description When false, return 409 before reserving storage if any uploaded filename would replace an existing workspace file.
+             * @default true
+             */
+            allowOverrides: boolean;
         };
         /** WorkspaceFileUploadResponse */
         WorkspaceFileUploadResponse: {
@@ -1523,6 +1601,24 @@ export interface components {
              * Format: date-time
              */
             updatedAt: string;
+        };
+        /** WorkspaceSizeInfo */
+        WorkspaceSizeInfo: {
+            /**
+             * Usedbytes
+             * @description Current workspace storage usage in bytes.
+             */
+            usedBytes: number;
+            /**
+             * Maxbytes
+             * @description Maximum workspace storage allowed in bytes.
+             */
+            maxBytes: number;
+        };
+        /** WorkspaceUpdateRequest */
+        WorkspaceUpdateRequest: {
+            /** Name */
+            name?: string | null;
         };
     };
     responses: never;
@@ -1605,6 +1701,13 @@ export interface operations {
             };
             /** @description Invalid request (bad session/workspace pairing or file path). */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The project has no credits available. */
+            402: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1834,6 +1937,7 @@ export interface operations {
             query?: {
                 limit?: number;
                 after?: number;
+                include_output?: boolean;
             };
             header?: never;
             path: {
@@ -2114,6 +2218,52 @@ export interface operations {
             };
         };
     };
+    get_session_queue_message_sessions__session_id__queue__message_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+                message_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueuedMessage"];
+                };
+            };
+            /** @description Zero Data Retention is enabled on the project (V4 unsupported). */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Run, session, workspace, or profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     cancel_queued_message_sessions__session_id__queue__message_id__delete: {
         parameters: {
             query?: never;
@@ -2245,6 +2395,13 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description One or more files would replace existing workspace files. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -2275,6 +2432,115 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WorkspaceInfo"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_workspace_workspaces__workspace_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_workspace_workspaces__workspace_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkspaceUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceInfo"];
+                };
+            };
+            /** @description Run, session, workspace, or profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workspace_size_workspaces__workspace_id__size_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkspaceSizeInfo"];
+                };
+            };
+            /** @description Run, session, workspace, or profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -2322,6 +2588,52 @@ export interface operations {
             };
             /** @description Zero Data Retention is enabled on the project (V4 unsupported). */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Run, session, workspace, or profile not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_workspace_file_workspaces__workspace_id__files_delete: {
+        parameters: {
+            query: {
+                /** @description Relative file path to delete */
+                path: string;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid request (bad session/workspace pairing or file path). */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

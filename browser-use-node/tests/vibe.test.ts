@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { BrowserUse as BrowserUseV2 } from "../src/v2/client.js";
 import { BrowserUse as BrowserUseV3 } from "../src/v3/client.js";
 import { BrowserUse as BrowserUseV4 } from "../src/v4/client.js";
+import { getWalletBalance } from "../src/v3.js";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -179,14 +180,20 @@ function v4EndpointToSdkMethod(
   // Sessions + queue
   if (method === "get" && path === "/sessions") return { resource: "sessions", method: "list" };
   if (method === "get" && path === "/sessions/{session_id}") return { resource: "sessions", method: "get" };
+  if (method === "post" && path === "/sessions/{session_id}/purge") return { resource: "sessions", method: "purge" };
   if (method === "post" && path === "/sessions/{session_id}/queue") return { resource: "sessions", method: "sendMessage" };
   if (method === "get" && path === "/sessions/{session_id}/queue") return { resource: "sessions", method: "queue" };
+  if (method === "get" && path === "/sessions/{session_id}/queue/{message_id}") return { resource: "sessions", method: "getMessage" };
   if (method === "delete" && path === "/sessions/{session_id}/queue/{message_id}") return { resource: "sessions", method: "removeMessage" };
 
   // Workspaces
   if (method === "post" && path === "/workspaces") return { resource: "workspaces", method: "create" };
   if (method === "get" && path === "/workspaces/{workspace_id}") return { resource: "workspaces", method: "get" };
+  if (method === "patch" && path === "/workspaces/{workspace_id}") return { resource: "workspaces", method: "update" };
+  if (method === "delete" && path === "/workspaces/{workspace_id}") return { resource: "workspaces", method: "delete" };
+  if (method === "get" && path === "/workspaces/{workspace_id}/size") return { resource: "workspaces", method: "size" };
   if (method === "get" && path === "/workspaces/{workspace_id}/files") return { resource: "workspaces", method: "files" };
+  if (method === "delete" && path === "/workspaces/{workspace_id}/files") return { resource: "workspaces", method: "deleteFile" };
   if (method === "post" && path === "/workspaces/{workspace_id}/files/upload") return { resource: "workspaces", method: "uploadFiles" };
 
   return null;
@@ -419,10 +426,11 @@ describe("V3 SDK coverage", () => {
 
   const client = new BrowserUseV3({ apiKey: "test" });
 
-  // Endpoints intentionally not exposed in the SDK yet (box management +
-  // the Slack OAuth redirect callback that belongs to it).
+  // Box management and its Slack OAuth redirect callback are not exposed.
+  // x402 balance is exposed as getWalletBalance() because it uses wallet
+  // signature authentication rather than the API client.
   const v3SkippedPaths = (path: string) =>
-    path.startsWith("/boxes") || path.startsWith("/oauth");
+    path.startsWith("/boxes") || path.startsWith("/oauth") || path === "/x402/balance";
 
   it("should map every v3 endpoint to a known SDK method", () => {
     const unmapped: string[] = [];
@@ -447,5 +455,9 @@ describe("V3 SDK coverage", () => {
 
   it("should have run() helper on client", () => {
     expect(typeof client.run).toBe("function");
+  });
+
+  it("should expose the x402 balance endpoint as a wallet helper", () => {
+    expect(typeof getWalletBalance).toBe("function");
   });
 });

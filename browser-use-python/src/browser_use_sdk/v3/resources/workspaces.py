@@ -12,7 +12,7 @@ from ...generated.v3.models import (
     FileListResponse,
     FileUploadItem,
     FileUploadResponse,
-    Size3 as FileSize,
+    Size as FileSize,
     WorkspaceCreateRequest,
     WorkspaceListResponse,
     WorkspaceUpdateRequest,

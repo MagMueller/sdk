@@ -69,6 +69,7 @@ from .generated.v2.models import (
     SkillCategory,
     SkillsGenerationStatus,
     SupportedLLMs,
+    ThinkingLevel,
     TaskStatus,
     TaskUpdateAction,
 )
@@ -143,6 +144,7 @@ __all__ = [
     "SkillCategory",
     "SkillsGenerationStatus",
     "SupportedLLMs",
+    "ThinkingLevel",
     "TaskStatus",
     "TaskUpdateAction",
 ]

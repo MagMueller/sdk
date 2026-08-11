@@ -127,7 +127,7 @@ class BrowserSessionView(BaseModel):
     recording_url: str | None = Field(
         None,
         alias='recordingUrl',
-        description='Presigned URL to download the session recording (available after session ends, if recording was enabled)',
+        description='Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response.',
         title='Recording URL',
     )
 
@@ -558,6 +558,11 @@ class QueueMessageRequest(BaseModel):
     )
 
 
+class Mode(Enum):
+    queue = 'queue'
+    interrupt = 'interrupt'
+
+
 class Status(Enum):
     pending = 'pending'
     dispatching = 'dispatching'
@@ -571,6 +576,7 @@ class QueuedMessage(BaseModel):
     id: int = Field(..., title='Id')
     session_id: UUID = Field(..., alias='sessionId', title='Sessionid')
     run_id: UUID | None = Field(..., alias='runId', title='Runid')
+    mode: Mode = Field(..., title='Mode')
     status: Status = Field(..., title='Status')
     text: str = Field(..., title='Text')
     attached_file_ids: List[UUID] | None = Field(
@@ -657,20 +663,22 @@ class RunBrowserSettings(BaseModel):
     )
 
 
-# POST-GEN PATCH: kimi-k3 and claude-fable-5 are omitted on purpose — they are
-# live in the API but not public yet. datamodel-codegen re-adds them from the
-# spec on every regen, so this must be re-applied after `task gen:types` until
-# the backend advertises a public model subset. (The API still accepts them;
-# this only hides them from the SDK enum.)
 class Model(Enum):
     glm_5_2 = 'glm-5.2'
     grok_4_5 = 'grok-4.5'
+    kimi_k3 = 'kimi-k3'
     minimax_m3 = 'minimax-m3'
     claude_opus_4_7 = 'claude-opus-4.7'
     claude_opus_4_8 = 'claude-opus-4.8'
+    claude_opus_5 = 'claude-opus-5'
+    claude_fable_5 = 'claude-fable-5'
     claude_sonnet_5 = 'claude-sonnet-5'
     gpt_5_5 = 'gpt-5.5'
     gpt_5_6 = 'gpt-5.6'
+    gpt_5_6_sol = 'gpt-5.6-sol'
+    gpt_5_6_terra = 'gpt-5.6-terra'
+    gpt_5_6_luna = 'gpt-5.6-luna'
+    gemini_3_6_flash = 'gemini-3.6-flash'
     gemini_3_5_flash = 'gemini-3.5-flash'
     gemini_3_1_pro = 'gemini-3.1-pro'
     gemini_3_flash = 'gemini-3-flash'
@@ -792,6 +800,11 @@ class SessionTimeoutLimitExceededError(BaseModel):
     )
 
 
+class SteeringCutoff(BaseModel):
+    source_run_id: UUID = Field(..., alias='sourceRunId', title='Sourcerunid')
+    created_at: AwareDatetime = Field(..., alias='createdAt', title='Createdat')
+
+
 class TooManyConcurrentActiveSessionsError(BaseModel):
     detail: str | None = Field(
         'Too many concurrent active sessions. Please wait for one to finish, kill one, or upgrade your plan.',
@@ -812,7 +825,7 @@ class ValidationError(BaseModel):
 
 
 class Name2(RootModel[str]):
-    root: str = Field(..., max_length=255, title='Name')
+    root: str = Field(..., max_length=100, title='Name')
 
 
 class WorkspaceCreateRequest(BaseModel):
@@ -871,6 +884,12 @@ class WorkspaceFileUploadRequest(BaseModel):
     files: List[WorkspaceFileUploadItem] = Field(
         ..., max_length=10, min_length=1, title='Files'
     )
+    allow_overrides: bool | None = Field(
+        True,
+        alias='allowOverrides',
+        description='When false, return 409 before reserving storage if any uploaded filename would replace an existing workspace file.',
+        title='Allowoverrides',
+    )
 
 
 class WorkspaceFileUploadResponseItem(BaseModel):
@@ -913,6 +932,27 @@ class WorkspaceInfo(BaseModel):
     archived: bool = Field(..., title='Archived')
     created_at: AwareDatetime = Field(..., alias='createdAt', title='Createdat')
     updated_at: AwareDatetime = Field(..., alias='updatedAt', title='Updatedat')
+
+
+class WorkspaceSizeInfo(BaseModel):
+    used_bytes: int = Field(
+        ...,
+        alias='usedBytes',
+        description='Current workspace storage usage in bytes.',
+        ge=0,
+        title='Usedbytes',
+    )
+    max_bytes: int = Field(
+        ...,
+        alias='maxBytes',
+        description='Maximum workspace storage allowed in bytes.',
+        gt=0,
+        title='Maxbytes',
+    )
+
+
+class WorkspaceUpdateRequest(BaseModel):
+    name: Name2 | None = Field(None, title='Name')
 
 
 class BrowserSessionItemView(BaseModel):
@@ -1084,6 +1124,9 @@ class ProfileListResponse(BaseModel):
 
 class QueueListResponse(BaseModel):
     queue: List[QueuedMessage] = Field(..., title='Queue')
+    steering_cutoffs: List[SteeringCutoff] | None = Field(
+        None, alias='steeringCutoffs', title='Steeringcutoffs'
+    )
 
 
 class RunCreateRequest(BaseModel):
@@ -1091,7 +1134,13 @@ class RunCreateRequest(BaseModel):
         extra='forbid',
     )
     task: str = Field(..., min_length=1, title='Task')
-    model: Model | None = Field(Model.minimax_m3, title='Model')
+    model: Model | None = Field(Model.gpt_5_6_luna, title='Model')
+    model_params: Dict[str, Any] | None = Field(
+        None,
+        alias='modelParams',
+        description='Optional provider-native request parameters for the selected model, written with the provider\'s own field names and values and forwarded unchanged (e.g. {"reasoning": {"effort": "high"}} for OpenAI, {"thinking": {"type": "adaptive"}} for Anthropic, {"thinkingConfig": {"thinkingLevel": "high"}} for Google). Supported paths and values are per-model; an unsupported path, value, or a model that accepts no parameters at all is rejected with 422. Omitting this field applies the model\'s default parameters (gpt-5.6-luna defaults to {"reasoning": {"effort": "xhigh"}}); passing {} opts out of that default and leaves the provider\'s own defaults in place.',
+        title='Modelparams',
+    )
     session_id: UUID | None = Field(None, alias='sessionId', title='Sessionid')
     workspace_id: UUID | None = Field(None, alias='workspaceId', title='Workspaceid')
     browser_settings: RunBrowserSettings | None = Field(None, alias='browserSettings')

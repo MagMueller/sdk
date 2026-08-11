@@ -26,16 +26,20 @@ _TERMINAL_STATUSES = {"completed", "failed", "cancelled"}
 def _build_create_body(
     task: str,
     model: str | None,
+    model_params: dict[str, Any] | None,
     session_id: str | UUID | None,
     workspace_id: str | UUID | None,
     browser_settings: RunBrowserSettings | dict[str, Any] | None,
     attached_file_ids: list[str | UUID] | None,
     judge: RunJudgeSettings | dict[str, Any] | None,
+    max_cost_usd: float | str | None,
     extra: dict[str, Any],
 ) -> dict[str, Any]:
     body: dict[str, Any] = {"task": task}
     if model is not None:
         body["model"] = model
+    if model_params is not None:
+        body["modelParams"] = model_params
     if session_id is not None:
         body["sessionId"] = str(session_id)
     if workspace_id is not None:
@@ -52,6 +56,8 @@ def _build_create_body(
             body["judge"] = judge.model_dump(by_alias=True, exclude_none=True, mode="json")
         else:
             body["judge"] = judge
+    if max_cost_usd is not None:
+        body["maxCostUsd"] = max_cost_usd
     body.update(extra)
     return body
 
@@ -65,16 +71,27 @@ class Runs:
         task: str,
         *,
         model: str | None = None,
+        model_params: dict[str, Any] | None = None,
         session_id: str | UUID | None = None,
         workspace_id: str | UUID | None = None,
         browser_settings: RunBrowserSettings | dict[str, Any] | None = None,
         attached_file_ids: list[str | UUID] | None = None,
         judge: RunJudgeSettings | dict[str, Any] | None = None,
+        max_cost_usd: float | str | None = None,
         **extra: Any,
     ) -> RunCreateResponse:
         """Create a run (a new session, or a follow-up turn when session_id is set)."""
         body = _build_create_body(
-            task, model, session_id, workspace_id, browser_settings, attached_file_ids, judge, extra
+            task,
+            model,
+            model_params,
+            session_id,
+            workspace_id,
+            browser_settings,
+            attached_file_ids,
+            judge,
+            max_cost_usd,
+            extra,
         )
         return RunCreateResponse.model_validate(
             self._http.request("POST", "/runs", json=body)
@@ -185,16 +202,27 @@ class AsyncRuns:
         task: str,
         *,
         model: str | None = None,
+        model_params: dict[str, Any] | None = None,
         session_id: str | UUID | None = None,
         workspace_id: str | UUID | None = None,
         browser_settings: RunBrowserSettings | dict[str, Any] | None = None,
         attached_file_ids: list[str | UUID] | None = None,
         judge: RunJudgeSettings | dict[str, Any] | None = None,
+        max_cost_usd: float | str | None = None,
         **extra: Any,
     ) -> RunCreateResponse:
         """Create a run (a new session, or a follow-up turn when session_id is set)."""
         body = _build_create_body(
-            task, model, session_id, workspace_id, browser_settings, attached_file_ids, judge, extra
+            task,
+            model,
+            model_params,
+            session_id,
+            workspace_id,
+            browser_settings,
+            attached_file_ids,
+            judge,
+            max_cost_usd,
+            extra,
         )
         return RunCreateResponse.model_validate(
             await self._http.request("POST", "/runs", json=body)
