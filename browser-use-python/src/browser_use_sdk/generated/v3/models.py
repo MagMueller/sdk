@@ -134,6 +134,17 @@ class BrowserSessionView(BaseModel):
         description='Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response.',
         title='Recording URL',
     )
+    recording_available: bool | None = Field(
+        True,
+        alias='recordingAvailable',
+        description='False when a recording can never appear for this session: recording was disabled, or the browser stopped long enough ago that the upload is not coming. Only ever false from proof, so a failed recording lookup leaves it true. Clients polling for `recordingUrl` must stop when this is false.',
+        title='Recording Available',
+    )
+    metadata: Dict[str, str] | None = Field(
+        {},
+        description='Caller-supplied labels set when the browser was created.',
+        title='Metadata',
+    )
 
 
 class BuAgentSessionStatus(Enum):
@@ -943,6 +954,12 @@ class AccountView(BaseModel):
     project_id: UUID = Field(
         ..., alias='projectId', description='The ID of the project', title='Project ID'
     )
+    tracing_disabled: bool | None = Field(
+        False,
+        alias='tracingDisabled',
+        description='Whether third-party LLM tracing is disabled for this project',
+        title='Tracing Disabled',
+    )
 
 
 class BrowserSessionItemView(BaseModel):
@@ -1018,6 +1035,11 @@ class BrowserSessionItemView(BaseModel):
         description='Presigned URL to download the session recording. Only populated on `GET /api/v2/browsers/{id}`; always `null` in list responses.',
         title='Recording URL',
     )
+    metadata: Dict[str, str] | None = Field(
+        {},
+        description='Caller-supplied labels set when the browser was created.',
+        title='Metadata',
+    )
 
 
 class BrowserSessionListResponse(BaseModel):
@@ -1052,6 +1074,11 @@ class CreateBrowserSessionRequest(BaseModel):
         alias='proxyCountryCode',
         description='Country code for proxy location. Defaults to US. Set to null to disable proxy.',
         title='Proxy Country Code',
+    )
+    metadata: Dict[str, str] | None = Field(
+        None,
+        description='Labels for this browser. Up to 10 key-value pairs. Filterable on the browsers list and in the dashboard history.',
+        title='Metadata',
     )
     timeout: int | None = Field(
         60,

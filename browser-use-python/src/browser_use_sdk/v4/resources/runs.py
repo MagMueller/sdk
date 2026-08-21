@@ -14,6 +14,7 @@ from ...generated.v4.models import (
     RunListResponse,
     RunStatusResponse,
     RunSummary,
+    SecretBinding,
 )
 
 if TYPE_CHECKING:
@@ -30,7 +31,9 @@ def _build_create_body(
     session_id: str | UUID | None,
     workspace_id: str | UUID | None,
     browser_settings: RunBrowserSettings | dict[str, Any] | None,
+    agentmail: bool | None,
     attached_file_ids: list[str | UUID] | None,
+    secret_bindings: list[SecretBinding | dict[str, Any]] | None,
     judge: RunJudgeSettings | dict[str, Any] | None,
     max_cost_usd: float | str | None,
     extra: dict[str, Any],
@@ -49,8 +52,24 @@ def _build_create_body(
             body["browserSettings"] = browser_settings.model_dump(by_alias=True, exclude_none=True, mode="json")
         else:
             body["browserSettings"] = browser_settings
+    if agentmail is not None:
+        body["agentmail"] = agentmail
     if attached_file_ids is not None:
         body["attachedFileIds"] = [str(f) for f in attached_file_ids]
+    if secret_bindings is not None:
+        body["secretBindings"] = [
+            {
+                "alias": binding.alias,
+                "source": {
+                    "type": binding.source.type,
+                    "value": binding.source.value.get_secret_value(),
+                },
+                "allowedDomains": binding.allowed_domains,
+            }
+            if isinstance(binding, SecretBinding)
+            else binding
+            for binding in secret_bindings
+        ]
     if judge is not None:
         if isinstance(judge, RunJudgeSettings):
             body["judge"] = judge.model_dump(by_alias=True, exclude_none=True, mode="json")
@@ -75,7 +94,9 @@ class Runs:
         session_id: str | UUID | None = None,
         workspace_id: str | UUID | None = None,
         browser_settings: RunBrowserSettings | dict[str, Any] | None = None,
+        agentmail: bool | None = None,
         attached_file_ids: list[str | UUID] | None = None,
+        secret_bindings: list[SecretBinding | dict[str, Any]] | None = None,
         judge: RunJudgeSettings | dict[str, Any] | None = None,
         max_cost_usd: float | str | None = None,
         **extra: Any,
@@ -88,7 +109,9 @@ class Runs:
             session_id,
             workspace_id,
             browser_settings,
+            agentmail,
             attached_file_ids,
+            secret_bindings,
             judge,
             max_cost_usd,
             extra,
@@ -206,7 +229,9 @@ class AsyncRuns:
         session_id: str | UUID | None = None,
         workspace_id: str | UUID | None = None,
         browser_settings: RunBrowserSettings | dict[str, Any] | None = None,
+        agentmail: bool | None = None,
         attached_file_ids: list[str | UUID] | None = None,
+        secret_bindings: list[SecretBinding | dict[str, Any]] | None = None,
         judge: RunJudgeSettings | dict[str, Any] | None = None,
         max_cost_usd: float | str | None = None,
         **extra: Any,
@@ -219,7 +244,9 @@ class AsyncRuns:
             session_id,
             workspace_id,
             browser_settings,
+            agentmail,
             attached_file_ids,
+            secret_bindings,
             judge,
             max_cost_usd,
             extra,

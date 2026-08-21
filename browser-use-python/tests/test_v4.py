@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 import pytest
 
+from browser_use_sdk.v4 import InlineSecretSource, SecretBinding
 from browser_use_sdk.v4.resources.runs import AsyncRuns, Runs
 from browser_use_sdk.v4.resources.sessions import Sessions
 from browser_use_sdk.v4.resources.workspaces import AsyncWorkspaces, Workspaces
@@ -182,7 +183,15 @@ def test_runs_create_sends_camel_case_body() -> None:
         model_params={"reasoning": {"effort": "high"}},
         session_id=SESSION_ID,
         browser_settings={"proxyCountryCode": "de"},
+        agentmail=True,
         attached_file_ids=["00000000-0000-0000-0000-000000000009"],
+        secret_bindings=[
+            SecretBinding(
+                alias="github_password",
+                source=InlineSecretSource(type="inline", value="not-masked"),
+                allowedDomains=["github.com"],
+            )
+        ],
         max_cost_usd="1.50",
     )
 
@@ -194,7 +203,15 @@ def test_runs_create_sends_camel_case_body() -> None:
         "modelParams": {"reasoning": {"effort": "high"}},
         "sessionId": SESSION_ID,
         "browserSettings": {"proxyCountryCode": "de"},
+        "agentmail": True,
         "attachedFileIds": ["00000000-0000-0000-0000-000000000009"],
+        "secretBindings": [
+            {
+                "alias": "github_password",
+                "source": {"type": "inline", "value": "not-masked"},
+                "allowedDomains": ["github.com"],
+            }
+        ],
         "maxCostUsd": "1.50",
     }
     assert str(created.id) == RUN_ID

@@ -1411,6 +1411,27 @@
         ],
         "parameters": [
           {
+            "name": "metadata",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only browsers tagged with every one of these terms. `key` matches any value; `key=value` matches exactly. Repeat the param to require more than one (AND).",
+              "title": "Metadata"
+            },
+            "description": "Only browsers tagged with every one of these terms. `key` matches any value; `key=value` matches exactly. Repeat the param to require more than one (AND)."
+          },
+          {
             "name": "pageSize",
             "in": "query",
             "required": false,
@@ -2274,6 +2295,15 @@
             ],
             "title": "Recording URL",
             "description": "Presigned URL to download the session recording. Only populated on `GET /api/v2/browsers/{id}`; always `null` in list responses."
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Metadata",
+            "description": "Caller-supplied labels set when the browser was created.",
+            "default": {}
           }
         },
         "type": "object",
@@ -2446,6 +2476,15 @@
             ],
             "title": "Recording URL",
             "description": "Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response."
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Metadata",
+            "description": "Caller-supplied labels set when the browser was created.",
+            "default": {}
           }
         },
         "type": "object",
@@ -2545,6 +2584,22 @@
             "title": "Enable Recording",
             "description": "If True, enables session recording. Defaults to False.",
             "default": false
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "maxProperties": 10,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata",
+            "description": "Labels for this browser. Up to 10 key-value pairs. Filterable on the browsers list and in the dashboard history."
           }
         },
         "type": "object",
@@ -2653,6 +2708,32 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "InlineSecretSource": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "inline",
+            "title": "Type"
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1,
+            "format": "password",
+            "title": "Value",
+            "description": "The secret itself. Limited to 4096 bytes once encoded for encryption; non-ASCII characters cost more than one byte each.",
+            "writeOnly": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "type",
+          "value"
+        ],
+        "title": "InlineSecretSource",
+        "description": "A value the caller supplies directly with the run."
       },
       "InsufficientCreditsError": {
         "properties": {
@@ -3476,6 +3557,12 @@
               }
             ]
           },
+          "agentmail": {
+            "type": "boolean",
+            "title": "Agentmail",
+            "description": "If true, provisions a persistent temporary email inbox (via AgentMail) for the run workspace. The agent receives the email address in its context and can send, receive, read, and reply to email. Set false to disable AgentMail for this run.",
+            "default": false
+          },
           "attachedFileIds": {
             "anyOf": [
               {
@@ -3491,6 +3578,22 @@
               }
             ],
             "title": "Attachedfileids"
+          },
+          "secretBindings": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SecretBinding"
+                },
+                "type": "array",
+                "maxItems": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secretbindings",
+            "description": "Credentials this run may use without ever seeing them. The agent can ask the server to type a binding by alias on one of its allowed domains; it cannot read the value. Bindings are not persisted past the run."
           },
           "judge": {
             "anyOf": [
@@ -3875,6 +3978,37 @@
           "updatedAt"
         ],
         "title": "RunSummary"
+      },
+      "SecretBinding": {
+        "properties": {
+          "alias": {
+            "type": "string",
+            "title": "Alias",
+            "description": "Name the agent refers to this secret by, e.g. \"github_password\"."
+          },
+          "source": {
+            "$ref": "#/components/schemas/InlineSecretSource"
+          },
+          "allowedDomains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Alloweddomains",
+            "description": "Hosts the secret may be typed into, e.g. [\"github.com\"]. A host covers its subdomains. Bare hostnames only \u2014 no scheme, port, path, or wildcard."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "alias",
+          "source",
+          "allowedDomains"
+        ],
+        "title": "SecretBinding",
+        "description": "One credential this run may have typed into a browser field.\n\nThe value never reaches the agent. It is encrypted at rest, kept out of the\nworker payload, and typed straight into the focused field by the server when\nthe agent asks for the alias by name \u2014 and only while the page it is typing\ninto is on one of `allowedDomains`.\n\nRun-scoped: bindings die with the run, so a follow-up run that needs the same\ncredential must send it again."
       },
       "SessionInfo": {
         "properties": {

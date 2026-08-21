@@ -134,6 +134,17 @@ class BrowserSessionView(BaseModel):
         description='Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response.',
         title='Recording URL',
     )
+    recording_available: bool | None = Field(
+        True,
+        alias='recordingAvailable',
+        description='False when a recording can never appear for this session: recording was disabled, or the browser stopped long enough ago that the upload is not coming. Only ever false from proof, so a failed recording lookup leaves it true. Clients polling for `recordingUrl` must stop when this is false.',
+        title='Recording Available',
+    )
+    metadata: Dict[str, str] | None = Field(
+        {},
+        description='Caller-supplied labels set when the browser was created.',
+        title='Metadata',
+    )
 
 
 class CannotDeleteSkillWhileGeneratingError(BaseModel):
@@ -928,6 +939,7 @@ class SkillsGenerationStatus(Enum):
 class SupportedLLMs(Enum):
     browser_use_llm = 'browser-use-llm'
     browser_use_2_0 = 'browser-use-2.0'
+    bu_2_0_mini_preview = 'bu-2-0-mini-preview'
     gpt_4_1 = 'gpt-4.1'
     gpt_4_1_mini = 'gpt-4.1-mini'
     o4_mini = 'o4-mini'
@@ -1374,6 +1386,12 @@ class AccountView(BaseModel):
     project_id: UUID = Field(
         ..., alias='projectId', description='The ID of the project', title='Project ID'
     )
+    tracing_disabled: bool | None = Field(
+        False,
+        alias='tracingDisabled',
+        description='Whether third-party LLM tracing is disabled for this project',
+        title='Tracing Disabled',
+    )
 
 
 class BrowserSessionItemView(BaseModel):
@@ -1449,6 +1467,11 @@ class BrowserSessionItemView(BaseModel):
         description='Presigned URL to download the session recording. Only populated on `GET /api/v2/browsers/{id}`; always `null` in list responses.',
         title='Recording URL',
     )
+    metadata: Dict[str, str] | None = Field(
+        {},
+        description='Caller-supplied labels set when the browser was created.',
+        title='Metadata',
+    )
 
 
 class BrowserSessionListResponse(BaseModel):
@@ -1483,6 +1506,11 @@ class CreateBrowserSessionRequest(BaseModel):
         alias='proxyCountryCode',
         description='Country code for proxy location. Defaults to US. Set to null to disable proxy.',
         title='Proxy Country Code',
+    )
+    metadata: Dict[str, str] | None = Field(
+        None,
+        description='Labels for this browser. Up to 10 key-value pairs. Filterable on the browsers list and in the dashboard history.',
+        title='Metadata',
     )
     timeout: int | None = Field(
         60,
@@ -1663,7 +1691,7 @@ class CreateTaskRequest(BaseModel):
     thinking_level: ThinkingLevel | None = Field(
         None,
         alias='thinkingLevel',
-        description="Optional model reasoning depth. Omit this field to preserve the model provider default. Supported values depend on the selected model: most supported Claude models and GPT-5.1+ models support disabled/low/medium/high; Gemini Flash models support all four (disabled maps to Gemini's minimal level); Claude Fable 5, earlier GPT-5 models, Gemini 2.5 Pro, o3/o4, and Grok support low/medium/high; Gemini 3.1 Pro supports low/high; GLM supports disabled/high. Unsupported model/level combinations are rejected. API V2 cannot configure GLM or fixed-budget Claude thinking; use API V3 or V4 for those combinations.",
+        description="Optional model reasoning depth. Omit this field to preserve the provider default. API V2 accepts disabled/low/medium/high for browser-use-llm, browser-use-2.0, gemini-2.5-flash, gemini-3-flash-preview, gemini-3.5-flash, gemini-flash-latest, gemini-flash-lite-latest, gpt-5.5, gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, claude-sonnet-5, claude-opus-4-7, claude-opus-4-8, and claude-opus-5; low/medium/high for gemini-2.5-pro, o3, and o4-mini; low/high for gemini-3-pro-preview and gemini-3.1-pro-preview; and disabled only for claude-sonnet-4-20250514, claude-sonnet-4-5-20250929, and claude-opus-4-5-20251101. For browser-use-llm, browser-use-2.0, Gemini 3 Flash, and Gemini 3.5 Flash, disabled maps to Google's minimal thinking level. For Gemini 2.5 Flash and the gemini-flash-latest variants, disabled maps to a zero thinking budget. bu-2-0-mini-preview does not support configurable thinking, so omit thinkingLevel for that model. Other V2 models reject an explicit level. API V2 cannot configure GLM thinking or enable fixed-budget Claude thinking; use API V3 or V4 for those combinations.",
         title='Thinking Level',
     )
     vision: bool | str | None = Field(

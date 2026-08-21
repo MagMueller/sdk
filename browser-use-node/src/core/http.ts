@@ -54,7 +54,13 @@ export class HttpClient {
     const url = new URL(`${this.baseUrl}${path}`);
     if (options?.query) {
       for (const [key, value] of Object.entries(options.query)) {
-        if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          for (const item of value) {
+            if (item !== undefined && item !== null) {
+              url.searchParams.append(key, String(item));
+            }
+          }
+        } else if (value !== undefined && value !== null) {
           url.searchParams.set(key, String(value));
         }
       }

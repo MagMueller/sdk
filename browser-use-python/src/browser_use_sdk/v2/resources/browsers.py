@@ -18,6 +18,7 @@ def _build_create_body(
     *,
     profile_id: str | None = None,
     proxy_country_code: str | None = _UNSET,  # type: ignore[assignment]
+    metadata: dict[str, str] | None = None,
     timeout: int | None = None,
     browser_screen_width: int | None = None,
     browser_screen_height: int | None = None,
@@ -26,11 +27,16 @@ def _build_create_body(
     enable_recording: bool | None = None,
     **extra: Any,
 ) -> dict[str, Any]:
+    if metadata is not None and len(metadata) > 10:
+        raise ValueError("metadata supports at most 10 key-value pairs")
+
     body: dict[str, Any] = {}
     if profile_id is not None:
         body["profileId"] = profile_id
     if proxy_country_code is not _UNSET:
         body["proxyCountryCode"] = proxy_country_code.lower() if isinstance(proxy_country_code, str) else proxy_country_code
+    if metadata is not None:
+        body["metadata"] = metadata
     if timeout is not None:
         body["timeout"] = timeout
     if browser_screen_width is not None:
@@ -56,6 +62,7 @@ class Browsers:
         *,
         profile_id: str | None = None,
         proxy_country_code: str | None = _UNSET,  # type: ignore[assignment]
+        metadata: dict[str, str] | None = None,
         timeout: int | None = None,
         browser_screen_width: int | None = None,
         browser_screen_height: int | None = None,
@@ -68,6 +75,7 @@ class Browsers:
         body = _build_create_body(
             profile_id=profile_id,
             proxy_country_code=proxy_country_code,
+            metadata=metadata,
             timeout=timeout,
             browser_screen_width=browser_screen_width,
             browser_screen_height=browser_screen_height,
@@ -87,6 +95,7 @@ class Browsers:
         page_number: int | None = None,
         filter_by: str | None = None,
         agent_session_id: str | None = None,
+        metadata: list[str] | None = None,
     ) -> BrowserSessionListResponse:
         """List browser sessions with optional filtering."""
         return BrowserSessionListResponse.model_validate(
@@ -98,6 +107,7 @@ class Browsers:
                     "pageNumber": page_number,
                     "filterBy": filter_by,
                     "agentSessionId": agent_session_id,
+                    "metadata": metadata,
                 },
             )
         )
@@ -150,6 +160,7 @@ class AsyncBrowsers:
         *,
         profile_id: str | None = None,
         proxy_country_code: str | None = _UNSET,  # type: ignore[assignment]
+        metadata: dict[str, str] | None = None,
         timeout: int | None = None,
         browser_screen_width: int | None = None,
         browser_screen_height: int | None = None,
@@ -162,6 +173,7 @@ class AsyncBrowsers:
         body = _build_create_body(
             profile_id=profile_id,
             proxy_country_code=proxy_country_code,
+            metadata=metadata,
             timeout=timeout,
             browser_screen_width=browser_screen_width,
             browser_screen_height=browser_screen_height,
@@ -181,6 +193,7 @@ class AsyncBrowsers:
         page_number: int | None = None,
         filter_by: str | None = None,
         agent_session_id: str | None = None,
+        metadata: list[str] | None = None,
     ) -> BrowserSessionListResponse:
         """List browser sessions with optional filtering."""
         return BrowserSessionListResponse.model_validate(
@@ -192,6 +205,7 @@ class AsyncBrowsers:
                     "pageNumber": page_number,
                     "filterBy": filter_by,
                     "agentSessionId": agent_session_id,
+                    "metadata": metadata,
                 },
             )
         )

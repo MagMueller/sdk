@@ -4,7 +4,12 @@ export type { BrowserUseOptions } from "./v4/client.js";
 export { BrowserUseError } from "./core/errors.js";
 
 export { Runs } from "./v4/resources/runs.js";
-export type { RunListParams, RunEventsParams, WaitOptions } from "./v4/resources/runs.js";
+export type {
+  RunCreateBody,
+  RunListParams,
+  RunEventsParams,
+  WaitOptions,
+} from "./v4/resources/runs.js";
 
 export { Sessions } from "./v4/resources/sessions.js";
 export type { SessionListParams } from "./v4/resources/sessions.js";
@@ -30,6 +35,8 @@ export type RunAttachment = S["RunAttachment"];
 export type RunAttachmentsResponse = S["RunAttachmentsResponse"];
 export type RunBrowserSettings = S["RunBrowserSettings"];
 export type RunJudgeSettings = S["RunJudgeSettings"];
+export type InlineSecretSource = S["InlineSecretSource"];
+export type SecretBinding = S["SecretBinding"];
 
 // Session models
 export type SessionInfo = S["SessionInfo"];

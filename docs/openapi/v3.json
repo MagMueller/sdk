@@ -394,6 +394,27 @@
         ],
         "parameters": [
           {
+            "name": "metadata",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only browsers tagged with every one of these terms. `key` matches any value; `key=value` matches exactly. Repeat the param to require more than one (AND).",
+              "title": "Metadata"
+            },
+            "description": "Only browsers tagged with every one of these terms. `key` matches any value; `key=value` matches exactly. Repeat the param to require more than one (AND)."
+          },
+          {
             "name": "pageSize",
             "in": "query",
             "required": false,
@@ -1753,6 +1774,12 @@
             "format": "uuid",
             "title": "Project ID",
             "description": "The ID of the project"
+          },
+          "tracingDisabled": {
+            "type": "boolean",
+            "title": "Tracing Disabled",
+            "description": "Whether third-party LLM tracing is disabled for this project",
+            "default": false
           }
         },
         "type": "object",
@@ -1950,6 +1977,15 @@
             ],
             "title": "Recording URL",
             "description": "Presigned URL to download the session recording. Only populated on `GET /api/v2/browsers/{id}`; always `null` in list responses."
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Metadata",
+            "description": "Caller-supplied labels set when the browser was created.",
+            "default": {}
           }
         },
         "type": "object",
@@ -2122,6 +2158,21 @@
             ],
             "title": "Recording URL",
             "description": "Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response."
+          },
+          "recordingAvailable": {
+            "type": "boolean",
+            "title": "Recording Available",
+            "description": "False when a recording can never appear for this session: recording was disabled, or the browser stopped long enough ago that the upload is not coming. Only ever false from proof, so a failed recording lookup leaves it true. Clients polling for `recordingUrl` must stop when this is false.",
+            "default": true
+          },
+          "metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Metadata",
+            "description": "Caller-supplied labels set when the browser was created.",
+            "default": {}
           }
         },
         "type": "object",
@@ -2202,6 +2253,22 @@
             "title": "Proxy Country Code",
             "description": "Country code for proxy location. Defaults to US. Set to null to disable proxy.",
             "default": "us"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "maxProperties": 10,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata",
+            "description": "Labels for this browser. Up to 10 key-value pairs. Filterable on the browsers list and in the dashboard history."
           },
           "timeout": {
             "type": "integer",

@@ -15,24 +15,14 @@ from typing import Any, Dict, List, Set, Tuple
 import pytest
 
 # ---------------------------------------------------------------------------
-# Locate spec files via CLOUD_REPO_PATH in .env
+# Locate the checked-in spec snapshots
 # ---------------------------------------------------------------------------
 _SDK_REPO = Path(__file__).resolve().parents[2]  # browser-use-python/tests -> sdk repo root
 
 
-def _get_cloud_repo_path() -> Path:
-    env_file = _SDK_REPO / ".env"
-    for line in env_file.read_text().splitlines():
-        line = line.strip()
-        if line.startswith("CLOUD_REPO_PATH=") and not line.startswith("#"):
-            return Path(line.split("=", 1)[1].strip())
-    raise RuntimeError("CLOUD_REPO_PATH not found in .env")
-
-
-_CLOUD = _get_cloud_repo_path()
-_V2_SPEC = _CLOUD / "backend" / "spec" / "api" / "v2" / "openapi.json"
-_V3_SPEC = _CLOUD / "backend" / "spec" / "api" / "v3" / "openapi.json"
-_V4_SPEC = _CLOUD / "backend" / "spec" / "api" / "v4" / "openapi.json"
+_V2_SPEC = _SDK_REPO / "snapshots" / "v2.json"
+_V3_SPEC = _SDK_REPO / "snapshots" / "v3.json"
+_V4_SPEC = _SDK_REPO / "snapshots" / "v4.json"
 
 
 def _load_spec(path: Path) -> Dict[str, Any]:
@@ -259,6 +249,13 @@ class TestV3Coverage:
         from browser_use_sdk.v3 import get_wallet_balance
 
         assert callable(get_wallet_balance)
+
+    def test_browser_metadata_parameters_exist(self) -> None:
+        from browser_use_sdk.v3.resources.browsers import AsyncBrowsers, Browsers
+
+        for cls in (Browsers, AsyncBrowsers):
+            assert "metadata" in inspect.signature(cls.create).parameters
+            assert "metadata" in inspect.signature(cls.list).parameters
 
     def test_sdk_methods_exist(self) -> None:
         from browser_use_sdk.v3.resources import billing, browsers, profiles, sessions, workspaces

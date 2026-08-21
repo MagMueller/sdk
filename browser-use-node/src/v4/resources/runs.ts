@@ -9,6 +9,9 @@ type RunListResponse = components["schemas"]["RunListResponse"];
 type RunEventsResponse = components["schemas"]["RunEventsResponse"];
 type RunAttachmentsResponse = components["schemas"]["RunAttachmentsResponse"];
 
+export type RunCreateBody = Pick<RunCreateRequest, "task"> &
+  Partial<Omit<RunCreateRequest, "task">>;
+
 /** Terminal run statuses — closed enum in the v4 spec. */
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
 
@@ -34,7 +37,7 @@ export class Runs {
   constructor(private readonly http: HttpClient) {}
 
   /** Create a run (a new session, or a follow-up turn when sessionId is set). */
-  create(body: RunCreateRequest): Promise<RunCreateResponse> {
+  create(body: RunCreateBody): Promise<RunCreateResponse> {
     return this.http.post<RunCreateResponse>("/runs", body);
   }
 

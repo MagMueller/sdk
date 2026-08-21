@@ -489,6 +489,12 @@ export interface components {
              * @description The ID of the project
              */
             projectId: string;
+            /**
+             * Tracing Disabled
+             * @description Whether third-party LLM tracing is disabled for this project
+             * @default false
+             */
+            tracingDisabled: boolean;
         };
         /**
          * BrowserDownloadFile
@@ -610,6 +616,14 @@ export interface components {
              * @description Presigned URL to download the session recording. Only populated on `GET /api/v2/browsers/{id}`; always `null` in list responses.
              */
             recordingUrl?: string | null;
+            /**
+             * Metadata
+             * @description Caller-supplied labels set when the browser was created.
+             * @default {}
+             */
+            metadata: {
+                [key: string]: string;
+            };
         };
         /**
          * BrowserSessionListResponse
@@ -727,6 +741,20 @@ export interface components {
              * @description Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response.
              */
             recordingUrl?: string | null;
+            /**
+             * Recording Available
+             * @description False when a recording can never appear for this session: recording was disabled, or the browser stopped long enough ago that the upload is not coming. Only ever false from proof, so a failed recording lookup leaves it true. Clients polling for `recordingUrl` must stop when this is false.
+             * @default true
+             */
+            recordingAvailable: boolean;
+            /**
+             * Metadata
+             * @description Caller-supplied labels set when the browser was created.
+             * @default {}
+             */
+            metadata: {
+                [key: string]: string;
+            };
         };
         /**
          * BuAgentSessionStatus
@@ -778,6 +806,13 @@ export interface components {
              * @default us
              */
             proxyCountryCode: components["schemas"]["ProxyCountryCode"] | null;
+            /**
+             * Metadata
+             * @description Labels for this browser. Up to 10 key-value pairs. Filterable on the browsers list and in the dashboard history.
+             */
+            metadata?: {
+                [key: string]: string;
+            } | null;
             /**
              * Timeout
              * @description The timeout for the session in minutes. All users can use up to 240 minutes (4 hours). Browser sessions are charged $0.02/hour.
@@ -1918,6 +1953,8 @@ export interface operations {
     list_browser_sessions_browsers_get: {
         parameters: {
             query?: {
+                /** @description Only browsers tagged with every one of these terms. `key` matches any value; `key=value` matches exactly. Repeat the param to require more than one (AND). */
+                metadata?: string[] | null;
                 pageSize?: number;
                 pageNumber?: number;
                 filterBy?: components["schemas"]["BrowserSessionStatus"] | null;
