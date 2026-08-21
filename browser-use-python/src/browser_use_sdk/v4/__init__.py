@@ -3,6 +3,7 @@ from .._core.errors import BrowserUseError
 
 from ..generated.v4.models import (
     CustomProxy,
+    InlineSecretSource,
     Model as RunModel,
     ProxyCountryCode,
     QueuedMessage,
@@ -19,6 +20,8 @@ from ..generated.v4.models import (
     RunListResponse,
     RunStatusResponse,
     RunSummary,
+    SecretBinding,
+    SecretBindings,
     SessionInfo,
     SessionListResponse,
     Status as QueuedMessageStatus,
@@ -53,6 +56,9 @@ __all__ = [
     "RunAttachmentsResponse",
     "RunBrowserSettings",
     "RunJudgeSettings",
+    "InlineSecretSource",
+    "SecretBinding",
+    "SecretBindings",
     # Session models
     "SessionInfo",
     "SessionListResponse",

@@ -9,6 +9,7 @@ type UpdateBrowserSessionRequest = components["schemas"]["UpdateBrowserSessionRe
 type BrowserDownloadListResponse = components["schemas"]["BrowserDownloadListResponse"];
 
 export interface BrowserListParams {
+  metadata?: string[];
   pageSize?: number;
   pageNumber?: number;
   filterBy?: string;

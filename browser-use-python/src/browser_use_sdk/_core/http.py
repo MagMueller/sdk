@@ -86,11 +86,13 @@ class SyncHttpClient:
         params: dict[str, Any] | None = None,
     ) -> Any:
         json = _clean_json(json) if json is not None else None
-        params = _clean_params(params)
+        cleaned_params = _clean_params(params)
         for attempt in range(self._max_retries + 1):
             if attempt > 0:
                 time.sleep(min(_BACKOFF_BASE * (2 ** attempt), 10))
-            response = self._client.request(method, path, json=json, params=params)
+            response = self._client.request(
+                method, path, json=json, params=cleaned_params
+            )
 
             if _should_retry(response.status_code) and attempt < self._max_retries:
                 continue
@@ -147,11 +149,13 @@ class AsyncHttpClient:
         params: dict[str, Any] | None = None,
     ) -> Any:
         json = _clean_json(json) if json is not None else None
-        params = _clean_params(params)
+        cleaned_params = _clean_params(params)
         for attempt in range(self._max_retries + 1):
             if attempt > 0:
                 await asyncio.sleep(min(_BACKOFF_BASE * (2 ** attempt), 10))
-            response = await self._client.request(method, path, json=json, params=params)
+            response = await self._client.request(
+                method, path, json=json, params=cleaned_params
+            )
 
             if _should_retry(response.status_code) and attempt < self._max_retries:
                 continue
@@ -167,15 +171,23 @@ class AsyncHttpClient:
         await self._client.aclose()
 
 
-def _clean_params(params: dict[str, Any] | None) -> dict[str, Any] | None:
-    """Remove None values and stringify query params."""
+def _clean_params(
+    params: dict[str, Any] | None,
+) -> dict[str, str | list[str]] | None:
+    """Remove None values and stringify query params, repeating sequence values."""
     if params is None:
         return None
-    cleaned: dict[str, str] = {}
+    cleaned: dict[str, str | list[str]] = {}
     for k, v in params.items():
         if v is None:
             continue
-        if isinstance(v, bool):
+        if isinstance(v, (list, tuple)):
+            cleaned[k] = [
+                "true" if value is True else "false" if value is False else str(value)
+                for value in v
+                if value is not None
+            ]
+        elif isinstance(v, bool):
             cleaned[k] = "true" if v else "false"
         else:
             cleaned[k] = str(v)

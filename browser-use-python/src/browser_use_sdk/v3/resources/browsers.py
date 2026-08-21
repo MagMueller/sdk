@@ -25,6 +25,7 @@ class Browsers:
         *,
         profile_id: str | None = None,
         proxy_country_code: str | None = _UNSET,  # type: ignore[assignment]
+        metadata: dict[str, str] | None = None,
         timeout: int | None = None,
         browser_screen_width: int | None = None,
         browser_screen_height: int | None = None,
@@ -39,6 +40,8 @@ class Browsers:
             body["profileId"] = profile_id
         if proxy_country_code is not _UNSET:
             body["proxyCountryCode"] = proxy_country_code
+        if metadata is not None:
+            body["metadata"] = metadata
         if timeout is not None:
             body["timeout"] = timeout
         if browser_screen_width is not None:
@@ -65,6 +68,7 @@ class Browsers:
         page_number: int | None = None,
         filter_by: str | None = None,
         agent_session_id: str | None = None,
+        metadata: list[str] | None = None,
     ) -> BrowserSessionListResponse:
         """List browser sessions for the authenticated project."""
         return BrowserSessionListResponse.model_validate(
@@ -76,6 +80,7 @@ class Browsers:
                     "pageNumber": page_number,
                     "filterBy": filter_by,
                     "agentSessionId": agent_session_id,
+                    "metadata": metadata,
                 },
             )
         )
@@ -129,6 +134,7 @@ class AsyncBrowsers:
         *,
         profile_id: str | None = None,
         proxy_country_code: str | None = _UNSET,  # type: ignore[assignment]
+        metadata: dict[str, str] | None = None,
         timeout: int | None = None,
         browser_screen_width: int | None = None,
         browser_screen_height: int | None = None,
@@ -143,6 +149,8 @@ class AsyncBrowsers:
             body["profileId"] = profile_id
         if proxy_country_code is not _UNSET:
             body["proxyCountryCode"] = proxy_country_code
+        if metadata is not None:
+            body["metadata"] = metadata
         if timeout is not None:
             body["timeout"] = timeout
         if browser_screen_width is not None:
@@ -169,6 +177,7 @@ class AsyncBrowsers:
         page_number: int | None = None,
         filter_by: str | None = None,
         agent_session_id: str | None = None,
+        metadata: list[str] | None = None,
     ) -> BrowserSessionListResponse:
         """List browser sessions for the authenticated project."""
         return BrowserSessionListResponse.model_validate(
@@ -180,6 +189,7 @@ class AsyncBrowsers:
                     "pageNumber": page_number,
                     "filterBy": filter_by,
                     "agentSessionId": agent_session_id,
+                    "metadata": metadata,
                 },
             )
         )

@@ -671,6 +671,14 @@ export interface components {
              * @description Presigned URL to download the session recording. Only populated on `GET /api/v2/browsers/{id}`; always `null` in list responses.
              */
             recordingUrl?: string | null;
+            /**
+             * Metadata
+             * @description Caller-supplied labels set when the browser was created.
+             * @default {}
+             */
+            metadata: {
+                [key: string]: string;
+            };
         };
         /**
          * BrowserSessionListResponse
@@ -788,6 +796,14 @@ export interface components {
              * @description Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response.
              */
             recordingUrl?: string | null;
+            /**
+             * Metadata
+             * @description Caller-supplied labels set when the browser was created.
+             * @default {}
+             */
+            metadata: {
+                [key: string]: string;
+            };
         };
         /**
          * CreateBrowserSessionRequest
@@ -838,6 +854,13 @@ export interface components {
              * @default false
              */
             enableRecording: boolean;
+            /**
+             * Metadata
+             * @description Labels for this browser. Up to 10 key-value pairs. Filterable on the browsers list and in the dashboard history.
+             */
+            metadata?: {
+                [key: string]: string;
+            } | null;
         };
         /**
          * CustomProxy
@@ -889,6 +912,23 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * InlineSecretSource
+         * @description A value the caller supplies directly with the run.
+         */
+        InlineSecretSource: {
+            /**
+             * Type
+             * @constant
+             */
+            type: "inline";
+            /**
+             * Value
+             * Format: password
+             * @description The secret itself. Limited to 4096 bytes once encoded for encryption; non-ASCII characters cost more than one byte each.
+             */
+            value: string;
         };
         /**
          * InsufficientCreditsError
@@ -1173,8 +1213,19 @@ export interface components {
             /** Workspaceid */
             workspaceId?: string | null;
             browserSettings?: components["schemas"]["RunBrowserSettings"] | null;
+            /**
+             * Agentmail
+             * @description If true, provisions a persistent temporary email inbox (via AgentMail) for the run workspace. The agent receives the email address in its context and can send, receive, read, and reply to email. Set false to disable AgentMail for this run.
+             * @default false
+             */
+            agentmail: boolean;
             /** Attachedfileids */
             attachedFileIds?: string[] | null;
+            /**
+             * Secretbindings
+             * @description Credentials this run may use without ever seeing them. The agent can ask the server to type a binding by alias on one of its allowed domains; it cannot read the value. Bindings are not persisted past the run.
+             */
+            secretBindings?: components["schemas"]["SecretBinding"][] | null;
             judge?: components["schemas"]["RunJudgeSettings"] | null;
             /** Maxcostusd */
             maxCostUsd?: number | string | null;
@@ -1331,6 +1382,31 @@ export interface components {
              * Format: date-time
              */
             updatedAt: string;
+        };
+        /**
+         * SecretBinding
+         * @description One credential this run may have typed into a browser field.
+         *
+         *     The value never reaches the agent. It is encrypted at rest, kept out of the
+         *     worker payload, and typed straight into the focused field by the server when
+         *     the agent asks for the alias by name — and only while the page it is typing
+         *     into is on one of `allowedDomains`.
+         *
+         *     Run-scoped: bindings die with the run, so a follow-up run that needs the same
+         *     credential must send it again.
+         */
+        SecretBinding: {
+            /**
+             * Alias
+             * @description Name the agent refers to this secret by, e.g. "github_password".
+             */
+            alias: string;
+            source: components["schemas"]["InlineSecretSource"];
+            /**
+             * Alloweddomains
+             * @description Hosts the secret may be typed into, e.g. ["github.com"]. A host covers its subdomains. Bare hostnames only — no scheme, port, path, or wildcard.
+             */
+            allowedDomains: string[];
         };
         /**
          * SessionInfo
@@ -2660,6 +2736,8 @@ export interface operations {
     list_browser_sessions_browsers_get: {
         parameters: {
             query?: {
+                /** @description Only browsers tagged with every one of these terms. `key` matches any value; `key=value` matches exactly. Repeat the param to require more than one (AND). */
+                metadata?: string[] | null;
                 pageSize?: number;
                 pageNumber?: number;
                 filterBy?: components["schemas"]["BrowserSessionStatus"] | null;

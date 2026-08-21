@@ -84,6 +84,44 @@ describe("v4 runs.waitForCompletion", () => {
 });
 
 describe("v4 runs pagination + events", () => {
+  it("passes agentmail and secret bindings through on create", async () => {
+    const http = {
+      post: vi.fn(async () => ({
+        id: RUN_ID,
+        status: "queued",
+        model: "gpt-5.6-luna",
+        sessionId: SESSION_ID,
+        workspaceId: WORKSPACE_ID,
+        eventsUrl: `https://api.browser-use.com/api/v4/runs/${RUN_ID}/events`,
+      })),
+    };
+    const runs = new Runs(http as any);
+
+    await runs.create({
+      task: "Sign in",
+      agentmail: true,
+      secretBindings: [
+        {
+          alias: "github_password",
+          source: { type: "inline", value: "not-masked" },
+          allowedDomains: ["github.com"],
+        },
+      ],
+    });
+
+    expect(http.post).toHaveBeenCalledWith("/runs", {
+      task: "Sign in",
+      agentmail: true,
+      secretBindings: [
+        {
+          alias: "github_password",
+          source: { type: "inline", value: "not-masked" },
+          allowedDomains: ["github.com"],
+        },
+      ],
+    });
+  });
+
   it("passes cursor pagination params on list", async () => {
     const http = {
       get: vi.fn(async () => ({ runs: [], nextCursor: null, hasMore: false })),

@@ -16,23 +16,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const SDK_ROOT = resolve(__dirname, "..");
 const REPO_ROOT = resolve(SDK_ROOT, "..");
 
-/** Read CLOUD_REPO_PATH from .env */
-function getCloudRepoPath(): string {
-  const envPath = resolve(REPO_ROOT, ".env");
-  const envContent = readFileSync(envPath, "utf-8");
-  for (const line of envContent.split("\n")) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("CLOUD_REPO_PATH=") && !trimmed.startsWith("#")) {
-      return trimmed.slice("CLOUD_REPO_PATH=".length).trim();
-    }
-  }
-  throw new Error("CLOUD_REPO_PATH not found in .env");
-}
-
-const CLOUD_REPO = getCloudRepoPath();
-
 function loadSpec(version: "v2" | "v3" | "v4") {
-  const specPath = resolve(CLOUD_REPO, "backend", "spec", "api", version, "openapi.json");
+  const specPath = resolve(REPO_ROOT, "snapshots", `${version}.json`);
   const raw = readFileSync(specPath, "utf-8");
   return JSON.parse(raw);
 }

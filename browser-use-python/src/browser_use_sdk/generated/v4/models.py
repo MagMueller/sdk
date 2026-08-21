@@ -4,10 +4,18 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal
 from uuid import UUID
 
-from pydantic import AnyUrl, AwareDatetime, BaseModel, ConfigDict, Field, RootModel
+from pydantic import (
+    AnyUrl,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    RootModel,
+    SecretStr,
+)
 
 
 class BrowserDownloadFile(BaseModel):
@@ -130,6 +138,11 @@ class BrowserSessionView(BaseModel):
         description='Presigned URL to download the session recording, if recording was enabled. Only populated on GET /api/v2/browsers/{session_id}: the upload starts when the browser stops, so it is never ready in the stop response.',
         title='Recording URL',
     )
+    metadata: Dict[str, str] | None = Field(
+        {},
+        description='Caller-supplied labels set when the browser was created.',
+        title='Metadata',
+    )
 
 
 class BrowserScreenWidth(RootModel[int]):
@@ -205,6 +218,20 @@ class ExternalBrowserAttach(BaseModel):
     cdp_url: AnyUrl = Field(..., alias='cdpUrl', title='Cdpurl')
     live_view_url: LiveViewUrl | None = Field(
         None, alias='liveViewUrl', title='Liveviewurl'
+    )
+
+
+class InlineSecretSource(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    type: Literal['inline'] = Field(..., title='Type')
+    value: SecretStr = Field(
+        ...,
+        description='The secret itself. Limited to 4096 bytes once encoded for encryption; non-ASCII characters cost more than one byte each.',
+        max_length=4096,
+        min_length=1,
+        title='Value',
     )
 
 
@@ -773,6 +800,26 @@ class RunSummary(BaseModel):
     updated_at: AwareDatetime = Field(..., alias='updatedAt', title='Updatedat')
 
 
+class SecretBinding(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    alias: str = Field(
+        ...,
+        description='Name the agent refers to this secret by, e.g. "github_password".',
+        title='Alias',
+    )
+    source: InlineSecretSource
+    allowed_domains: List[str] = Field(
+        ...,
+        alias='allowedDomains',
+        description='Hosts the secret may be typed into, e.g. ["github.com"]. A host covers its subdomains. Bare hostnames only — no scheme, port, path, or wildcard.',
+        max_length=10,
+        min_length=1,
+        title='Alloweddomains',
+    )
+
+
 class SessionInfo(BaseModel):
     session_id: UUID = Field(..., alias='sessionId', title='Sessionid')
     workspace_id: UUID | None = Field(..., alias='workspaceId', title='Workspaceid')
@@ -1028,6 +1075,11 @@ class BrowserSessionItemView(BaseModel):
         description='Presigned URL to download the session recording. Only populated on `GET /api/v2/browsers/{id}`; always `null` in list responses.',
         title='Recording URL',
     )
+    metadata: Dict[str, str] | None = Field(
+        {},
+        description='Caller-supplied labels set when the browser was created.',
+        title='Metadata',
+    )
 
 
 class BrowserSessionListResponse(BaseModel):
@@ -1098,6 +1150,11 @@ class CreateBrowserSessionRequest(BaseModel):
         description='If True, enables session recording. Defaults to False.',
         title='Enable Recording',
     )
+    metadata: Dict[str, str] | None = Field(
+        None,
+        description='Labels for this browser. Up to 10 key-value pairs. Filterable on the browsers list and in the dashboard history.',
+        title='Metadata',
+    )
 
 
 class HTTPValidationError(BaseModel):
@@ -1129,6 +1186,15 @@ class QueueListResponse(BaseModel):
     )
 
 
+class SecretBindings(RootModel[List[SecretBinding]]):
+    root: List[SecretBinding] = Field(
+        ...,
+        description='Credentials this run may use without ever seeing them. The agent can ask the server to type a binding by alias on one of its allowed domains; it cannot read the value. Bindings are not persisted past the run.',
+        max_length=10,
+        title='Secretbindings',
+    )
+
+
 class RunCreateRequest(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -1144,8 +1210,19 @@ class RunCreateRequest(BaseModel):
     session_id: UUID | None = Field(None, alias='sessionId', title='Sessionid')
     workspace_id: UUID | None = Field(None, alias='workspaceId', title='Workspaceid')
     browser_settings: RunBrowserSettings | None = Field(None, alias='browserSettings')
+    agentmail: bool | None = Field(
+        False,
+        description='If true, provisions a persistent temporary email inbox (via AgentMail) for the run workspace. The agent receives the email address in its context and can send, receive, read, and reply to email. Set false to disable AgentMail for this run.',
+        title='Agentmail',
+    )
     attached_file_ids: AttachedFileIds | None = Field(
         None, alias='attachedFileIds', title='Attachedfileids'
+    )
+    secret_bindings: SecretBindings | None = Field(
+        None,
+        alias='secretBindings',
+        description='Credentials this run may use without ever seeing them. The agent can ask the server to type a binding by alias on one of its allowed domains; it cannot read the value. Bindings are not persisted past the run.',
+        title='Secretbindings',
     )
     judge: RunJudgeSettings | None = None
     max_cost_usd: MaxCostUsd | MaxCostUsd1 | None = Field(
