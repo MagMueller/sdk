@@ -27,6 +27,9 @@ export class Browsers {
 
   /** Create a standalone browser session. */
   create(body: Partial<CreateBrowserSessionRequest> = {}): Promise<BrowserSessionItemView> {
+    if (body.metadata && Object.keys(body.metadata).length > 10) {
+      throw new RangeError("metadata supports at most 10 key-value pairs");
+    }
     return this.http.post<BrowserSessionItemView>("/browsers", body);
   }
 

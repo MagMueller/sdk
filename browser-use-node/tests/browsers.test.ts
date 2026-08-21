@@ -24,4 +24,17 @@ describe.each([
       metadata: ["team", "env=test"],
     });
   });
+
+  it("rejects more than 10 metadata entries", () => {
+    const http = { post: vi.fn() };
+    const browsers = new Browsers(http as any);
+    const metadata = Object.fromEntries(
+      Array.from({ length: 11 }, (_, index) => [`key-${index}`, `value-${index}`]),
+    );
+
+    expect(() => browsers.create({ metadata })).toThrow(
+      "metadata supports at most 10 key-value pairs",
+    );
+    expect(http.post).not.toHaveBeenCalled();
+  });
 });

@@ -2260,6 +2260,7 @@
                 "additionalProperties": {
                   "type": "string"
                 },
+                "maxProperties": 10,
                 "type": "object"
               },
               {

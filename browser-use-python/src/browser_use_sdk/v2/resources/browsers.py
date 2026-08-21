@@ -27,6 +27,9 @@ def _build_create_body(
     enable_recording: bool | None = None,
     **extra: Any,
 ) -> dict[str, Any]:
+    if metadata is not None and len(metadata) > 10:
+        raise ValueError("metadata supports at most 10 key-value pairs")
+
     body: dict[str, Any] = {}
     if profile_id is not None:
         body["profileId"] = profile_id

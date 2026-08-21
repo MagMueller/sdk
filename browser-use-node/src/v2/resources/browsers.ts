@@ -28,6 +28,9 @@ export class Browsers {
 
   /** Create a new browser session. */
   create(body: CreateBrowserBody = {}): Promise<BrowserSessionItemView> {
+    if (body.metadata && Object.keys(body.metadata).length > 10) {
+      throw new RangeError("metadata supports at most 10 key-value pairs");
+    }
     if (body.proxyCountryCode) {
       body = { ...body, proxyCountryCode: body.proxyCountryCode.toLowerCase() as any };
     }

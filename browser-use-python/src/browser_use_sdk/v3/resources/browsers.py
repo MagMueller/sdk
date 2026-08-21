@@ -16,6 +16,11 @@ if TYPE_CHECKING:
     from uuid import UUID
 
 
+def _validate_metadata(metadata: dict[str, str] | None) -> None:
+    if metadata is not None and len(metadata) > 10:
+        raise ValueError("metadata supports at most 10 key-value pairs")
+
+
 class Browsers:
     def __init__(self, http: SyncHttpClient) -> None:
         self._http = http
@@ -35,6 +40,7 @@ class Browsers:
         **extra: Any,
     ) -> BrowserSessionItemView:
         """Create a standalone browser session."""
+        _validate_metadata(metadata)
         body: dict[str, Any] = {}
         if profile_id is not None:
             body["profileId"] = profile_id
@@ -144,6 +150,7 @@ class AsyncBrowsers:
         **extra: Any,
     ) -> BrowserSessionItemView:
         """Create a standalone browser session."""
+        _validate_metadata(metadata)
         body: dict[str, Any] = {}
         if profile_id is not None:
             body["profileId"] = profile_id

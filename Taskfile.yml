@@ -358,6 +358,9 @@ tasks:
       - cp snapshots/v2.json docs/openapi/v2.json
       - cp snapshots/v3.json docs/openapi/v3.json
       - cp snapshots/v4.json docs/openapi/v4.json
+      - python3 -m json.tool --indent 4 snapshots/v2.json docs/cloud/openapi/v2.json
+      - python3 -m json.tool --indent 4 snapshots/v3.json docs/cloud/openapi/v3.json
+      - python3 -m json.tool --indent 4 snapshots/v4.json docs/cloud/openapi/v4.json
 
   docs:dev:
     desc: Start Mintlify docs dev server

@@ -51,3 +51,15 @@ def test_browser_metadata_create_and_list(browser_cls: type[Any]) -> None:
         "agentSessionId": None,
         "metadata": ["team", "env=test"],
     }
+
+
+@pytest.mark.parametrize("browser_cls", [V2Browsers, V3Browsers])
+def test_browser_metadata_rejects_more_than_10_entries(browser_cls: type[Any]) -> None:
+    http = FakeHttp()
+    browsers = browser_cls(http)
+    metadata = {f"key-{index}": f"value-{index}" for index in range(11)}
+
+    with pytest.raises(ValueError, match="metadata supports at most 10"):
+        browsers.create(metadata=metadata)
+
+    assert http.calls == []
