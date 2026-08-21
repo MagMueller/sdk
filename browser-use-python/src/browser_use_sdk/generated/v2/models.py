@@ -928,6 +928,7 @@ class SkillsGenerationStatus(Enum):
 class SupportedLLMs(Enum):
     browser_use_llm = 'browser-use-llm'
     browser_use_2_0 = 'browser-use-2.0'
+    bu_2_0_mini_preview = 'bu-2-0-mini-preview'
     gpt_4_1 = 'gpt-4.1'
     gpt_4_1_mini = 'gpt-4.1-mini'
     o4_mini = 'o4-mini'

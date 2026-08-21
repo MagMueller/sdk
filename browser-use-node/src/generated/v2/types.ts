@@ -2377,7 +2377,7 @@ export interface components {
          * SupportedLLMs
          * @enum {string}
          */
-        SupportedLLMs: "browser-use-llm" | "browser-use-2.0" | "gpt-4.1" | "gpt-4.1-mini" | "o4-mini" | "o3" | "gpt-5.5" | "gpt-5.6-sol" | "gpt-5.6-terra" | "gpt-5.6-luna" | "gemini-2.5-flash" | "gemini-2.5-pro" | "gemini-3-pro-preview" | "gemini-3.1-pro-preview" | "gemini-3-flash-preview" | "gemini-3.5-flash" | "gemini-flash-latest" | "gemini-flash-lite-latest" | "claude-sonnet-4-20250514" | "claude-sonnet-4-5-20250929" | "claude-sonnet-5" | "claude-opus-4-5-20251101" | "claude-opus-4-7" | "claude-opus-4-8" | "claude-opus-5" | "glm-5.2" | "minimax-m3" | "llama-4-maverick-17b-128e-instruct" | "claude-3-7-sonnet-20250219";
+        SupportedLLMs: "browser-use-llm" | "browser-use-2.0" | "bu-2-0-mini-preview" | "gpt-4.1" | "gpt-4.1-mini" | "o4-mini" | "o3" | "gpt-5.5" | "gpt-5.6-sol" | "gpt-5.6-terra" | "gpt-5.6-luna" | "gemini-2.5-flash" | "gemini-2.5-pro" | "gemini-3-pro-preview" | "gemini-3.1-pro-preview" | "gemini-3-flash-preview" | "gemini-3.5-flash" | "gemini-flash-latest" | "gemini-flash-lite-latest" | "claude-sonnet-4-20250514" | "claude-sonnet-4-5-20250929" | "claude-sonnet-5" | "claude-opus-4-5-20251101" | "claude-opus-4-7" | "claude-opus-4-8" | "claude-opus-5" | "glm-5.2" | "minimax-m3" | "llama-4-maverick-17b-128e-instruct" | "claude-3-7-sonnet-20250219";
         /**
          * TaskCreatedResponse
          * @description Response model for creating a task

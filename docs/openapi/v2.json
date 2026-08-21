@@ -6205,6 +6205,7 @@
         "enum": [
           "browser-use-llm",
           "browser-use-2.0",
+          "bu-2-0-mini-preview",
           "gpt-4.1",
           "gpt-4.1-mini",
           "o4-mini",
