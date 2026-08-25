@@ -27,6 +27,24 @@ Keep the browser session ID returned by `POST /api/v4/browsers`, then call
 `PATCH /api/v4/browsers/{id}` with `{"action":"stop"}`. This stops billing and
 refunds unused browser time.
 
+**Create and reuse a login profile:** Create one profile per end user, then pass
+its ID in `browserSettings.profileId` on later browsers or agent runs:
+```bash
+profile=$(curl -sS https://api.browser-use.com/api/v4/profiles \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"My user"}')
+export BROWSER_USE_PROFILE_ID=$(echo "$profile" | jq -r .id)
+
+curl -sS https://api.browser-use.com/api/v4/browsers \
+  -H "X-Browser-Use-API-Key: $BROWSER_USE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"profileId\":\"$BROWSER_USE_PROFILE_ID\",\"proxyCountryCode\":\"us\"}"
+```
+Log in once in that browser, stop it, then use the same profile ID to start the
+next browser already logged in. Full guide:
+https://docs.browser-use.com/cloud/guides/authentication
+
 **Current TypeScript SDK typing:** Pass `model` explicitly. Prefer
 `gpt-5.6-luna`, the recommended V4 model; if the generated union does not yet
 include it, use `grok-4.5` or call `POST /api/v4/runs` directly. Whenever
