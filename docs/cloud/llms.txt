@@ -58,7 +58,7 @@ export BROWSER_USE_API_KEY=bu_your_key_here
 - [Structured output](https://docs.browser-use.com/cloud/agent/structured-output): Ask for JSON and validate the V4 result in your application.
 - [Sessions](https://docs.browser-use.com/cloud/agent/sessions): Continue one conversation across multiple V4 runs.
 - [Workspaces & files](https://docs.browser-use.com/cloud/agent/workspaces): Persist files across V4 runs and conversations.
-- [Scripts](https://docs.browser-use.com/cloud/agent/scripts): Save tested browser scripts in a workspace and reuse them on later runs.
+- [Rerunnable scripts](https://docs.browser-use.com/cloud/agent/scripts): Save a Browser Use task as a rerunnable script for repeated live data extraction and self-healing runs.
 - [Human in the loop](https://docs.browser-use.com/cloud/agent/human-in-the-loop): Open the live browser, take over, then continue the same session.
 - [Observability](https://docs.browser-use.com/cloud/agent/observability): Poll ordered V4 events to monitor a run or build a custom UI.
 
