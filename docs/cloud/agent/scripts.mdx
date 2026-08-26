@@ -50,7 +50,8 @@ first = client.runs.create(
     Save a script at scripts/extract_top_stories.py that collects the same
     fields. The script must send a fresh request to the live page every time it
     runs. Do not hard-code story titles, save the page HTML, or read an old
-    result. Print JSON with source_url, fetched_at, source_sha256, and stories.
+    result. Print JSON with source_url set to https://news.ycombinator.com/ and
+    include fetched_at, source_sha256, and stories.
 
     Run the script twice and save the outputs as proof/run-1.json and
     proof/run-2.json. Confirm both outputs have a fresh fetched_at value and
@@ -79,7 +80,8 @@ const first = await client.runs.create({
     Save a script at scripts/extract_top_stories.py that collects the same
     fields. The script must send a fresh request to the live page every time it
     runs. Do not hard-code story titles, save the page HTML, or read an old
-    result. Print JSON with source_url, fetched_at, source_sha256, and stories.
+    result. Print JSON with source_url set to https://news.ycombinator.com/ and
+    include fetched_at, source_sha256, and stories.
 
     Run the script twice and save the outputs as proof/run-1.json and
     proof/run-2.json. Confirm both outputs have a fresh fetched_at value and
