@@ -523,6 +523,50 @@ describe("v4 workspaces", () => {
       });
     });
 
+    it("bounds downloads and cancels non-success response bodies", async () => {
+      const directory = mkdtempSync(join(tmpdir(), "bu-v4-download-status-"));
+      const destination = join(directory, "result.csv");
+      writeFileSync(destination, "previous");
+      const url = "https://s3.example/get/reports/result.csv";
+      const signal = new AbortController().signal;
+      const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(signal);
+      let cancelled = false;
+      const response = new Response(
+        new ReadableStream({
+          cancel() {
+            cancelled = true;
+          },
+        }),
+        { status: 503, statusText: "Service Unavailable" },
+      );
+      const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(response);
+      const http = {
+        get: vi.fn(async () => ({
+          files: [
+            {
+              path: "reports/result.csv",
+              size: 6,
+              lastModified: "2026-01-01T00:00:00Z",
+              url,
+            },
+          ],
+          nextCursor: null,
+          hasMore: false,
+        })),
+      };
+      const workspaces = new Workspaces(http as any);
+
+      await expect(
+        workspaces.download(WORKSPACE_ID, "reports/result.csv", { to: destination }),
+      ).rejects.toThrow(/Download failed: 503 Service Unavailable/);
+
+      expect(timeout).toHaveBeenCalledWith(60_000);
+      expect(fetchMock).toHaveBeenCalledWith(url, { signal });
+      expect(cancelled).toBe(true);
+      expect(readFileSync(destination, "utf8")).toBe("previous");
+      expect(readdirSync(directory).filter((name) => name.endsWith(".tmp"))).toEqual([]);
+    });
+
     it("retries partial file writes until the whole response chunk is saved", async () => {
       const directory = mkdtempSync(join(tmpdir(), "bu-v4-short-write-"));
       const destination = join(directory, "result.csv");

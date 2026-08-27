@@ -916,9 +916,11 @@ def test_async_workspaces_upload_short_presign_raises(tmp_path: Path) -> None:
 
 
 def test_async_workspaces_download_all(tmp_path: Path, monkeypatch: Any) -> None:
-    url = "https://s3.example/get/reports/result.csv"
+    first_url = "https://s3.example/get/reports/first.csv"
+    second_url = "https://s3.example/get/reports/nested/second.csv"
     _FakeAsyncDownloadClient.responses = {
-        url: _FakeDownloadResponse(b"res", b"ult")
+        first_url: _FakeDownloadResponse(b"first"),
+        second_url: _FakeDownloadResponse(b"second"),
     }
     _FakeAsyncDownloadClient.calls = []
     monkeypatch.setattr(httpx, "AsyncClient", _FakeAsyncDownloadClient)
@@ -936,15 +938,31 @@ def test_async_workspaces_download_all(tmp_path: Path, monkeypatch: Any) -> None
         http = FakeAsyncHttp(
             [
                 {
-                    "files": [_workspace_file("reports/result.csv", None)],
+                    "files": [_workspace_file("reports/first.csv", None)],
+                    "nextCursor": "page-2",
+                    "hasMore": True,
+                },
+                {
+                    "files": [_workspace_file("reports/first.csv", first_url)],
                     "nextCursor": None,
                     "hasMore": False,
                 },
                 {
-                    "files": [_workspace_file("reports/result.csv", url)],
+                    "files": [
+                        _workspace_file("reports/nested/second.csv", None)
+                    ],
                     "nextCursor": None,
                     "hasMore": False,
-                }
+                },
+                {
+                    "files": [
+                        _workspace_file(
+                            "reports/nested/second.csv", second_url
+                        )
+                    ],
+                    "nextCursor": None,
+                    "hasMore": False,
+                },
             ]
         )
         workspaces = AsyncWorkspaces(http)  # type: ignore[arg-type]
@@ -954,11 +972,45 @@ def test_async_workspaces_download_all(tmp_path: Path, monkeypatch: Any) -> None
             WORKSPACE_ID, to=destination, prefix="reports/"
         )
 
-        assert result == [(destination / "reports/result.csv").resolve()]
-        assert result[0].read_bytes() == b"result"
-        assert _FakeAsyncDownloadClient.calls == [url]
+        assert result == [
+            (destination / "reports/first.csv").resolve(),
+            (destination / "reports/nested/second.csv").resolve(),
+        ]
+        assert result[0].read_bytes() == b"first"
+        assert result[1].read_bytes() == b"second"
+        assert _FakeAsyncDownloadClient.calls == [first_url, second_url]
         assert path_resolution_threads
         assert event_loop_thread not in path_resolution_threads
+        assert [call[3] for call in http.calls] == [
+            {
+                "prefix": "reports/",
+                "limit": None,
+                "cursor": None,
+                "includeUrls": None,
+                "contentDisposition": None,
+            },
+            {
+                "prefix": "reports/first.csv",
+                "limit": None,
+                "cursor": None,
+                "includeUrls": True,
+                "contentDisposition": None,
+            },
+            {
+                "prefix": "reports/",
+                "limit": None,
+                "cursor": "page-2",
+                "includeUrls": None,
+                "contentDisposition": None,
+            },
+            {
+                "prefix": "reports/nested/second.csv",
+                "limit": None,
+                "cursor": None,
+                "includeUrls": True,
+                "contentDisposition": None,
+            },
+        ]
 
     asyncio.run(run())
 

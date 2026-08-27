@@ -43,6 +43,8 @@ const MIME_TYPES: Record<string, string> = {
   ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 };
 
+const DOWNLOAD_TIMEOUT_MS = 60_000;
+
 function guessContentType(path: string): string {
   return MIME_TYPES[extname(path).toLowerCase()] ?? "application/octet-stream";
 }
@@ -82,8 +84,11 @@ async function streamToPath(url: string, destination: string): Promise<void> {
   );
   let output: Awaited<ReturnType<typeof open>> | undefined;
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+    });
     if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined);
       throw new Error(`Download failed: ${response.status} ${response.statusText}`);
     }
     if (!response.body) {
