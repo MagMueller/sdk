@@ -22,10 +22,10 @@ export BROWSER_USE_API_KEY=your_key
 Skip this step if you use curl.
 
 ```bash Python
-pip install browser-use-sdk
+pip install --upgrade browser-use-sdk
 ```
 ```bash TypeScript
-npm install browser-use-sdk
+npm install browser-use-sdk@latest
 ```
 
 ## Run Browser Use Agents
@@ -232,8 +232,8 @@ curl https://api.browser-use.com/api/v4/runs \
   -d '{"task":"Find the top Hacker News story"}'
 ```
 
-Install the SDK with `pip install browser-use-sdk` or
-`npm install browser-use-sdk`. Curl needs no installation.
+Install the latest SDK with `pip install --upgrade browser-use-sdk` or
+`npm install browser-use-sdk@latest`. Curl needs no installation.
 
 Every new run implicitly creates a [session](https://docs.browser-use.com/cloud/agent/sessions) for its
 conversation and live browser, plus a [workspace](https://docs.browser-use.com/cloud/agent/workspaces) for
@@ -1025,10 +1025,10 @@ export BROWSER_USE_API_KEY=your_key
 Skip this step if you use curl.
 
 ```bash Python
-pip install browser-use-sdk
+pip install --upgrade browser-use-sdk
 ```
 ```bash TypeScript
-npm install browser-use-sdk
+npm install browser-use-sdk@latest
 ```
 
 ## Launch a browser
