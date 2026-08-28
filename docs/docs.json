@@ -527,6 +527,22 @@
       "destination": "/cloud/browser/playwright-puppeteer-selenium"
     },
     {
+      "source": "/cloud/connect",
+      "destination": "/cloud/browser/playwright-puppeteer-selenium"
+    },
+    {
+      "source": "/cloud/playwright",
+      "destination": "/cloud/browser/playwright-puppeteer-selenium"
+    },
+    {
+      "source": "/cloud/browser/playwright",
+      "destination": "/cloud/browser/playwright-puppeteer-selenium"
+    },
+    {
+      "source": "/cloud/browsers/playwright",
+      "destination": "/cloud/browser/playwright-puppeteer-selenium"
+    },
+    {
       "source": "/quickstart",
       "destination": "/open-source/quickstart"
     },
