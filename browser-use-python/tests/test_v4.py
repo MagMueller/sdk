@@ -242,6 +242,39 @@ def test_wait_for_event_returns_browser_ready_before_terminal_wait() -> None:
     assert http.calls[-1][3] == {"after": 1, "limit": 100}
 
 
+def test_async_wait_for_event_returns_browser_ready() -> None:
+    async def run() -> None:
+        http = FakeAsyncHttp(
+            [
+                {
+                    "events": [],
+                    "nextAfter": 0,
+                    "hasMore": False,
+                },
+                {
+                    "events": [
+                        {
+                            "runId": RUN_ID,
+                            "id": 1,
+                            "ts": "2026-01-01T00:00:01Z",
+                            "type": "browser.ready",
+                            "data": {"live_view_url": "https://live"},
+                        }
+                    ],
+                    "nextAfter": 1,
+                    "hasMore": False,
+                },
+            ]
+        )
+        event = await AsyncRuns(http).wait_for_event(  # type: ignore[arg-type]
+            RUN_ID, "browser.ready", interval=0
+        )
+        assert event.data["live_view_url"] == "https://live"
+        assert http.calls[-1][3] == {"after": 0, "limit": 100}
+
+    asyncio.run(run())
+
+
 # ---------------------------------------------------------------------------
 # runs create / list / events
 # ---------------------------------------------------------------------------

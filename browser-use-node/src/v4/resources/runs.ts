@@ -34,7 +34,11 @@ export interface WaitOptions {
   interval?: number;
 }
 
-export interface WaitForEventOptions extends WaitOptions {
+export interface WaitForEventOptions extends Omit<WaitOptions, "timeout" | "interval"> {
+  /** Maximum time to wait in milliseconds. Default: 300_000 (5 minutes). */
+  timeout?: number;
+  /** Polling interval in milliseconds. Default: 1_000. */
+  interval?: number;
   /** Event cursor to start after. */
   after?: number | null;
   /** Events fetched per request. Default: 100. */

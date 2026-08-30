@@ -8,6 +8,7 @@ export type {
   RunCreateBody,
   RunListParams,
   RunEventsParams,
+  WaitForEventOptions,
   WaitOptions,
 } from "./v4/resources/runs.js";
 
