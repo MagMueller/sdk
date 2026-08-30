@@ -23,6 +23,12 @@ if TYPE_CHECKING:
 
 # Terminal run statuses — closed enum in the v4 spec.
 _TERMINAL_STATUSES = {"completed", "failed", "cancelled"}
+_TERMINAL_EVENT_TYPES = {
+    "run.completed",
+    "run.failed",
+    "run.cancelled",
+    "run.dispatch_failed",
+}
 
 
 def _build_create_body(
@@ -193,6 +199,14 @@ class Runs:
             )
             if event is not None:
                 return event
+            terminal = next(
+                (item for item in page.events if item.type in _TERMINAL_EVENT_TYPES),
+                None,
+            )
+            if terminal is not None:
+                raise RuntimeError(
+                    f"Run {run_id} emitted {terminal.type} before {event_type}"
+                )
             after = page.next_after if page.next_after is not None else after
             remaining = deadline - time.monotonic()
             if remaining <= 0:
@@ -355,6 +369,14 @@ class AsyncRuns:
             )
             if event is not None:
                 return event
+            terminal = next(
+                (item for item in page.events if item.type in _TERMINAL_EVENT_TYPES),
+                None,
+            )
+            if terminal is not None:
+                raise RuntimeError(
+                    f"Run {run_id} emitted {terminal.type} before {event_type}"
+                )
             after = page.next_after if page.next_after is not None else after
             remaining = deadline - time.monotonic()
             if remaining <= 0:

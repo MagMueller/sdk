@@ -271,6 +271,36 @@ def test_async_wait_for_event_returns_browser_ready() -> None:
     asyncio.run(run())
 
 
+def test_wait_for_event_stops_when_run_ends_first() -> None:
+    terminal = {
+        "events": [
+            {
+                "runId": RUN_ID,
+                "id": 1,
+                "ts": "2026-01-01T00:00:00Z",
+                "type": "run.dispatch_failed",
+                "data": {},
+            }
+        ],
+        "nextAfter": 1,
+        "hasMore": False,
+    }
+    sync_http = FakeSyncHttp([terminal])
+    with pytest.raises(RuntimeError, match="run.dispatch_failed before browser.ready"):
+        Runs(sync_http).wait_for_event(RUN_ID, "browser.ready")  # type: ignore[arg-type]
+    assert len(sync_http.calls) == 1
+
+    async def run() -> None:
+        async_http = FakeAsyncHttp([terminal])
+        with pytest.raises(RuntimeError, match="run.dispatch_failed before browser.ready"):
+            await AsyncRuns(async_http).wait_for_event(  # type: ignore[arg-type]
+                RUN_ID, "browser.ready"
+            )
+        assert len(async_http.calls) == 1
+
+    asyncio.run(run())
+
+
 # ---------------------------------------------------------------------------
 # runs create / list / events
 # ---------------------------------------------------------------------------

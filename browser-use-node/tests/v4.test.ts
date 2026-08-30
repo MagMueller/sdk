@@ -119,6 +119,21 @@ describe("v4 runs.waitForEvent", () => {
     expect(event.data.live_view_url).toBe("https://live");
     expect(http.get).toHaveBeenLastCalledWith(`/runs/${RUN_ID}/events`, { after: 1, limit: 100 });
   });
+
+  it("fails immediately when the run ends before the requested event", async () => {
+    const http = {
+      get: vi.fn(async () => ({
+        events: [{ runId: RUN_ID, id: 1, ts: "2026-01-01T00:00:00Z", type: "run.dispatch_failed", data: {} }],
+        nextAfter: 1,
+        hasMore: false,
+      })),
+    };
+    const runs = new Runs(http as any);
+    await expect(runs.waitForEvent(RUN_ID, "browser.ready")).rejects.toThrow(
+      /emitted run\.dispatch_failed before browser\.ready/,
+    );
+    expect(http.get).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("v4 runs pagination + events", () => {

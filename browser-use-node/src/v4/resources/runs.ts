@@ -15,6 +15,12 @@ export type RunCreateBody = Pick<RunCreateRequest, "task"> &
 
 /** Terminal run statuses — closed enum in the v4 spec. */
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
+const TERMINAL_EVENT_TYPES = new Set([
+  "run.completed",
+  "run.failed",
+  "run.cancelled",
+  "run.dispatch_failed",
+]);
 
 export interface RunListParams {
   sessionId?: string;
@@ -80,6 +86,10 @@ export class Runs {
       const page = await this.events(runId, { after, limit: options?.limit ?? 100 });
       const event = page.events.find((candidate) => candidate.type === type);
       if (event) return event;
+      const terminal = page.events.find((candidate) => TERMINAL_EVENT_TYPES.has(candidate.type));
+      if (terminal) {
+        throw new Error(`Run ${runId} emitted ${terminal.type} before ${type}`);
+      }
       after = page.nextAfter ?? after;
       const remaining = deadline - Date.now();
       if (remaining <= 0) throw new Error(`Run ${runId} did not emit ${type} within ${timeout}ms`);
