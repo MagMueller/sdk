@@ -34,17 +34,6 @@ export interface WaitOptions {
   interval?: number;
 }
 
-export interface WaitForEventOptions extends Omit<WaitOptions, "timeout" | "interval"> {
-  /** Maximum time to wait in milliseconds. Default: 300_000 (5 minutes). */
-  timeout?: number;
-  /** Polling interval in milliseconds. Default: 1_000. */
-  interval?: number;
-  /** Event cursor to start after. */
-  after?: number | null;
-  /** Events fetched per request. Default: 100. */
-  limit?: number;
-}
-
 export class Runs {
   constructor(private readonly http: HttpClient) {}
 
@@ -77,7 +66,11 @@ export class Runs {
   }
 
   /** Poll events until the requested type appears. */
-  async waitForEvent(runId: string, type: string, options?: WaitForEventOptions): Promise<RunEvent> {
+  async waitForEvent(
+    runId: string,
+    type: string,
+    options?: WaitOptions & RunEventsParams,
+  ): Promise<RunEvent> {
     const timeout = options?.timeout ?? 300_000;
     const interval = options?.interval ?? 1_000;
     const deadline = Date.now() + timeout;
