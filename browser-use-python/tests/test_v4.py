@@ -10,6 +10,7 @@ import httpx
 import pytest
 
 from browser_use_sdk.v4 import InlineSecretSource, SecretBinding
+from browser_use_sdk.v4.resources.browsers import AsyncBrowsers, Browsers
 from browser_use_sdk.v4.resources.runs import AsyncRuns, Runs
 from browser_use_sdk.v4.resources.sessions import Sessions
 from browser_use_sdk.v4.resources.workspaces import AsyncWorkspaces, Workspaces
@@ -52,6 +53,19 @@ def _queued_message(status: str = "pending") -> dict[str, Any]:
     }
 
 
+def _stopped_browser() -> dict[str, Any]:
+    return {
+        "id": SESSION_ID,
+        "status": "stopped",
+        "timeoutAt": "2026-01-01T01:00:00Z",
+        "startedAt": "2026-01-01T00:00:00Z",
+        "proxyUsedMb": "0",
+        "proxyCost": "0",
+        "browserCost": "0.01",
+        "metadata": {},
+    }
+
+
 class FakeSyncHttp:
     """Fake SyncHttpClient — returns queued responses, records every call."""
 
@@ -86,6 +100,37 @@ class FakeAsyncHttp:
     ) -> dict[str, Any]:
         self.calls.append((method, path, json, params))
         return self.responses.pop(0)
+
+
+def test_browsers_stop() -> None:
+    http = FakeSyncHttp([_stopped_browser()])
+    browsers = Browsers(http)  # type: ignore[arg-type]
+
+    browser = browsers.stop(SESSION_ID)
+
+    assert http.calls[0][:3] == (
+        "PATCH",
+        f"/browsers/{SESSION_ID}",
+        {"action": "stop"},
+    )
+    assert browser.status.value == "stopped"
+
+
+def test_async_browsers_stop() -> None:
+    async def run() -> None:
+        http = FakeAsyncHttp([_stopped_browser()])
+        browsers = AsyncBrowsers(http)  # type: ignore[arg-type]
+
+        browser = await browsers.stop(SESSION_ID)
+
+        assert http.calls[0][:3] == (
+            "PATCH",
+            f"/browsers/{SESSION_ID}",
+            {"action": "stop"},
+        )
+        assert browser.status.value == "stopped"
+
+    asyncio.run(run())
 
 
 # ---------------------------------------------------------------------------
