@@ -65,7 +65,7 @@ export class Runs {
     );
   }
 
-  /** Poll events until the requested type appears. */
+  /** Poll events until the requested type appears (5-minute timeout, 1-second interval). */
   async waitForEvent(
     runId: string,
     type: string,
