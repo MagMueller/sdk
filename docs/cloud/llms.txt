@@ -117,7 +117,7 @@ export BROWSER_USE_API_KEY=bu_your_key_here
 ## Legacy (v2)
 - [Agent (v2)](https://docs.browser-use.com/cloud/legacy/agent): V2 agent models and file handling.
 - [Public share links (v2)](https://docs.browser-use.com/cloud/legacy/public-share): Generate shareable URLs for agent sessions using the v2 API.
-- [Skills](https://docs.browser-use.com/cloud/legacy/skills): Turn any website into a deterministic API endpoint. Create once, call repeatedly.
+- [Skills](https://docs.browser-use.com/cloud/legacy/skills): Retired. Existing skills still run; new skills are no longer created.
 
 ## API v4
 - [API Reference](https://docs.browser-use.com/cloud/api-v4-overview): Authenticate and start using the Browser Use API v4 — the current REST API for long-horizon agents.
