@@ -48,10 +48,16 @@ describe("v4 browsers", () => {
     const http = { post: vi.fn(async () => active) };
     const browsers = new Browsers(http as any);
 
-    const browser = await browsers.create({ proxyCountryCode: "us" });
+    const browser = await browsers.create({
+      proxyCountryCode: "us",
+      pdfRendererEnabled: false,
+      solveCaptchas: false,
+    });
 
     expect(http.post).toHaveBeenCalledWith("/browsers", {
       proxyCountryCode: "us",
+      pdfRendererEnabled: false,
+      solveCaptchas: false,
     });
     expect(browser.cdpUrl).toContain("devtools/browser/test");
   });
@@ -182,6 +188,17 @@ describe("v4 runs pagination + events", () => {
           source: { type: "inline", value: "not-masked" },
           allowedDomains: ["github.com"],
         },
+        {
+          alias: "onepassword_github_password",
+          source: {
+            type: "onepassword",
+            integrationId: "00000000-0000-0000-0000-000000000004",
+            vaultId: "vault-id",
+            itemId: "item-id",
+            fieldId: "password",
+          },
+          allowedDomains: ["github.com"],
+        },
       ],
     });
 
@@ -192,6 +209,17 @@ describe("v4 runs pagination + events", () => {
         {
           alias: "github_password",
           source: { type: "inline", value: "not-masked" },
+          allowedDomains: ["github.com"],
+        },
+        {
+          alias: "onepassword_github_password",
+          source: {
+            type: "onepassword",
+            integrationId: "00000000-0000-0000-0000-000000000004",
+            vaultId: "vault-id",
+            itemId: "item-id",
+            fieldId: "password",
+          },
           allowedDomains: ["github.com"],
         },
       ],
@@ -276,6 +304,26 @@ describe("v4 sessions queue", () => {
       interrupt: true,
     });
     expect(msg.status).toBe("pending");
+  });
+
+  it("can request server-side queue deduplication", async () => {
+    const http = {
+      post: vi.fn(async () => queuedMessage),
+    };
+    const sessions = new Sessions(http as any);
+
+    await sessions.sendMessage(
+      SESSION_ID,
+      { text: "also check the careers page" },
+      { deduplicate: "exact-text-v1" },
+    );
+
+    expect(http.post).toHaveBeenCalledWith(
+      `/sessions/${SESSION_ID}/queue`,
+      { text: "also check the careers page" },
+      undefined,
+      { "X-V4-Queue-Deduplicate": "exact-text-v1" },
+    );
   });
 
   it("lists pending queued messages", async () => {

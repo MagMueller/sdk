@@ -15,7 +15,7 @@ export type {
 } from "./v4/resources/runs.js";
 
 export { Sessions } from "./v4/resources/sessions.js";
-export type { SessionListParams } from "./v4/resources/sessions.js";
+export type { SendMessageOptions, SessionListParams } from "./v4/resources/sessions.js";
 
 export { Workspaces } from "./v4/resources/workspaces.js";
 export type { WorkspaceFilesParams } from "./v4/resources/workspaces.js";
@@ -39,6 +39,7 @@ export type RunAttachmentsResponse = S["RunAttachmentsResponse"];
 export type RunBrowserSettings = S["RunBrowserSettings"];
 export type RunJudgeSettings = S["RunJudgeSettings"];
 export type InlineSecretSource = S["InlineSecretSource"];
+export type OnePasswordSecretSource = S["OnePasswordSecretSource"];
 export type SecretBinding = S["SecretBinding"];
 
 // Session models

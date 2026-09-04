@@ -168,6 +168,9 @@ class BuModel(Enum):
     gpt_5_4_mini = 'gpt-5.4-mini'
     glm_5_2 = 'glm-5.2'
     minimax_m3 = 'minimax-m3'
+    grok_4_6 = 'grok-4.6'
+    glm_5_3_flash = 'glm-5.3-flash'
+    deepseek_v4_flash_vision = 'deepseek-v4-flash-vision'
     claude_haiku_4_5 = 'claude-haiku-4.5'
     gpt_5_2 = 'gpt-5.2'
     gpt_5_mini = 'gpt-5-mini'
@@ -1103,6 +1106,18 @@ class CreateBrowserSessionRequest(BaseModel):
         description='Whether to allow the browser to be resized during the session (not recommended since it reduces stealthiness).',
         title='Allow Resizing',
     )
+    pdf_renderer_enabled: bool | None = Field(
+        True,
+        alias='pdfRendererEnabled',
+        description="Whether Chrome renders PDFs in a tab. Set to false to stop the in-tab render; the file is saved to the session's download directory either way.",
+        title='PDF Renderer Enabled',
+    )
+    solve_captchas: bool | None = Field(
+        True,
+        alias='solveCaptchas',
+        description='Whether the browser detects and solves CAPTCHAs on its own. Set to false to handle CAPTCHAs yourself. Defaults to true.',
+        title='Solve Captchas',
+    )
     custom_proxy: CustomProxy | None = Field(
         None,
         alias='customProxy',
@@ -1168,7 +1183,7 @@ class RunTaskRequest(BaseModel):
     thinking_level: ThinkingLevel | None = Field(
         None,
         alias='thinkingLevel',
-        description="Optional model reasoning depth. Omit this field to preserve the model provider default. Supported values depend on the selected model: most supported Claude models and GPT-5.1+ models support disabled/low/medium/high; Gemini Flash models support all four (disabled maps to Gemini's minimal level); Claude Fable 5, earlier GPT-5 models, Gemini 2.5 Pro, o3/o4, and Grok support low/medium/high; Gemini 3.1 Pro supports low/high; GLM supports disabled/high. Unsupported model/level combinations are rejected.",
+        description="Optional model reasoning depth. Omit this field to preserve the model provider default. Supported values depend on the selected model: most supported Claude models and GPT-5.1+ models support disabled/low/medium/high; Gemini Flash models support all four (disabled maps to Gemini's minimal level for Gemini 3 Flash and 3.5 Flash, and to a zero thinking budget for Gemini 2.5 Flash and the gemini-flash-latest variants); Claude Fable 5, earlier GPT-5 models, Gemini 2.5 Pro, o3/o4, and Grok support low/medium/high; Gemini 3.1 Pro supports low/high; GLM supports disabled/high. Unsupported model/level combinations are rejected.",
     )
     session_id: UUID | None = Field(
         None,

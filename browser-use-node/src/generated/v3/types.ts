@@ -781,6 +781,9 @@ export interface components {
          *     - `gpt-5.4-mini`: GPT-5.4 mini — OpenAI's fast and efficient model. Best for tasks that benefit from OpenAI's capabilities.
          *     - `glm-5.2`: Z.ai GLM 5.2 — capable, low-cost open model. Best for cost-sensitive agentic tasks.
          *     - `minimax-m3`: MiniMax M3 — fast, very low-cost model. Best for simple, high-volume tasks.
+         *     - `grok-4.6`: xAI Grok 4.6. Fast frontier model with a large context window.
+         *     - `glm-5.3-flash`: Z.ai GLM 5.3 Flash. Multimodal, very low cost, served by Fireworks.
+         *     - `deepseek-v4-flash-vision`: DeepSeek V4 Flash Vision. Experimental, very low cost.
          *
          *     Additional provider models (e.g. `gemini-3.5-flash`, `gpt-5.2`, and `gpt-5-mini`)
          *     are selectable only with `use_own_key=true`, where your own provider key serves
@@ -789,7 +792,7 @@ export interface components {
          *     Bedrock rollout.
          * @enum {string}
          */
-        BuModel: "bu-mini" | "bu-max" | "bu-ultra" | "gemini-3-flash" | "claude-opus-4.6" | "claude-opus-4.7" | "claude-sonnet-5" | "claude-opus-4.8" | "gpt-5.4-mini" | "glm-5.2" | "minimax-m3" | "claude-haiku-4.5" | "gpt-5.2" | "gpt-5-mini" | "gpt-5.5" | "gpt-5.6-sol" | "gpt-5.6-terra" | "gpt-5.6-luna" | "gemini-3-pro" | "gemini-3.1-pro" | "gemini-3.5-flash";
+        BuModel: "bu-mini" | "bu-max" | "bu-ultra" | "gemini-3-flash" | "claude-opus-4.6" | "claude-opus-4.7" | "claude-sonnet-5" | "claude-opus-4.8" | "gpt-5.4-mini" | "glm-5.2" | "minimax-m3" | "grok-4.6" | "glm-5.3-flash" | "deepseek-v4-flash-vision" | "claude-haiku-4.5" | "gpt-5.2" | "gpt-5-mini" | "gpt-5.5" | "gpt-5.6-sol" | "gpt-5.6-terra" | "gpt-5.6-luna" | "gemini-3-pro" | "gemini-3.1-pro" | "gemini-3.5-flash";
         /**
          * CreateBrowserSessionRequest
          * @description Request model for creating a browser session.
@@ -835,6 +838,18 @@ export interface components {
              * @default false
              */
             allowResizing: boolean;
+            /**
+             * PDF Renderer Enabled
+             * @description Whether Chrome renders PDFs in a tab. Set to false to stop the in-tab render; the file is saved to the session's download directory either way.
+             * @default true
+             */
+            pdfRendererEnabled: boolean;
+            /**
+             * Solve Captchas
+             * @description Whether the browser detects and solves CAPTCHAs on its own. Set to false to handle CAPTCHAs yourself. Defaults to true.
+             * @default true
+             */
+            solveCaptchas: boolean;
             /**
              * Custom Proxy
              * @description Custom proxy settings to use for the session. If not provided, our proxies will be used. Custom proxies are available on any active subscription.
@@ -1249,7 +1264,7 @@ export interface components {
              * @default claude-opus-4.7
              */
             model: components["schemas"]["BuModel"];
-            /** @description Optional model reasoning depth. Omit this field to preserve the model provider default. Supported values depend on the selected model: most supported Claude models and GPT-5.1+ models support disabled/low/medium/high; Gemini Flash models support all four (disabled maps to Gemini's minimal level); Claude Fable 5, earlier GPT-5 models, Gemini 2.5 Pro, o3/o4, and Grok support low/medium/high; Gemini 3.1 Pro supports low/high; GLM supports disabled/high. Unsupported model/level combinations are rejected. */
+            /** @description Optional model reasoning depth. Omit this field to preserve the model provider default. Supported values depend on the selected model: most supported Claude models and GPT-5.1+ models support disabled/low/medium/high; Gemini Flash models support all four (disabled maps to Gemini's minimal level for Gemini 3 Flash and 3.5 Flash, and to a zero thinking budget for Gemini 2.5 Flash and the gemini-flash-latest variants); Claude Fable 5, earlier GPT-5 models, Gemini 2.5 Pro, o3/o4, and Grok support low/medium/high; Gemini 3.1 Pro supports low/high; GLM supports disabled/high. Unsupported model/level combinations are rejected. */
             thinkingLevel?: components["schemas"]["ThinkingLevel"] | null;
             /**
              * Sessionid
