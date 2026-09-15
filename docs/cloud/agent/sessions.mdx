@@ -55,3 +55,60 @@ console.log(result.result);
 Omit the session ID for a new conversation. Pass only a [workspace
 ID](/cloud/agent/workspaces) when you want a fresh conversation that keeps the
 same files.
+
+## Follow up while a run is busy
+
+Use the session queue to send the next instruction without interrupting the
+active run. The response is a queued message, not a run: its `runId` can be
+`null` until dispatch. Keep its message ID and poll that message before waiting
+for the resulting run. Do not resend the message to poll it.
+
+<CodeGroup>
+```python Python
+import time
+
+message = client.sessions.send_message(
+    first.session_id,
+    "Now summarize the top story",
+    interrupt=False,
+)
+deadline = time.monotonic() + 300
+while message.run_id is None:
+    if message.status.value in {"cancelled", "superseded", "failed"}:
+        raise RuntimeError(f"Queued message {message.status.value}")
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise TimeoutError(f"Message {message.id} is still waiting; keep its ID")
+    time.sleep(min(1, remaining))
+    message = client.sessions.get_message(first.session_id, message.id)
+
+result = client.runs.wait_for_completion(message.run_id)
+print(result.status.value, result.result)
+```
+```typescript TypeScript
+let message = await client.sessions.sendMessage(first.sessionId, {
+  text: "Now summarize the top story",
+  interrupt: false,
+});
+const deadline = Date.now() + 300_000;
+while (message.runId === null) {
+  if (["cancelled", "superseded", "failed"].includes(message.status)) {
+    throw new Error(`Queued message ${message.status}`);
+  }
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) {
+    throw new Error(`Message ${message.id} is still waiting; keep its ID`);
+  }
+  await new Promise((resolve) => setTimeout(resolve, Math.min(1_000, remaining)));
+  message = await client.sessions.getMessage(first.sessionId, message.id);
+}
+
+const result = await client.runs.waitForCompletion(message.runId);
+console.log(result.status, result.result);
+```
+</CodeGroup>
+
+This example times out only its local wait. It does not remove the queued
+message or cancel a run. `interrupt=True` / `interrupt: true` instead cancels
+the active run so the new instruction can run immediately. Keep it false
+to preserve the active work.
