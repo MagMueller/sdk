@@ -48,6 +48,68 @@ Use bounded workers, stagger polling, and respect `Retry-After` when provided. T
 
 For insufficient-balance or API-key spending-cap errors (402), see [Billing and credits](/cloud/guides/billing).
 
+## How do I get a V4 judge verdict?
+
+Pass `judge: {}` when creating a run to ask an LLM to evaluate its completed
+trajectory. Add `context` with your evaluation criteria when needed. Judging
+is opt-in, and the judge's LLM call is billed to the run. Omit `judge` to keep
+the default behavior without that extra call.
+
+The verdict arrives after the run becomes terminal. `wait_for_completion()` /
+`waitForCompletion()` waits for the run, so its returned `judgement` can still
+be `null`. Refresh that same run's summary to retrieve the verdict:
+
+<CodeGroup>
+```python Python
+import time
+from browser_use_sdk.v4 import BrowserUse
+
+client = BrowserUse()
+created = client.runs.create(
+    "Return the top five Hacker News story titles and URLs",
+    judge={"context": "The result must contain five titles and their URLs."},
+)
+result = client.runs.wait_for_completion(created.id)
+
+for _ in range(30):
+    if result.judgement is not None or result.status.value == "cancelled":
+        break
+    time.sleep(2)
+    result = client.runs.get(created.id)
+
+print("Run status:", result.status.value)
+print("Judgement:", result.judgement)
+```
+```typescript TypeScript
+import { BrowserUse } from "browser-use-sdk/v4";
+
+const client = new BrowserUse();
+const created = await client.runs.create({
+  task: "Return the top five Hacker News story titles and URLs",
+  judge: { context: "The result must contain five titles and their URLs." },
+});
+let result = await client.runs.waitForCompletion(created.id);
+
+for (let attempt = 0; attempt < 30; attempt++) {
+  if (result.judgement != null || result.status === "cancelled") break;
+  await new Promise((resolve) => setTimeout(resolve, 2_000));
+  result = await client.runs.get(created.id);
+}
+
+console.log("Run status:", result.status);
+console.log("Judgement:", result.judgement);
+```
+</CodeGroup>
+
+This example refreshes at most 30 times, with a two-second pause before each
+request. If `judgement` is still `null`, it is unavailable, not a pass or fail.
+It may remain unavailable; do not poll forever. You can fetch the same run
+again later without creating another run. A `completed` run status alone is
+not a judge verdict.
+
+See the [create-run reference](/cloud/api-v4/runs/create-run) for `judge` and
+the [run summary](/cloud/api-v4/runs/get-run) for `judgement`.
+
 ## V2 or V4 — which should I use?
 
 Use **V4** for difficult tasks where accuracy matters. It supports:
