@@ -28,7 +28,7 @@ console.log(result.result);
 ```
 
 This is the current **Browser Use Agents** interface. Browser Infrastructure's
-browser-management resource currently lives in the explicit `browser-use-sdk/v3`
+browser-management resource currently lives in the explicit `browser-use-sdk/v4`
 entry point; see the [browser quickstart](https://docs.browser-use.com/cloud/browser/quickstart).
 
 ## v3 Bring Your Own LLM Key
