@@ -26,7 +26,7 @@ with BrowserUse() as client:
 ```
 
 This is the current **Browser Use Agents** interface. Browser Infrastructure's
-browser-management resource currently lives in the explicit `browser_use_sdk.v3`
+browser-management resource currently lives in the explicit `browser_use_sdk.v4`
 namespace; see the [browser quickstart](https://docs.browser-use.com/cloud/browser/quickstart).
 
 ## v3 Bring Your Own LLM Key
