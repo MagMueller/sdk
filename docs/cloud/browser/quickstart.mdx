@@ -8,18 +8,14 @@ icon: rocket
 Every browser includes stealth, proxies, live preview, and recording. Its
 **CDP URL** is a WebSocket endpoint for remotely controlling Chrome.
 
-<img
-  src="/cloud/images/browser-cdp-light.svg"
-  alt="Your code using a CDP URL to connect to and control a cloud browser that accesses the web"
-  noZoom
-  className="block dark:hidden"
-/>
-<img
-  src="/cloud/images/browser-cdp-dark.svg"
-  alt="Your code using a CDP URL to connect to and control a cloud browser that accesses the web"
-  noZoom
-  className="hidden dark:block"
-/>
+<picture className="block dark:hidden">
+  <source media="(max-width: 600px)" srcSet="/cloud/images/browser-cdp-light-mobile.svg" />
+  <img src="/cloud/images/browser-cdp-light.svg" alt="Your code creates a cloud browser through the Browser Use Cloud API with client.browsers.create(). It then connects to the browser over CDP with connect_over_cdp(session.cdp_url) to browse the web, and stops it through the same API with client.browsers.stop(session.id)." noZoom />
+</picture>
+<picture className="hidden dark:block">
+  <source media="(max-width: 600px)" srcSet="/cloud/images/browser-cdp-dark-mobile.svg" />
+  <img src="/cloud/images/browser-cdp-dark.svg" alt="Your code creates a cloud browser through the Browser Use Cloud API with client.browsers.create(). It then connects to the browser over CDP with connect_over_cdp(session.cdp_url) to browse the web, and stops it through the same API with client.browsers.stop(session.id)." noZoom />
+</picture>
 
 Get an [API key](https://cloud.browser-use.com/settings?tab=api-keys&new=1) and
 export it:

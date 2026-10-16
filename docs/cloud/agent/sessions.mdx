@@ -8,18 +8,14 @@ A **session** holds the agent's conversation and can reuse its live browser.
 One session ID can contain multiple runs. Every run creates a session implicitly
 unless you pass an existing session ID.
 
-<img
-  src="/cloud/images/v4-sessions-light.svg"
-  alt="One session ID containing three sequential runs, where each run continues the same conversation, workspace, and live browser"
-  noZoom
-  className="block dark:hidden"
-/>
-<img
-  src="/cloud/images/v4-sessions-dark.svg"
-  alt="One session ID containing three sequential runs, where each run continues the same conversation, workspace, and live browser"
-  noZoom
-  className="hidden dark:block"
-/>
+<picture className="block dark:hidden">
+  <source media="(max-width: 600px)" srcSet="/cloud/images/v4-sessions-light-mobile.svg" />
+  <img src="/cloud/images/v4-sessions-light.svg" alt="One session ID holding four runs: the conversation gains a turn per run and the workspace keeps its files, while back-to-back runs reuse one live browser. That browser stops after 120 s idle, so a later run gets a new browser but keeps the conversation and files." noZoom />
+</picture>
+<picture className="hidden dark:block">
+  <source media="(max-width: 600px)" srcSet="/cloud/images/v4-sessions-dark-mobile.svg" />
+  <img src="/cloud/images/v4-sessions-dark.svg" alt="One session ID holding four runs: the conversation gains a turn per run and the workspace keeps its files, while back-to-back runs reuse one live browser. That browser stops after 120 s idle, so a later run gets a new browser but keeps the conversation and files." noZoom />
+</picture>
 
 Pass `session_id` / `sessionId` to continue:
 
